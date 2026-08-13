@@ -2,3 +2,15 @@
 .env
 .env.*
 !.env.example
+
+# Local browser-engine checkouts, binary dependencies, and generated artifacts.
+/Chromium/
+/.deps/
+/build/
+/out/
+/.runtime/
+
+# Per-user Xcode state; the shared root project and scheme remain trackable.
+/Egakium.xcodeproj/xcuserdata/
+/Egakium.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcuserstate
