@@ -1,107 +1,260 @@
-# Egakium
+# Ekagium
 
-Egakium 是一个以 Chromium Embedded Framework（CEF）为嵌入式渲染运行时、以 HTML/DOM 为画布和元素载体的 AI 原生空间工作台。
+当前版本：**v0.2**（build 49）
+状态：pre-1.0；Ekagium v0.2 源码与构建元数据可验证，Developer ID 正式签名、公证与发行验收仍未完成。
 
-正式路线采用官方 CEF macOS ARM64 二进制发行包：Egakium 自己拥有应用身份、原生窗口和生命周期，CEF 只负责窗口内嵌的 HTML/CSS/JavaScript 渲染。AI、语音、main agent、sub-agent 和画布元素框架尚未接入。
+Ekagium 是 Apple-first、Swift-native 优先的本地 AI 工作区，当前建立在导入的 Intatis
+技术基线上。macOS 提供 Chat、Code、Cowork 三个产品面；iOS 是严格的 Chat 子集；CLI
+提供 headless Code/Cowork 和外部 MCP client。所有运行时能力围绕结构化 EventLog、共享
+AgentKernel、显式工具注册和权限链组织，而不是让 UI 直接调用模型或本地执行器。
 
-## 仓库
+用户可见品牌已统一为 `Ekagium`。为避免破坏现有构建、会话和本地数据，本轮不批量重命名
+`IntatisMac` / `IntatisiOS` target、Swift 模块、bundle identifier、配置/数据路径或协议标识；
+Session Canvas 的 `.egakium/` 路径也作为兼容 identity 保持不变。
 
-- 本地根目录：`/Users/vita/Vitemis/Volans/Egakium`
-- GitHub：`https://github.com/Vita0818/Egakium`
-- 默认分支：`main`
+当前文档入口见 [`docs/README.md`](docs/README.md)，版本规则见
+[`docs/VERSIONING.md`](docs/VERSIONING.md)。历史 v0.1–v0.16 里程碑不代表当前产品版本。
 
-## 当前状态
+## 当前产品面
 
-- GitHub 远端已配置为 `origin`。
-- 已有一张无框架、无第三方依赖的 HTML 白画布。
-- 已集成官方 CEF `151.3.17+gf059e67+chromium-151.0.7922.138` macOS ARM64 Standard Distribution，并把下载地址与 SHA-256 固定在 `config/cef.cmake`。
-- 正式 CEF 原型已生成：Egakium 拥有自己的应用身份和窗口，bundle 内自包含 CEF Framework、资源与 Helper，只显示白色 HTML 画布。
-- 根目录提供真实的 `Egakium.xcodeproj/` 工程包作为 Xcode 开发入口，内部实际包含 `project.pbxproj`、workspace 设置和共享 scheme；它不是符号链接。
-- 正式构建产物位于 `build/cef/src/native/Release/Egakium.app`。
-- 已完成一个 macOS `chrome --app` 启动实验，验证 Chromium 能加载白画布，也确认该方式仍暴露 Chromium 的 Dock/窗口身份，不符合正式架构。
-- 旧 `out/Egakium.app` 仍是保留的历史实验产物，不是正式应用；是否清理旧壳和完整 Chromium checkout 由用户后续决定。
-- AI、语音、main agent、sub-agent、无限画布与元素系统均尚未实现。
-- 已接受的完整技术路线见 `docs/TECHNICAL_ROUTE.md`。
+### macOS
 
-## Xcode 开发（推荐）
+- Chat：OpenAI-compatible streaming、provider/model/variant 配置、透明 hosted web search、
+  citations、会话历史、多模态产物和本地诊断导出。
+- Code：单 workspace agent、文件/patch/Git、managed terminal、Skills、MCP、文档/媒体、
+  浏览器和模型驱动 Knowledge 工具；所有工具均经过 CapabilityLease、WorkspaceLease、
+  PathConfinement 与权限链。
+- Cowork：多 agent roster、FIFO scheduler、WorkTask/Goal、MessageBus/Mediator、per-agent
+  exact inference binding、独立 permission reviewer 和 goal verifier 控制面。
+- 设置：provider catalog、Ekagium JSON/JSONC 配置（底层兼容路径仍使用 Intatis identity）、MCP、renderer fallback、第三方声明，
+  以及只在本机生成且不上传的脱敏诊断 ZIP。
 
-首次生成或需要刷新 Xcode 工程时运行：
+macOS 唯一发行 target 是 `IntatisMac`，通过 Developer ID、Apple notarization 和直接下载
+分发。`IntatisMacAppStore` 是未删除的 legacy target，不属于产品或 release gate。
 
-```sh
-./scripts/generate-xcode-project.sh
-```
+### iOS
 
-然后直接打开项目根目录中的工程：
+iOS 只链接 Core、Protocol、Providers、Conversation、Artifacts、Multimodal 和 SharedUI。
+它支持 Chat、provider 配置导入、会话历史、托管搜索、citations 和图片生成，但不链接
+Tools、Permission、AgentKernel、Cowork、MCP 或本地 workspace/shell。
 
-```sh
-open ./Egakium.xcodeproj
-```
+### CLI
 
-选择唯一的共享 scheme `Egakium`，即可使用 Xcode 的 Build 或 Run。Debug 与 Release 产物分别位于：
+`intatis` 支持 Chat/Code/Cowork REPL、managed execution、Skills、per-agent inference
+profiles 和外部 MCP client。macOS/Linux 平台能力与 sandbox/guard 可用性按 host fail closed。
 
-```text
-build/xcode/src/native/Debug/Egakium.app
-build/xcode/src/native/Release/Egakium.app
-```
+## 核心不变量
 
-根目录 `Egakium.xcodeproj/` 是实际存在且可跟踪的 Xcode 工程包。生成脚本先在被 Git 忽略的 `build/xcode/` 完成 CMake 配置，再把 `project.pbxproj`、workspace 设置和共享 `Egakium` scheme 同步到根目录，并让 scheme 引用根目录工程自身。工程 target 和 bundle 规则的事实来源仍是根目录 `CMakeLists.txt` 与 `src/native/CMakeLists.txt`；修改这些配置后应重新运行生成脚本。
+- `EventLog` JSONL 是 session canonical truth；projection 和 `session.json` 都可重建。
+- Chat 无工具；Code/Cowork 的每个工具调用必须先经过 ToolRegistry、lease 和三层权限门。
+- Cowork 不递归同步调用 `AgentLoop`；通信、委派和调度通过 mailbox/scheduler/event flow。
+- secret 只从受控 credential reference 懒加载，不进入 EventLog、诊断包或仓库文档。
+- iOS 是结构性子集，不靠运行时开关隐藏本地 agent 能力。
+- 第三方源码和依赖必须固定 provenance、许可证并更新 `NOTICE.md`。
 
-## 正式 CEF 白画布构建
+详细合同见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) 和
+[`docs/DO_NOT_BREAK.md`](docs/DO_NOT_BREAK.md)。
 
-首次准备官方 CEF 依赖：
-
-```sh
-cmake -P scripts/fetch-cef.cmake
-```
-
-依赖会放入被 Git 忽略的 `.deps/`，下载包必须通过固定 SHA-256 才会解包。生成或增量更新应用：
-
-```sh
-./scripts/build-cef-app.sh
-```
-
-打开正式原型：
-
-```sh
-open ./build/cef/src/native/Release/Egakium.app
-```
-
-日常修改 `src/canvas/index.html` 后再次运行构建脚本，只会把页面更新到 bundle；不会重新编译 Chromium/CEF，未改原生代码时 Ninja 会直接报告无需编译。
-
-当前原型是本机开发构建，CEF sandbox、Developer ID 签名、公证和发布流程尚未完成，不应直接作为对外分发包。
-
-## 历史 Chromium 实验（保留但不再扩展）
-
-前提是本地 Chromium 已编译到：
+## 仓库结构
 
 ```text
-Chromium/checkout/src/out/EgakiumNative/Chromium.app
+Apps/                 macOS、iOS 与 CLI 入口
+Packages/             14 个公共库、内部 C/guard target 与测试
+Vendor/               经审计并固定的第三方派生源码
+ThirdPartyNotices/    许可证、来源与资源清单
+Tests/                MCP conformance 与独立 parity fixtures
+docs/                 当前规范和已标记的历史设计文档
+scripts/              构建、验证、诊断和发行脚本
+project.yml           XcodeGen 及产品版本唯一事实源
+Package.swift         SwiftPM 产品、target 与测试图
 ```
 
-生成现有实验壳：
+精确 target 和入口见 [`docs/PROJECT_MAP.md`](docs/PROJECT_MAP.md)。
+
+## 开发与验证
+
+要求 Xcode 27 / Swift 6.x、XcodeGen，以及当前依赖可用。常用命令：
 
 ```sh
-./scripts/build-macos-app.sh
+scripts/check-version-consistency.sh
+swift test
+xcodegen generate
+
+xcodebuild -project Intatis.xcodeproj -scheme IntatisMac \
+  -configuration Debug -destination 'platform=macOS' \
+  CODE_SIGNING_ALLOWED=NO build
+
+xcodebuild -project Intatis.xcodeproj -scheme IntatisiOS \
+  -configuration Debug -destination 'generic/platform=iOS Simulator' \
+  CODE_SIGNING_ALLOWED=NO build
 ```
 
-该产物会启动完整 Chromium，因此只用于保存历史验证，不应继续扩展为正式产品。
+当前测试状态和环境限制以 [`docs/TESTING.md`](docs/TESTING.md) 为准，不以 README 中的
+历史测试数量判断 release readiness。
 
-如需重现实验，可以在 Finder 中打开 `out/Egakium.app`，或者手动执行：
+## macOS 直接分发
+
+正式发行需要本机 Keychain 中有效的 `Developer ID Application` identity，以及用户自行
+保存的 `notarytool` profile：
 
 ```sh
-open ./out/Egakium.app
+INTATIS_NOTARY_PROFILE=<profile-name> scripts/package-macos-release.sh
 ```
 
-实验启动器默认读取 `src/canvas/index.html`。该白画布会继续复用于正式 CEF 原型。
+如果 GitHub 需要代理/VPN、Apple notarization 又需要直连，使用两阶段模式：
 
-## 文档
+```sh
+INTATIS_PAUSE_BEFORE_NOTARIZATION=1 \
+INTATIS_NOTARY_PROFILE=<profile-name> \
+  scripts/package-macos-release.sh
+```
 
-- `AGENTS.md`：项目工作规则与修改边界。
-- `docs/CURRENT_STATE.md`：当前真实状态与风险。
-- `docs/PROJECT_MAP.md`：仓库结构与模块地图。
-- `docs/ARCHITECTURE.md`：架构与关键链路。
-- `docs/TECHNICAL_ROUTE.md`：CEF 正式路线、边界、排除项与验收标准。
-- `docs/DO_NOT_BREAK.md`：不可破坏的约束。
-- `docs/TESTING.md`：构建、测试和验证入口。
+保持代理/VPN 开启完成依赖解析、构建和签名；脚本明确提示后保持终端打开，关闭代理/VPN
+再按 Return。它会先验证 Apple 可达性，失败时原地等待重试，不重新构建。上传进度和
+submission ID 会直接显示；Apple 处理默认等待 30 分钟，仍为 `In Progress` 时保留签名
+产物并打印 `INTATIS_RESUME_RELEASE_DIR` 恢复命令。恢复同一 submission，不要重复上传。
 
-仅在已有具体下一目标时创建 `docs/NEXT_TARGET.md`。
+该脚本只有在 universal Release、Hardened Runtime、Developer ID 签名、App/DMG 公证、
+staple、codesign 和 Gatekeeper assessment 全部通过后，才向 `dist/` 输出 ZIP、DMG 与
+SHA-256 清单。不要把证书私钥、Apple 密码或 app-specific password 写入仓库或对话。
+
+## 配置与数据
+
+- macOS/CLI 高级配置读取 `INTATIS_CONFIG`、Intatis-owned JSON/JSONC 路径及兼容 fallback；
+  不默认读取 OpenCode app 配置。
+- Cowork 自动权限审查使用顶层 `permission_reviewer_model` 固定独立模型，不新增设置 UI，也不跟随
+  当前主 Agent、会话默认模型或后续 rebind。字段缺失时只继承该 JSON 文档的顶层 `model`；显式填写
+  但无法解析、顶层兼容来源不可用或整份已选配置损坏/不可读时 fail closed。
+- Code/Cowork 的 `generate_image` 与 `edit_image` 共用顶层 `image_model` 宿主路由；主 agent
+  只提交任务参数，不选择 provider/model。`edit_image` 接收工作区内的 `imagePath`、编辑 prompt
+  和新的 `.png` `outputPath`。未配置时明确失败，不再暗中回退到固定模型。
+- macOS Chat/Code/Cowork 与 iOS Chat 的输入栏语音按钮共用顶层 `transcription_model` 宿主路由；
+  再次点击会停止录音并转写，结果只追加到当前可编辑草稿，不会自动发送。未配置时在本地明确
+  提示，不会回退到当前 Chat 模型，也不会为此增加另一套设置页面。
+- session 数据默认位于用户 App Support 下，每个 session 使用 append-only EventLog。
+- browser profile、workspace artifact、credential 和 bookmark 不应提交到 Git，也不会进入
+  本地诊断 ZIP。
+- 日志导出当前不做远程上传；Apple notarization 仅在用户显式运行发行脚本时发生。
+
+最小配置示例（图片、语音和 Knowledge provider 也可与 Chat provider 相同）：
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "chat/chat-model",
+  "permission_reviewer_model": "chat/reviewer-model",
+  "image_model": "images/gpt-image-1",
+  "transcription_model": "speech/whisper-1",
+  "embedding_model": "knowledge/BAAI/bge-m3",
+  "reranker_model": "knowledge/BAAI/bge-reranker-v2-m3",
+  "provider": {
+    "chat": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "https://chat.example.com/v1",
+        "apiKey": "{env:CHAT_API_KEY}"
+      },
+      "models": {
+        "chat-model": { "name": "Chat Model" },
+        "reviewer-model": { "name": "Permission Reviewer" }
+      }
+    },
+    "images": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "https://images.example.com/v1",
+        "apiKey": "{env:IMAGE_API_KEY}"
+      },
+      "models": {}
+    },
+    "speech": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "https://speech.example.com/v1",
+        "apiKey": "{env:SPEECH_API_KEY}"
+      },
+      "models": {}
+    },
+    "knowledge": {
+      "npm": "intatis:siliconflow-v1",
+      "options": {
+        "baseURL": "https://your-knowledge-provider.example/v1",
+        "apiKey": "{env:KNOWLEDGE_API_KEY}"
+      },
+      "models": {}
+    }
+  }
+}
+```
+
+`permission_reviewer_model` 是 Intatis 的顶层授权控制面字段，格式为
+`<provider>/<model-id>`，并引用 provider `models` 中已配置的 base profile。Intatis 在启动/恢复
+Cowork runtime 时冻结该 exact binding；每次审查仍从这个 binding fresh-resolve provider wrapper。
+改变 Chat/Cowork 模型菜单、session default 或 `@main` binding 都不会重定向审查者。该字段省略时，
+仅为旧配置兼容而一次性采用同一 JSON 文档的顶层 `model`；显式空值、错误类型、未知 provider/model
+或不可解析引用不会回退主模型；已选配置文件本身无法读取/解析时，普通 provider 可继续沿用既有缓存，
+但权限审查保持不可用。
+
+`image_model` 是 Intatis 的顶层扩展字段，格式为 `<provider>/<model-id>`。专用图片 provider
+可保持空 `models`，因此不会混入 Chat/Code/Cowork 的推理模型菜单；当前 backend 要求该 route
+兼容 `POST <baseURL>/images/generations` 与 multipart `POST <baseURL>/images/edits`，并返回
+`data[].b64_json`。`edit_image` 当前支持单张 PNG/JPEG/WebP 输入（最多 50 MiB）并写出新的 PNG；
+尚不支持 mask、多参考图或原地覆盖输入图。
+
+`transcription_model` 同样是 Intatis 的顶层扩展字段，格式为 `<provider>/<model-id>`。专用语音
+provider 可保持空 `models`，不会混入推理模型菜单；输入栏按 Flotis 的单模型 recorded-file runtime
+录制 WAV/16 kHz/mono。compatible provider 使用 multipart，exact OpenRouter adapter 使用 JSON-base64
+`input_audio`，两者都调用 `POST <baseURL>/audio/transcriptions`。录音和 upload body 使用有界、
+owner-only 的临时文件，转写完成、失败或取消后即清理；用户按下 Send 前，音频和转写草稿都不会写入
+EventLog 或 ArtifactStore。该接入不包含多模型对比，也没有新增设置页。
+
+`embedding_model` 与 `reranker_model` 是 Knowledge 的两个独立必填 route，均只接受
+`<provider>/<model-id>`；缺少任意一个时，Code/Cowork 不会获得 `build_knowledge` 和
+`search_knowledge`。上例中的 URL 和模型 ID 是需要替换的配置值；`intatis:siliconflow-v1`
+表示该 provider 同时使用 OpenAI-compatible `POST <baseURL>/embeddings` 和显式
+`POST <baseURL>/rerank`。若 reranker 使用 Cohere v2，应为它建立独立 provider 并将 `npm` 写为
+`intatis:cohere-v2`。Knowledge-only provider 的 `models` 可保持空对象，不会进入普通推理模型菜单；
+若使用没有内置维度定义的 embedding 模型，则必须在对应 model 的 `options.dimensions` 中显式声明
+正整数维度。若配置使用 `enabled_providers`，也必须把 Knowledge route 的 provider ID 加入其中。
+Knowledge 工具仅接入 macOS/CLI 的 Code 与 Cowork，不进入 Chat 或 iOS。
+用户无需学习挂载命令或新增管理页面：可以用自然语言要求 Agent 读取当前 workspace 的文本、PDF
+或其它文档，整理为有来源的 OKF draft，并把库建立在 workspace 内或用户点名并精确授权的外部目录。
+成功 build/query 会分别使用这里配置的 embedding route；每次成功 search 还必须实际使用这里配置的
+semantic reranker，并要求最终回答引用本轮返回的 exact evidence ID。
+
+使用同一个 OpenRouter provider 的已验收配置片段如下。即使 provider 默认仍用于普通
+OpenAI-compatible Chat，这两个 model 也应以 model-level `@openrouter/ai-sdk-provider` 冻结 Knowledge
+协议；顶层 role 引用的 exact model 会保留 adapter/options，但不会进入 Chat/Cowork 推理模型菜单。
+
+```json
+{
+  "embedding_model": "OpenRouter/google/gemini-embedding-2",
+  "reranker_model": "OpenRouter/cohere/rerank-4-pro",
+  "provider": {
+    "OpenRouter": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "https://openrouter.ai/api/v1",
+        "apiKey": "{env:OPENROUTER_API_KEY}"
+      },
+      "models": {
+        "google/gemini-embedding-2": {
+          "name": "Gemini Embedding 2",
+          "provider": { "npm": "@openrouter/ai-sdk-provider" },
+          "options": { "dimensions": 1536 }
+        },
+        "cohere/rerank-4-pro": {
+          "name": "Cohere Rerank 4 Pro",
+          "provider": { "npm": "@openrouter/ai-sdk-provider" }
+        }
+      }
+    }
+  }
+}
+```
+
+## 许可证
+
+Intatis 自有代码和第三方采用状态见 [`NOTICE.md`](NOTICE.md)、
+[`ThirdPartyNotices/`](ThirdPartyNotices/) 与
+[`docs/OPEN_SOURCE_REUSE.md`](docs/OPEN_SOURCE_REUSE.md)。

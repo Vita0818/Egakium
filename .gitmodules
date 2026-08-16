@@ -1,0 +1,104 @@
+[submodule "OpenSource/Open-XML-SDK"]
+	path = OpenSource/Open-XML-SDK
+	url = https://github.com/dotnet/Open-XML-SDK.git
+	shallow = true
+[submodule "OpenSource/PaddleOCR"]
+	path = OpenSource/PaddleOCR
+	url = https://github.com/PaddlePaddle/PaddleOCR.git
+	shallow = true
+[submodule "OpenSource/PptxGenJS"]
+	path = OpenSource/PptxGenJS
+	url = https://github.com/gitbrent/PptxGenJS.git
+	shallow = true
+[submodule "OpenSource/Sigil"]
+	path = OpenSource/Sigil
+	url = https://github.com/Sigil-Ebook/Sigil.git
+	shallow = true
+[submodule "OpenSource/apache-poi"]
+	path = OpenSource/apache-poi
+	url = https://github.com/apache/poi.git
+	shallow = true
+[submodule "OpenSource/calibre"]
+	path = OpenSource/calibre
+	url = https://github.com/kovidgoyal/calibre.git
+	shallow = true
+[submodule "OpenSource/daisy-ace"]
+	path = OpenSource/daisy-ace
+	url = https://github.com/daisy/ace.git
+	shallow = true
+[submodule "OpenSource/docling"]
+	path = OpenSource/docling
+	url = https://github.com/docling-project/docling.git
+	shallow = true
+[submodule "OpenSource/docling-mcp"]
+	path = OpenSource/docling-mcp
+	url = https://github.com/docling-project/docling-mcp.git
+	shallow = true
+[submodule "OpenSource/docx4j"]
+	path = OpenSource/docx4j
+	url = https://github.com/plutext/docx4j.git
+	shallow = true
+[submodule "OpenSource/epub.js"]
+	path = OpenSource/epub.js
+	url = https://github.com/futurepress/epub.js.git
+	shallow = true
+[submodule "OpenSource/epubcheck"]
+	path = OpenSource/epubcheck
+	url = https://github.com/w3c/epubcheck.git
+	shallow = true
+[submodule "OpenSource/libreoffice-core"]
+	path = OpenSource/libreoffice-core
+	url = https://github.com/LibreOffice/core.git
+	shallow = true
+[submodule "OpenSource/mcp-swift-sdk"]
+	path = OpenSource/mcp-swift-sdk
+	url = https://github.com/modelcontextprotocol/swift-sdk.git
+	shallow = true
+[submodule "OpenSource/msoffcrypto-tool"]
+	path = OpenSource/msoffcrypto-tool
+	url = https://github.com/nolze/msoffcrypto-tool.git
+	shallow = true
+[submodule "OpenSource/noto-cjk"]
+	path = OpenSource/noto-cjk
+	url = https://github.com/notofonts/noto-cjk.git
+	shallow = true
+[submodule "OpenSource/pdfbox"]
+	path = OpenSource/pdfbox
+	url = https://github.com/apache/pdfbox.git
+	shallow = true
+[submodule "OpenSource/pdfcpu"]
+	path = OpenSource/pdfcpu
+	url = https://github.com/pdfcpu/pdfcpu.git
+	shallow = true
+[submodule "OpenSource/pdfium"]
+	path = OpenSource/pdfium
+	url = https://pdfium.googlesource.com/pdfium
+	shallow = true
+[submodule "OpenSource/pixelmatch"]
+	path = OpenSource/pixelmatch
+	url = https://github.com/mapbox/pixelmatch.git
+	shallow = true
+[submodule "OpenSource/python-docx"]
+	path = OpenSource/python-docx
+	url = https://github.com/python-openxml/python-docx.git
+	shallow = true
+[submodule "OpenSource/python-pptx"]
+	path = OpenSource/python-pptx
+	url = https://github.com/scanny/python-pptx.git
+	shallow = true
+[submodule "OpenSource/qpdf"]
+	path = OpenSource/qpdf
+	url = https://github.com/qpdf/qpdf.git
+	shallow = true
+[submodule "OpenSource/rbook"]
+	path = OpenSource/rbook
+	url = https://github.com/DevinSterling/rbook.git
+	shallow = true
+[submodule "OpenSource/tessdata"]
+	path = OpenSource/tessdata
+	url = https://github.com/tesseract-ocr/tessdata.git
+	shallow = true
+[submodule "OpenSource/tesseract"]
+	path = OpenSource/tesseract
+	url = https://github.com/tesseract-ocr/tesseract.git
+	shallow = true
