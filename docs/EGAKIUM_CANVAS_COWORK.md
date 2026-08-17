@@ -1,7 +1,7 @@
 # EGAKIUM_CANVAS_COWORK
 
-文档状态：用户已确认的 Ekagium 产品合同；方案一最小双窗口原型已实现，CEF/元素 schema/最终合窗待实现
-确认日期：2026-08-15
+文档状态：用户已确认的 Ekagium 产品合同；方案一、可复用 CanvasHost 与原样左右拼接已实现，CEF/元素 schema 待实现
+确认日期：2026-08-16
 当前业务基线：Ekagium v0.2（build 49；源码与技术 identity 仍来自 Intatis SwiftPM/XcodeGen 基线）
 适用范围：macOS Ekagium 主产品面、Cowork UI 组合、Canvas/Element 模型与 Agent 协作边界
 
@@ -28,19 +28,19 @@ Agent 类型、硬编码递归层级、Element ownership、CapabilityLease 或�
 - 迁移前 Ekagium 的 Chromium/CEF 本地资产，以及只读的 CEF 白画布历史文档快照。
 - 方案一最小原型：Cowork Session 启动在 fresh 七事件 bootstrap 后创建
   `.egakium/canvas/<SessionID>/index.html`；exact `@main` root prompt 获得该精确相对路径并可用现有
-  file/patch + permission 链直接编辑；Cowork 内容 header 可打开 exact SessionID 的独立 Canvas 窗口；
-- 当前 Canvas 窗口恢复同一 Session 的 primary workspace bookmark，只读取已初始化文件，以无持久
-  Web 数据且阻断网络请求的薄 `WKWebView` 预览，并轮询文件变化自动刷新；它不创建第二套
-  CoworkViewModel、runtime、EventLog 或权限控制面。
+  file/patch + permission 链直接编辑；
+- 主 Cowork detail 已使用原生 `HSplitView` 原样左右拼接：左侧可复用 `CoworkCanvasHost` 直接读取同一
+  `CoworkViewModel.canvasDocument`，右侧为参数和业务行为未改的现有 `CoworkShell`。两侧共用同一个
+  exact Session、VM、runtime、EventLog 和权限控制面；
+- 当前产品只有这一处 Canvas presentation：内嵌 host 使用无持久 Web 数据且阻断网络请求的薄
+  `WKWebView` 预览，并轮询文件变化自动刷新。2026-08-16 用户在实际打开后明确纠正此前双窗口路线，
+  独立 Canvas scene、`Open Canvas` 动作、窗口 value/resolver/model/view wrapper 均已移除；打开或恢复
+  Cowork 时必须同时看到左 Canvas 与右 harness；
+- macOS 主 sidebar 当前只展示 Cowork，初始 selection 也是 Cowork。Chat/Code 的 enum case、detail
+  branch、View/ViewModel、runtime、session/history 与配置继续编译和保留，只隐藏可见入口。
 
 ### 用户已经确认、仍待实现
 
-- macOS Ekagium 的主要工作方式基于 Cowork，而不是以普通 Chat 或 Code harness 为产品中心；
-- 最终产品形态中，现有 conversation-first Cowork harness 移到右侧侧边栏，业务逻辑保持不变；
-- 中央主要内容区变为 HTML/DOM 空间画布；
-- 临时开发阶段先保留现有 Cowork harness 独立窗口，并增加一个独立 Canvas 调试窗口；两者绑定
-  同一个 exact Cowork Session 和同一套 session-scoped runtime，不形成两个 App、两个 Session 或
-  两套 Cowork 控制面；
 - 正式 CEF BrowserView、Helper、内部 scheme/origin/bridge、sandbox、签名和公证闭环；
 - 稳定 ElementID、layout/revision/event/projection schema，以及按元素独立 HTML 小网页的完整宿主闭环；
 - `@main` 决定元素创建、位置、大小、层级、空间关系与 sub-agent 委派；
@@ -49,10 +49,10 @@ Agent 类型、硬编码递归层级、Element ownership、CapabilityLease 或�
 
 ### 不得提前宣称
 
-当前源码已经接入 Session Canvas 初始化、`@main` 直编路径提示、独立 Canvas 窗口和定向测试；但
-`CoworkCanvasWindow` 只是 `WKWebView` 调试适配层，不是正式 CEF CanvasHost。源码仍没有 CEF
-BrowserView/Helper 接线、正式 ElementID/layout/event schema 或 native bridge。迁移前 CEF 原型和
-保留的 `.deps/` / `build/` 也不能作为这些待实现能力已经存在的证据。
+当前源码已经接入 Session Canvas 初始化、`@main` 直编路径提示、可复用 `CoworkCanvasHost`、主界面
+左右拼接和定向测试；但该 host 仍只封装 `WKWebView` 调试适配层，不是正式 CEF
+BrowserView/Helper。源码仍没有正式 CEF 接线、ElementID/layout/event schema 或 native bridge。
+迁移前 CEF 原型和保留的 `.deps/` / `build/` 也不能作为这些待实现能力已经存在的证据。
 
 ## 产品布局合同
 
@@ -78,53 +78,51 @@ macOS Ekagium 的目标主视图为：
 - Canvas 是主要工作成果与空间组织表面；
 - 右侧 harness 是用户向 `@main` 下达意图、查看执行状态和处理权限的控制面；
 - 对话记录不替代 Canvas，Canvas 也不重新实现 Cowork 的消息、任务或权限系统；
-- Chat/Code 可继续作为导入基线中的既有能力，但 Ekagium 新主工作流以 Cowork + Canvas 为中心；
+- Chat/Code 继续作为导入基线中的既有能力，但 macOS 主 sidebar 当前隐藏其入口；Ekagium 可见的
+  新主工作流只展示 Cowork + Canvas，恢复入口时不得重建或迁移底层实现；
 - iOS 继续保持 Chat-only 结构性子集，当前目标不把 CEF、Canvas 或本地 Cowork 引入 iOS。
 
-## 临时双窗口实施路线（非最终产品形态）
+## 当前单窗口原样左右拼接
 
-为降低第一阶段 UI 改造量并隔离 Canvas/CEF 调试问题，用户确认先采用以下阶段性拓扑：
+2026-08-16 用户确认当前只做两个现有表面的原样左右拼接，并在实际看到 Canvas-only 窗口后明确
+纠正：只保留一个 Cowork 窗口，不保留独立 Canvas 调试/备用入口。实际拓扑为：
 
 ```text
 同一个 Ekagium macOS 进程
 └── exact Cowork Session / single session-scoped runtime authority
-    ├── Existing Cowork Harness Window
-    │   └── conversation / composer / agents / tasks / permissions
-    └── Canvas Debug Window
-        └── CoworkCanvasWindow / WKWebView preview / Session index.html
+    └── Main Cowork detail / native HSplitView
+        ├── CoworkCanvasHost / Session index.html
+        └── existing CoworkShell / conversation / composer / status
 ```
 
-这里的“两个窗口”只描述暂时的展示容器，不表示两套业务系统：
+主界面 split 只组合 presentation，不改变业务系统：
 
-- 现有 Cowork harness 窗口在该阶段尽量原样保留，不先做右侧窄栏、父级 split view 或最终产品壳；
-- Canvas 调试窗口通过稳定的 exact SessionID 关联同一 Session，只承载 Canvas 的加载、渲染、交互和
-  调试表面；
-- 不得为 Canvas 窗口再创建一套 CoworkViewModel、Orchestrator、scheduler、MessageBus、permission
-  queue、EventLog、AppSessionRuntime 或 Session authority；
+- 左侧 host 直接消费现有 VM 已初始化的 `SessionCanvasDocument`；右侧 `CoworkShell` 的现有参数、
+  composer、conversation、Agents/Goal/Tasks/permission、Send/Stop/Retry 与 lifecycle 行为保持不变；
+- 父级只设置两侧最小/理想宽度并使用系统可拖拽分隔线；本轮没有新增 drawer、overlay、折叠策略、
+  Activity 面板、第二份 harness 或新的窄栏业务模式；
+- App scene 不注册 Canvas 专用 `WindowGroup`，Cowork header 不提供 `Open Canvas`，也不存在按
+  SessionID 恢复 workspace 的独立窗口 resolver。macOS state restoration 因而没有 Canvas-only scene
+  可以恢复；
 - Canvas 是 Session-owned，不是 window-owned。空白 Canvas 的幂等初始化由 `CoworkViewModel` 的
-  Session 启动/bootstrap 路径触发；窗口只调用 `existingCanvas` 打开既有文件，不能由“打开窗口”
-  临时创建；关闭、重开或重建 Canvas 窗口也不能重置、删除或复制 Canvas；
-- Canvas 窗口关闭不得停止 Cowork Session；现有 Command-W、最后窗口关闭、Command-Q、删除 Session
-  和冷启动恢复合同继续生效；
-- CanvasHost 必须设计成可复用的内容宿主，独立窗口只是一层临时 wrapper。后续合窗应当只是把同一个
-  CanvasHost 嵌入中央区域，并把同一个现有 harness 放到右侧，而不是重写两条链路；
-- Canvas/harness 的跨窗口连接仍只能使用稳定 SessionID/CanvasID/ElementID 和窄结构化事件，不能依赖
-  当前 key window、显示标题或隐式全局 selection 推断 Session authority。
+  Session 启动/bootstrap 路径触发；内嵌 host 不能由 presentation 临时创建 Canvas，组合视图的关闭、
+  重开或重建也不能重置、删除或复制 Canvas；
+- 现有 Command-W、最后窗口关闭、Command-Q、删除 Session 和冷启动恢复合同继续生效；
+- `CoworkCanvasHost` 是主 Cowork detail 内的可复用内容宿主，不依赖独立 Window wrapper；
+- Canvas/harness 的连接只能使用稳定 SessionID/CanvasID/ElementID 和窄结构化事件，不能依赖当前
+  key window、显示标题或隐式全局 selection 推断 Session authority。
 
-采用这条路线的目的，是先分别验证渲染生命周期、内部资源加载、Canvas 恢复、Session 路由和元素
-隔离，再承担 harness 窄栏适配与最终单窗口布局的回归成本。它是**已确认的临时调试路线**，不是新的
-最终产品形态，也不是将 Ekagium 拆成两个独立 App 的决定。当前最小双窗口路线已经实现；CEF 替换、
-完整元素隔离和最终合窗仍未实现。
+当前左右拼接只完成 UI 容器层，CEF 替换和完整元素隔离仍未实现。需要渲染调试时应在这个唯一组合
+窗口内完成，不得重新引入会把 harness 隐藏掉的 Canvas-only 产品入口。
 
 ## 现有 Cowork harness 的复用边界
 
-目标组合在概念上等价于：
+当前组合在概念上等价于：
 
 ```swift
-HStack(spacing: 0) {
-    EkagiumCanvasHost(sessionID: sessionID)
-    ExistingCoworkHarnessView(sessionID: sessionID)
-        .frame(width: sidebarWidth)
+HSplitView {
+    CoworkCanvasHost(document: vm.canvasDocument, errorMessage: vm.canvasInitializationError)
+    CoworkShell(/* existing arguments and callbacks */)
 }
 ```
 
@@ -163,9 +161,8 @@ HStack(spacing: 0) {
   -> 现有 Cowork settings-first 七事件 bootstrap 成功
   -> 宿主执行独立、幂等、无模型请求的 Canvas 初始化
   -> 从固定版本模板创建空白 Session Canvas
-  -> 当前 WKWebView 调试预览（未来 CEF/CanvasHost）加载该 Canvas
-  -> 临时阶段由独立 Canvas 窗口显示；最终阶段嵌入中央区域
-  -> 现有 Cowork harness 在同一 Session 上继续显示
+  -> 当前 CoworkCanvasHost / WKWebView 调试预览加载该 Canvas
+  -> 主 Cowork detail 左侧显示 CanvasHost，右侧显示现有 CoworkShell
   -> 用户首次 Send 后才允许发生正常 provider 工作
 ```
 
@@ -394,9 +391,9 @@ workspace 工具链编辑；该 HTML 不是 EventLog canonical Session truth。�
 
 - 不重写或替换现有 Cowork harness；
 - 不为 Canvas 创建第二套 Orchestrator、scheduler、AgentLoop、MessageBus、permission queue 或 EventLog；
-- 不把临时双窗口解释成两个 Session、两个 App 或两套 runtime，也不把 Canvas 内容所有权绑定到
-  Canvas 窗口的打开/关闭；
-- 不把临时 Canvas 调试窗口提前冻结为最终产品布局；
+- 不重新增加独立 Canvas scene/window、`Open Canvas` 动作、Canvas-only 调试/备用入口或第二套
+  presentation；
+- 不删除仅被隐藏入口的 Chat/Code enum、View/ViewModel、runtime、session/history、配置或协议；
 - 不让多个 Agent 并发修改一个 Session 的共享 `index.html`；exact `@main` 可以按方案一直接编辑它，
   ordinary sub-agent 应使用互不重叠的辅助/元素路径再交由 `@main` 集成；
 - 不把“一个 Agent 编辑一个元素”硬编码成永久 Agent hierarchy、owner field 或 capability inheritance；
@@ -411,17 +408,18 @@ workspace 工具链编辑；该 HTML 不是 EventLog canonical Session truth。�
 
 除非用户另行调整，后续代码工作按最小可验证纵向切片推进：
 
-1. **已完成原型**：保持现有 Cowork harness 窗口，增加按 exact SessionID 绑定的独立 Canvas 调试窗口；
-2. **已完成原型**：建立一个 Session 一份确定性 `index.html` 的宿主初始化、旧 Session additive
+1. **已完成原型**：建立一个 Session 一份确定性 `index.html` 的宿主初始化、旧 Session additive
    初始化、no-overwrite 恢复和 exact `@main` 直编提示；
+2. **已完成 UI 组合与入口纠正**：抽取可复用 `CoworkCanvasHost`，在 `CoworkSessionView` 中用原生
+   水平 split 原样拼接左 Canvas 与右现有 `CoworkShell`；移除独立 Canvas scene/window/header action，
+   保证用户打开的唯一 Cowork surface 同时包含两边；
 3. 用正式单一主 CEF BrowserView 替换当前 WKWebView 调试适配层，并完成内部资源、生命周期和空白
    画布验证；
 4. 冻结 ElementID、独立元素网页、layout projection 与 iframe/document 隔离；
 5. 先完成宿主创建、移动、resize、选择、刷新单个元素的无模型闭环；
 6. 扩充当前 `@main` 精确入口路径 prompt/context；只有真实需要时再增加专用 Canvas tools；
 7. 用现有 spawn/delegate/task flow 把单个 ElementID + 页面范围交给 ordinary sub-agent；
-8. 完成多元素并行、冲突、恢复、安全、性能、签名和公证验证；
-9. 核心链路稳定后，再把同一个 CanvasHost 嵌入中央区域，并将现有 harness 组合成右侧侧边栏。
+8. 完成多元素并行、冲突、恢复、安全、性能、签名和公证验证。
 
 每一步都必须保留前述七事件 bootstrap、EventLog、权限、lifecycle、iOS 与 direct-distribution 边界。
 
@@ -430,8 +428,10 @@ workspace 工具链编辑；该 HTML 不是 EventLog canonical Session truth。�
 后续实现至少需要证明：
 
 - 新建两个 Cowork Session 会得到两张互不串线的空白画布；
-- 临时 Canvas 窗口与现有 harness 窗口能同时绑定同一 exact Session，且不会产生第二套 runtime；
-- Session 切换、窗口关闭/重开和多窗口选择不会新建、重置或串线 Canvas/ElementID/harness 状态；
+- 主界面左 Canvas 与右 harness 绑定同一 exact Session/VM/runtime，拖动分隔线不重建业务状态；
+- 打开或恢复 Cowork 时只有一个组合窗口，并同时显示 Canvas 与 harness；不存在 Canvas-only scene、
+  `Open Canvas` action 或可被系统恢复的独立 Canvas 窗口；
+- Session 切换、窗口关闭/重开不会新建、重置或串线 Canvas/ElementID/harness 状态；
 - 现有 harness 的 Send/Stop/Retry/Goal/Task/Agent/permission 与恢复语义没有变化；
 - Canvas 初始化不调用 provider，不增加第八个 bootstrap agent/lease event；
 - 两个独立元素网页可同时显示，修改其中一个不会改动另一个或主画布；
@@ -439,7 +439,7 @@ workspace 工具链编辑；该 HTML 不是 EventLog canonical Session truth。�
 - sub-agent prompt 默认只编辑指定元素，但 reassignment 和顺序接手仍可发生；
 - CEF/element JS 不能直接访问本地文件、Shell、credential 或未授权 bridge；
 - Command-W、Command-Q、删除 Session、崩溃重开与 historical replay 继续满足现有生命周期合同；
-- CanvasHost 不依赖临时 Window wrapper，可在后续最终布局中原样嵌入；
+- CanvasHost 不依赖 Window wrapper，内嵌 host 保持文件刷新和 Web 安全配置；
 - iOS target graph 仍不含 Cowork、CEF、Tools 或本地 workspace Agent。
 
 实际测试命令和 fixture 应在相应实现任务中写入 `docs/TESTING.md`，不能用本文的目标矩阵冒充

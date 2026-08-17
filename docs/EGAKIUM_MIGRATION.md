@@ -40,9 +40,15 @@ bundle identifier、模块、配置/数据路径与协议标识仍使用 `Intati
 - 现有 Orchestrator、scheduler、AgentLoop、MessageBus/Mediator、PermissionEngine、七事件 fresh
   bootstrap、EventLog 与 AppSessionRuntimeManager 继续作为权威运行底座。
 
-完整产品与架构合同见 `docs/EGAKIUM_CANVAS_COWORK.md`。同日后续已经实现最小方案一原型：
-Session Canvas 初始化、exact `@main` 直编路径提示和独立 WKWebView Canvas 调试窗口已进入业务源码。
-正式 CEF 接线、稳定元素/layout/event schema、Canvas bridge 与最终合窗仍是目标，不是当前完成度。
+完整产品与架构合同见 `docs/EGAKIUM_CANVAS_COWORK.md`。方案一原型现已包含 Session Canvas 初始化、
+exact `@main` 直编路径提示、可复用 WKWebView `CoworkCanvasHost`、主 Cowork detail 内的左 Canvas /
+右原 `CoworkShell` 水平拼接。2026-08-16 用户进一步纠正为只保留这一个组合窗口；此前独立 Canvas
+scene/window/header action 已移除，不能作为调试/备用产品入口恢复。正式 CEF 接线、稳定元素/layout/
+event schema 与 Canvas bridge 仍是目标，不是当前完成度。
+
+2026-08-16 用户随后要求 macOS 主 sidebar 暂时只展示 Cowork。Chat 与 Code 入口只在 presentation
+层隐藏；导入的 Chat/Code enum、View/ViewModel、runtime、session/history、配置、CLI 与 iOS 边界均
+保留，没有从业务基线删除。该决定不得被解释为裁剪 target、数据或底层能力。
 
 ## 导入范围
 
@@ -60,6 +66,24 @@ ThirdPartyNotices、Vendor、OpenSource、生成/缓存目录和普通资源。�
 因此，本迁移是可开发的安全基线复制，不声称与源目录逐字节完全相同，也不应被当作凭据、登录态或
 签名材料的备份。任何需要本地 secret 的构建或 smoke 都必须由用户在当前仓库中重新配置，且不得把
 secret 提交到 Git。
+
+### 2026-08-17 OpenSource gitlink 纠正
+
+源 Intatis 的父 index 实际把 26 个 `OpenSource/<project>` 保存为 mode `160000` gitlink；每个目录在
+源工作树中另有独立 `.git/`，但源根目录缺少 `.gitmodules`。迁移时排除所有嵌套 `.git` 后，这 26 个
+边界一度被拍平为 Egakium 父仓库中的 231,413 个普通 tracked entries。当前工作树已按用户要求纠正：
+
+- 新增标准 `.gitmodules`，为 26 个项目固定公开 origin，并设置 `shallow = true`；
+- 父 index 只保留 26 个 gitlink，commit SHA 与源 Intatis 逐项一致；
+- 本机 11 GB 工作树原地保留，各子仓库 HEAD 与父 gitlink 一致且 clean；
+- 没有复制迁移时有意排除的 `.env`、证书、私钥或 provisioning profile；
+- 该结构只恢复版本控制边界，不把研究 checkout 改写成产品依赖、已审计分发物或可用 runtime。
+
+普通文件最早进入尚未推送的旧本地 `v0.2` 提交。2026-08-17 用户明确授权重写仅本地的
+`v0.2` / `v0.3` 并保留两层结构：新 `v0.2` 直接以 26 个 gitlink 表示 `OpenSource/`，新 `v0.3`
+承载其后的产品改动与本次文档；`origin/main` 保持不变且未 push。旧提交不再被 branch/tag 引用，
+因此正常 push `main` 不会传输 flattened blob；旧对象在 reflog 到期和显式 GC 前仍可暂留本机 object
+store，本轮不自动清理或 GC。
 
 ## Ekagium 保留项
 

@@ -22,42 +22,36 @@ Capability/WorkspaceLease、PathConfinement、SecretScanner、durable execution�
 managed terminal 的 workspace-scoped Seatbelt/default-network-deny、
 Hardened Runtime、签名/公证与 iOS target 边界仍是当前架构。
 
-## Ekagium Cowork-first Canvas 架构（2026-08-15，方案一原型已实现）
+## Ekagium Cowork-first Canvas 架构（2026-08-16，方案一与 UI 拼接已实现）
 
 用户已确认 macOS Ekagium 的新产品层以当前 Cowork runtime 为底座，而不是重新实现一套 Agent
 harness：中央为每个 Cowork Session 独立初始化的 HTML/DOM Canvas，右侧直接复用现有 Cowork
 conversation harness。每个 Canvas 元素是一份独立 HTML 小网页。
 
 ```text
-Ekagium macOS session view
-├── CanvasHost（中央，目标实现）
-│   ├── host-created、exact @main-editable Session index.html
-│   ├── layout / viewport / selection projection
-│   └── independent element documents（优先由受控 iframe/internal URL 加载）
-└── Existing Cowork harness（右侧，复用）
-    ├── CoworkViewModel / composer / transcript
-    ├── Agents / Goal / WorkTasks / permissions
-    └── Orchestrator / scheduler / MessageBus / EventLog / runtime lifecycle
+Ekagium macOS Cowork detail（当前实现）
+└── native HSplitView / exact Session / one CoworkViewModel
+    ├── CoworkCanvasHost（左侧）
+    │   ├── host-created、exact @main-editable Session index.html
+    │   └── replaceable WKWebView preview / file-change reload
+    └── Existing CoworkShell（右侧，原样复用）
+        ├── CoworkViewModel / composer / transcript
+        ├── Agents / Goal / WorkTasks / permissions
+        └── Orchestrator / scheduler / MessageBus / EventLog / runtime lifecycle
 ```
 
-上述是最终产品布局。为降低第一阶段的 UI 改造和联合调试成本，2026-08-15 用户确认并已经先实现
-以下**临时实施拓扑**：
+2026-08-16 用户确认当前 UI 只做“原样左右拼接”。`CoworkSessionView` 因此直接用原生
+`HSplitView` 把消费同一 `CoworkViewModel.canvasDocument` 的 `CoworkCanvasHost` 放在左侧，并把既有
+`CoworkShell` 连同原参数、composer、rail、权限和生命周期行为放在右侧。父级只设置两侧最小/理想
+宽度，没有引入新的 drawer、overlay、第二份 harness 或窄栏业务模式。
 
-```text
-same Ekagium process / exact Cowork Session / single runtime authority
-├── Existing Cowork Harness Window（暂时保持原布局）
-└── Canvas Debug Window
-    └── CoworkCanvasWindow / replaceable WKWebView preview
-```
-
-临时分窗只分离 presentation surface，不分裂 Session 或 runtime。`CoworkSessionView` 通过现有
-`CoworkShell.headerActions` 在 active Cowork 内容 header 提供 `Open Canvas` action，不动态修改 window
-toolbar；value-driven `WindowGroup` 只携带 exact SessionID。
-`CoworkCanvasWindow` 恢复该 Session 已持久化的 primary workspace bookmark，调用
-`SessionCanvasStore.existingCanvas` 只读打开既有入口，并以 600ms 文件签名轮询触发预览刷新；它不
-持有 CoworkViewModel、Orchestrator、scheduler、MessageBus、permission queue、EventLog 或
-AppSessionRuntime。Canvas ownership 归 Session；Window open/close 不能承担初始化、重置、删除或
-停止语义。核心链路稳定后，最终合窗只替换承载 Canvas host 与 harness 的 UI 容器。
+2026-08-16 用户在实际打开后进一步纠正此前双窗口拓扑：产品只保留上述一个组合 Cowork 窗口。
+`CoworkShell.headerActions` 不再提供 `Open Canvas`，App scene 不注册 value-driven Canvas
+`WindowGroup`，独立 `CoworkCanvasWindowValue`、workspace resolver/model 和 window view wrapper 均已
+移除。因此 macOS state restoration 不存在可恢复的 Canvas-only scene；打开 Cowork 时必须同时显示
+左 Canvas 和右 harness。Host 自身只负责 600ms 文件签名轮询、手动 reload 与 WKWebView
+presentation，并直接使用 VM 已持有的 workspace scope。Canvas ownership 归 Session；组合视图的
+open/close 不能承担初始化、重置、删除或停止语义。
 
 架构边界：
 
@@ -74,10 +68,10 @@ AppSessionRuntime。Canvas ownership 归 Session；Window open/close 不能承�
   同 Session 目录的本地 iframe document；
 - “一个 sub-agent 默认负责一个元素”只属于当次 TaskContract / prompt 约定，允许顺序接手和重新
   委派；不得新增永久 ElementAgent 类型、owner 字段、硬编码 agent tree 或 ElementLease；
-- 右侧 harness 只做父级布局和必要窄栏展示适配，不改变 submission、Goal/WorkTask、permission、
-  model binding、EventLog、recovery 或 lifecycle 语义；
-- 临时阶段允许 harness 与 Canvas 使用两个窗口进行隔离调试，但两者必须绑定同一个 exact SessionID
-  和 single session runtime；分窗不得成为第二套 session authority，CanvasHost 不得依赖临时窗口；
+- 右侧 harness 当前只接受父级 split 尺寸约束，不改变 submission、Goal/WorkTask、permission、model
+  binding、EventLog、recovery 或 lifecycle 语义；未来如做窄栏展示适配仍只能属于 presentation；
+- 只允许主 Cowork detail 内的组合 presentation；不得重新增加独立 Canvas scene/window/header action
+  或窗口 resolver。CanvasHost 不得依赖 Window wrapper；
 - Canvas 与 harness 只通过稳定 SessionID/ElementID 驱动的窄结构化选择、定位、刷新、布局和状态
   事件连接，不创建第二套 scheduler、message bus 或 session authority；
 - 当前没有专用 Canvas mutation tool；直编复用现有 ToolRegistry、CapabilityLease、WorkspaceLease、
@@ -1515,11 +1509,10 @@ schema v2只表示lineage已覆盖media-aware语义。EventLog checkpoint writer
 - **Agent 文档/媒体工具**：`ToolRegistry.standard()` 暴露 PDFKit `read_pdf`、五个 fixed-format Docling Markdown reader、显式 OCR/render/export/write、LaTeX 编译和生图写入工作区；不暴露 PDF mutation、聚合 `document_read` 或扫描件重建 wrapper。PDFKit 路径在 macOS 可直接工作；Linux 或无 PDFKit 平台会返回配置错误并提示使用受审查的外部后端。process-backed 文档工具和 LaTeX 编译不内置模型或 TeX 发行版，只调用已安装且版本锁定的成熟工具；缺少命令时返回可行动的配置错误。生图工具不直接知道 provider secret，只通过注入的 `ImageGenerationToolService` 使用现有 provider registry。
 - **Chat 与 Agent 托管网络搜索**：macOS/iOS/CLI Chat 不展示搜索按钮、菜单项、开关、状态或 provider/model 路由提示。每次 Send 只冻结用户当前选择的 exact Chat provider/model/variant/request adapter；`ProviderRegistry.chatRuntimeRoute()` 先验证普通 Chat adapter，再同时要求 exact model 的 `hosted_web_search` 声明与受审 adapter dialect。满足时向当前模型提供对应能力并保持 `tool_choice: auto`，由当前模型自行决定是否搜索；明确不支持、未声明、无法确认或尚未适配时，在同一 route 上静默发送普通 Chat，不提示、不切换模型，也不调用 Agent `hosted_web_search`、`web_fetch`、`browser_search`、本地浏览器、MCP 或第三方搜索后端。Chat 能力不进入 PermissionEngine/AgentLoop，也不扩大 iOS linkage。Code/Cowork/CLI Code 则可在 exact agent route + read-write capability lease 同时成立时广告 strict query-only `hosted_web_search` Tool，使用同路由 `tool_choice:required` provider 请求，且经普通 tool permission/durable lifecycle；provider hosted shape 被拒绝时不允许 ordinary fallback。OpenAI Responses `web_search` 与 OpenRouter `openrouter:web_search` 分别编码；unknown/compatible/legacy/custom 接入点默认不声明搜索。只有 provider 返回结构化 URL annotation 时才形成来源；Chat 保存 optional citations，Agent 工具把去重来源纳入有界 observation。裸 404、自由文本和 partial payload 不可触发 Chat 重放。精确合同见 `docs/CHAT_HOSTED_SEARCH.md`。
 - **Agent 网络/浏览器工具**：`ToolRegistry.standard()` 暴露轻量 `web_fetch` 和 Playwright/CDP-backed `browser_*` 工具。浏览器工具依赖用户环境里已安装的 Node.js，并优先使用 Playwright + Chromium/Chrome/Edge channel；若 Playwright 不可解析，则通过 Node.js 内置 `WebSocket` 使用 Chrome DevTools Protocol 启动已安装 Chrome/Edge/Chromium。缺少后端时返回配置错误或 `browser_diagnostics` 的可行动诊断。profile/state/history/downloads 全部通过 `PathConfinement` 限定在 workspace `.intatis/browser/` 下，刷新、历史前进/后退、表单点击/输入/提交/下拉选择/按键/滚动/等待交互通过 locator 或当前焦点执行；click/download 的 CDP 路径使用真实鼠标事件，打开新页面的交互会跟随到新 tab/window 并把最终页面写回 state/history；截图只能写入工作区 PNG 路径，上传只能引用 workspace 内文件，显式下载只能写入 `.intatis/browser/downloads/<profile>`；`browser_profiles` 可报告 active browser / profile lock runtime marker 是否存在，但不得列内部 marker 文件名或读取内容；`browser_profile_delete` 只在目标 profile 与 `confirmProfile` 匹配时删除 `.intatis/browser/profiles/<profile>`、`downloads/<profile>`、`state/<profile>.json` 并剪除对应 history metadata，删除前如果发现 marker 只给概括性提示；profile 可能包含 cookies 与登录态，不能当成普通日志、artifact 或 secret-free 文本处理。
-- **macOS UI information architecture**：`IntatisMacRootView` 是 macOS Chat/Code/Cowork 的 shell。左侧继续由 `NavigationSplitView` 提供系统 sidebar 材质，内部使用一个连贯的自定义结构：`Ekagium` 标题、带 SF Symbol 的 Chat/Code/Cowork 竖向三行导航、当前 mode 的 `Recent` session history/New 与底部 Settings；仅选中模式行使用 interactive Liquid Glass。Cowork New session 仍先要求用户选择主 workspace 并初始化 per-session project settings。主 thread header 显示 session durable display name（无 display name 时回退 immutable `SessionID`），不写死 Chat/Code/Cowork，也不承载 New/session/model 控件；Code/Cowork 使用紧凑 12pt 顶部留白，Cowork 不再在标题之前常驻 permission-reviewer 横幅。共享 `IntatisThreadComposer` 固定两排：第一排 model/profile 在左、最近一轮 Context/Input/Cached/Output/Time usage 在右；Chat/Code/Cowork 的选择器共用原生 `Menu` 语义与 40pt 高 interactive Liquid Glass 胶囊，关闭态只显示模型名，不显示 CPU/芯片图标、provider 或 variant/reasoning detail；弹出菜单内部仍按 provider 分组并保留 variant detail。第二排为 action、原生多行 `TextField`、可选 Cowork stop 与 Send；macOS Chat、Code 与 Cowork 复用同一个 shared paperclip/file-import/drop/draft-menu surface，Chat 不再显示独立提示词生图 action；iOS paperclip 仍是 Chat tools menu 而不是通用本地附件。action/stop/Send 使用同一个 40×40 原生圆形控件合同，输入容器单行最小高度同为 40，同行 spacing 为 8，外层保持 bottom alignment，因此多行输入只向上增长。没有 top accessories 时不创建空白第一排。消息本体不使用 agent 头像或通用 Agent badge，缺失的 agent 展示名回退 `Ekagium`；除用户消息外，assistant/agent/system 对话行（包括失败/中断回复、通用 Agent message、`information_requested`、`information_replied` 与其他 agent-to-agent 记录）均无外层卡片，并以既有普通回答版式及 exact `sender->recipient` 标识直接落在 canvas。用户消息是唯一对话气泡，使用原生 regular Liquid Glass、trailing 对齐和既有宽度合同；正常 tool、permission、task 等专用结构化项继续保留容器，Code/Cowork error、失败 trace、recovery 与失败 submission 状态只进入右栏统一错误卡；既有字体 token 不随本次视觉架构更新。Thread content 使用共享 responsive layout 计算 horizontal padding、显式 `contentWidth`、message gutter 与 bubble max width；对话行通过 `IntatisThreadBubbleRow` 在整行层面按 user trailing、assistant/agent leading 对齐。Chat 默认无右 inspector；Code/Cowork 的显隐都只由同一个稳定外层 `GeometryReader` 提供的未压缩 outer available width 与用户请求状态决定，不使用已经压缩后的 thread width 反推自身可见性。Code 继续用有界 `HStack` 展示 structured plan/workspace/Git-status-only，并在错误非空时于 inspector 最底部生成唯一错误 section；旧 recent failure section 已移除。Cowork 则把 rail 作为 detail 同一 canvas 上的 trailing overlay：不使用 divider 或整栏 `.bar` 背景，主 thread 复用一个固定 `ScrollView` 根并延伸至 detail 最右端，visible rail 固定 348pt、section 固定 318pt，正文通过 trailing scroll-content margin 给 cards 留位，使原生滚动条位于整个内容区最右端。rail subtree 由只含 rail input 的 Equatable boundary 隔离；每个 passive section 独立使用系统 `Glass.clear` 的稳定 backdrop，不用 `GlassEffectContainer` 组织这些必须保持固定位置的 status cards。第一位显示 compact pending permission 或最近权限结果，其后为 `Agents`、真实 `Goal`、真实 `Tasks`，不显示 Git；错误列表非空时，唯一“错误信息”卡片位于最底部。compact permission 只展示状态、tool、安全摘要与必要 action，不渲染 raw args 或默认详情；pending 且 outer width 足以容纳 rail 时临时固定为可见，窄到无法安全容纳时只在 composer 上方保留同一请求的完整 Material 权限卡兜底，二者不得重复。无 pending 时用户仍可隐藏 Cowork rail；任何窄屏或隐藏状态都不在 thread 顶部复制 Goal/Tasks，也不保留对应高度。Code/Cowork 的 bottom-anchor 恢复使用系统 `onScrollVisibilityChange`，不建立 GeometryReader/PreferenceKey 坐标回写；session controls 位于内容 header，不向 window toolbar 动态增删 item，也不嵌套 SwiftUI `.inspector` preference。Cowork header 不提供独立 MCP Content 快捷按钮，内容浏览位于 `Project Settings → MCP → Browse Content`；header 只用系统 compact 圆形 glass/bordered icon control 切换 status rail。Goal/Tasks 继续来自 durable projections；Cowork 的 Git UI 已移除，但本地 Git controls 仍只通过 Agent Git tools + PermissionEngine 执行。
-- **Ekagium 临时 Canvas header action**：上述 Cowork header 的既有 session-control 规则在 Canvas
-  原型中增加一个窄例外：`Open Canvas` 必须复用 `CoworkShell.headerActions` 进入内容 header；它不是
-  MCP Content shortcut，也不得迁入或动态增删 window toolbar。最终合窗后是否保留该 action 待 UI
-  容器方案确定。
+- **macOS UI information architecture**：`IntatisMacRootView` 是 macOS Chat/Code/Cowork 的 shell。左侧继续由 `NavigationSplitView` 提供系统 sidebar 材质，内部当前显示一个连贯的 Cowork-first 结构：`Ekagium` 标题、唯一 Cowork 导航行、Cowork `Recent` session history/New 与底部 Settings；Cowork 行使用 interactive Liquid Glass，初始 selection 也是 Cowork。Chat/Code 的导航与 mode-specific history 实现继续编译保留，但不进入当前 `items` 投影。Cowork New session 仍先要求用户选择主 workspace 并初始化 per-session project settings。主 thread header 显示 session durable display name（无 display name 时回退 immutable `SessionID`），不写死 Chat/Code/Cowork，也不承载 New/session/model 控件；Code/Cowork 使用紧凑 12pt 顶部留白，Cowork 不再在标题之前常驻 permission-reviewer 横幅。共享 `IntatisThreadComposer` 固定两排：第一排 model/profile 在左、最近一轮 Context/Input/Cached/Output/Time usage 在右；Chat/Code/Cowork 的选择器共用原生 `Menu` 语义与 40pt 高 interactive Liquid Glass 胶囊，关闭态只显示模型名，不显示 CPU/芯片图标、provider 或 variant/reasoning detail；弹出菜单内部仍按 provider 分组并保留 variant detail。第二排为 action、原生多行 `TextField`、可选 Cowork stop 与 Send；macOS Chat、Code 与 Cowork 复用同一个 shared paperclip/file-import/drop/draft-menu surface，Chat 不再显示独立提示词生图 action；iOS paperclip 仍是 Chat tools menu 而不是通用本地附件。action/stop/Send 使用同一个 40×40 原生圆形控件合同，输入容器单行最小高度同为 40，同行 spacing 为 8，外层保持 bottom alignment，因此多行输入只向上增长。没有 top accessories 时不创建空白第一排。消息本体不使用 agent 头像或通用 Agent badge，缺失的 agent 展示名回退 `Ekagium`；除用户消息外，assistant/agent/system 对话行（包括失败/中断回复、通用 Agent message、`information_requested`、`information_replied` 与其他 agent-to-agent 记录）均无外层卡片，并以既有普通回答版式及 exact `sender->recipient` 标识直接落在 canvas。用户消息是唯一对话气泡，使用原生 regular Liquid Glass、trailing 对齐和既有宽度合同；正常 tool、permission、task 等专用结构化项继续保留容器，Code/Cowork error、失败 trace、recovery 与失败 submission 状态只进入右栏统一错误卡；既有字体 token 不随本次视觉架构更新。Thread content 使用共享 responsive layout 计算 horizontal padding、显式 `contentWidth`、message gutter 与 bubble max width；对话行通过 `IntatisThreadBubbleRow` 在整行层面按 user trailing、assistant/agent leading 对齐。Chat 默认无右 inspector；Code/Cowork 的显隐都只由同一个稳定外层 `GeometryReader` 提供的未压缩 outer available width 与用户请求状态决定，不使用已经压缩后的 thread width 反推自身可见性。Code 继续用有界 `HStack` 展示 structured plan/workspace/Git-status-only，并在错误非空时于 inspector 最底部生成唯一错误 section；旧 recent failure section 已移除。Cowork 则把 rail 作为 detail 同一 canvas 上的 trailing overlay：不使用 divider 或整栏 `.bar` 背景，主 thread 复用一个固定 `ScrollView` 根并延伸至 detail 最右端，visible rail 固定 348pt、section 固定 318pt，正文通过 trailing scroll-content margin 给 cards 留位，使原生滚动条位于整个内容区最右端。rail subtree 由只含 rail input 的 Equatable boundary 隔离；每个 passive section 独立使用系统 `Glass.clear` 的稳定 backdrop，不用 `GlassEffectContainer` 组织这些必须保持固定位置的 status cards。第一位显示 compact pending permission 或最近权限结果，其后为 `Agents`、真实 `Goal`、真实 `Tasks`，不显示 Git；错误列表非空时，唯一“错误信息”卡片位于最底部。compact permission 只展示状态、tool、安全摘要与必要 action，不渲染 raw args 或默认详情；pending 且 outer width 足以容纳 rail 时临时固定为可见，窄到无法安全容纳时只在 composer 上方保留同一请求的完整 Material 权限卡兜底，二者不得重复。无 pending 时用户仍可隐藏 Cowork rail；任何窄屏或隐藏状态都不在 thread 顶部复制 Goal/Tasks，也不保留对应高度。Code/Cowork 的 bottom-anchor 恢复使用系统 `onScrollVisibilityChange`，不建立 GeometryReader/PreferenceKey 坐标回写；session controls 位于内容 header，不向 window toolbar 动态增删 item，也不嵌套 SwiftUI `.inspector` preference。Cowork header 不提供独立 MCP Content 快捷按钮，内容浏览位于 `Project Settings → MCP → Browse Content`；header 只用系统 compact 圆形 glass/bordered icon control 切换 status rail。Goal/Tasks 继续来自 durable projections；Cowork 的 Git UI 已移除，但本地 Git controls 仍只通过 Agent Git tools + PermissionEngine 执行。
+- **Ekagium Canvas 单窗口组合**：Cowork header 不提供 Canvas 专用 action，window toolbar 也不动态
+  增加 Canvas item。Canvas 只作为 `CoworkSessionView` 内 `HSplitView` 的左侧内容存在，右侧始终是
+  现有 `CoworkShell`；不得重新引入可单独打开或被系统恢复的 Canvas-only scene。
 - **UI 配色与跨平台设计语言**：macOS detail 由 `IntatisSystemCanvas` 使用 SwiftUI `.windowBackground`（macOS 13 fallback 为 `NSVisualEffectView.Material.windowBackground`）提供动态系统 window surface，`NavigationSplitView` sidebar 不再被自定义底色覆盖。`IntatisThreadStyle.intatisMac` / `.standard` 注入系统 `.primary` / `.secondary`、separator、accent 与错误语义；assistant/agent/system 对话正文（包括失败/中断回复）直接继承系统 canvas，不叠 Material 或描边；用户消息是唯一对话气泡，使用原生 `Glass.regular` 且不叠加自定义 accent stroke。正常 tool、权限、数据卡片和 artifact 等专用结构化内容层默认使用 `.regularMaterial`；Code/Cowork error 仅使用右栏统一错误卡。composer、模型菜单、主要操作及确实需要融合的紧凑 action group 在 macOS 26 / iOS 26 使用 `glassEffect`、`GlassEffectContainer` 与 `.glass` / `.glassProminent`，旧系统走 Material / bordered control fallback；用户消息气泡与用户明确指定的 Cowork 紧凑 trailing status rail 是仅有的内容层玻璃例外，后者的权限、Agents、Goal、Tasks 与条件式错误卡各自使用独立原生 `Glass.clear` backdrop，不绘制固定灰框或自制玻璃，也不由一个会重组 shape 的 container 包住。macOS 与 iOS Chat composer 现在都采用共享两排结构：首排为关闭态只显示模型名的 interactive glass `Menu` 与可用 usage，第二排为当前产品面已有 action、输入、紧邻主操作左侧的 voice 和唯一 Send/Stop；iOS 仍只提供 paperclip Chat 功能菜单，不能伪造通用附件。iOS 将该排 `GlassEffectContainer` 的 merge spacing 固定为 0，保留 8pt 布局间距但禁止输入胶囊、voice 与 Send/Stop 物理融合；四个 icon action 都从 composer 专用 modifier 获得同一 40×40 外框，iOS 使用 `.small` 原生 control size，避免 `.regular` glass chrome 超出 40pt 并抬高中心线，macOS 继续使用本来就与 40pt 合拍的 `.regular`。主排继续 bottom alignment，保证多行输入只向上增长。macOS sidebar `Recent` 旁 `+` 使用 30×30 原生小型圆形 glass control；iOS 左抽屉使用同一品牌/模式/history/Settings 层级，并支持从 24pt 屏幕左缘、具有水平优势的右滑打开，避免抢占 transcript/TextField 的纵向或编辑手势。`IntatisTypography` 是两平台字体角色的单一实现：品牌、session 与页面级标题使用相同名义字号/字重的系统 serif，Chat 正文、输入和控件使用系统 sans，技术值使用系统 monospaced；iOS 只在这些共享名义值之上应用 Dynamic Type 缩放。Markdown/代码/公式继续保持 renderer 的语义字体。Glass 不铺页面或整段 transcript。iOS 根视图与约 82% 抽屉继续使用系统容器背景，不复制参考应用固定渐变或另建平台私有底色。当前规范见 `docs/CURRENT_UI_COLOR_SYSTEM.md`；上一版方案独立保存在 `docs/UI_COLOR_SYSTEM.md`。
 - **GUI token/turn stats**：ChatLoop 与 AgentLoop 每轮结束追加 `turn_stats`，包含 endpoint 返回的 prompt/completion/total token（若有）、可选 cached prompt tokens、可选 context window tokens、TTFT、总耗时和 model。OpenAI-compatible `prompt_tokens_details.cached_tokens` 会进入 `Usage.cachedPromptTokens`；未缓存 input 可由 prompt-cached 在 UI 层展示。ChatLoop、AgentLoop 与 ProviderHealthCheck 共用 `Usage` 规则：同一次响应内的 usage chunk 字段级合并，Agent 工具循环中多个模型请求再按请求累计。GUI 不解析消息文本计算 token，而是通过共享 `TurnStatsProjection` 折叠最近一轮统计；macOS Chat / Code / Cowork 与 iOS Chat 均复用 `IntatisComposerUsageStrip` 在 composer 第一排右侧显示低噪音 usage，第一排左侧保留 model/profile。endpoint 不返回 cached/context usage 时，只显示可证明字段，不虚构数值。
 - **Chat/Code/Cowork session/history**：macOS `IntatisMacRootView` 通过 root-owned view models 和 `SessionHistoryStore.recentSessions(kind:)` 将当前 mode 的最近 sessions 投影到同一 sidebar navigation/session center；Chat 启动时优先恢复最近 Chat session，无历史时才使用 `sess_default`，Code/Cowork 在首次进入时创建对应 session。iOS `IOSAppEnvironment` 仍只恢复 Chat session，无历史时才使用 `sess_ios`。新建会话生成新的 `SessionID.new()`，打开独立 `EventLog` 与 artifact store，停止旧 view model 并重建当前 view model。恢复历史会话只切换到对应 `events.jsonl`，不会把新消息继续追加到旧的固定默认日志。macOS session row 的原生右键菜单支持 Rename/Delete；Code 与 Cowork `@main` 另可通过 `rename_session` 改当前会话，model 不提供 SessionID/kind。两条 Rename 路径都先追加 EventLog settings rename 事件并刷新派生 `<session>/session.json`，再通过 exact-session、revision/seq 有序的低频 publisher 更新所有窗口；不改目录名、`SessionID` 或既有 envelope。Delete 在二次确认后删除目标 session 目录及其 session-owned bookmark/settings/projection，不触碰绑定工作区内容，当前运行中的 session 禁止删除。路径与元数据规则在 `IntatisCore` 复用，平台层只传不同 application-support root。

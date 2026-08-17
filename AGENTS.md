@@ -14,17 +14,23 @@ Session `index.html`，之后 exact `@main` 可以通过现有 workspace file/pa
 HTML/CSS/JavaScript；ordinary sub-agent 仍不得并发修改这份共享入口，可被委派到互不重叠的辅助或
 元素 HTML 文件。该决定取代此前“主 HTML 永远 host-owned、`@main` 只能改布局投影”的设想。
 
-同日用户进一步确认一条**临时实施路线**：在 Canvas/CEF 仍处于开发和调试阶段时，暂不先做
-“中央 Canvas + 右侧 harness”的最终单窗口组合，而是保留现有 Cowork harness 自己的窗口，另开
-一个独立 Canvas 调试窗口。两个窗口必须绑定同一个 exact Cowork Session，并复用同一套
-session-scoped runtime/authority；分窗不等于两个 App、两个 Session 或两套 Cowork runtime。
-Canvas 归 Session 所有，不能因 Canvas 窗口打开、关闭或重开而新建、重置或停止。CanvasHost 应保持
-可复用，待核心链路稳定后再嵌回最终中央区域。该路线只是阶段性调试拓扑，不改变最终产品合同，且
-当前已经有一版最小原型：Session 启动在 fresh 七事件 bootstrap 后幂等创建 workspace-local
-`.egakium/canvas/<SessionID>/index.html`，现有 harness 内容 header 可按 exact SessionID 打开独立 Canvas
-窗口，窗口只读取既有文件并自动刷新。当前渲染器是无持久 Web 数据、阻断网络的薄 `WKWebView`
-调试适配层；正式 CEF target/Helper/scheme/bridge、元素/layout schema 与最终合窗仍未实现，不能把
-这版原型写成 CEF 或完整 Canvas 架构已经落地。
+同日用户曾确认一条双窗口调试路线；2026-08-16 用户在实际打开后进一步纠正该决定：产品只保留
+一个 Cowork 窗口，必须一打开就是“左画布、右 harness”的原样左右拼接，不能再有会单独显示或被
+macOS 恢复的 Canvas Window、`Open Canvas` 动作或第二个 `WindowGroup`。当前 `CoworkSessionView`
+已以原生水平 split 将可复用 `CoworkCanvasHost` 放在左侧，将未改业务参数和行为的现有
+`CoworkShell` 放在右侧；两者直接消费同一个 `CoworkViewModel` 与 exact Session Canvas。此前独立
+Canvas 调试窗口的 value、resolver/model、view wrapper、scene 和 header action 均已移除，此纠正
+取代“保留调试/备用入口”的旧表述。Session 启动仍在 fresh 七事件 bootstrap 后幂等创建
+workspace-local `.egakium/canvas/<SessionID>/index.html`；Canvas 归 Session 所有，不能因组合视图的
+打开、关闭或重建而新建、重置或停止。当前渲染器仍是无持久 Web 数据、阻断网络的薄 `WKWebView`
+调试适配层；正式 CEF target/Helper/scheme/bridge 与元素/layout schema 仍未实现，不能把 UI 拼接
+写成 CEF 或完整 Canvas 架构已经落地。
+
+同日用户进一步要求先隐藏 macOS 主 sidebar 的 Chat 与 Code 模式入口，但明确不是删除产品能力。
+当前 `IntatisMacRootView` 的可见 navigation items 只有 Cowork，初始 selection 也是 Cowork；
+`IntatisNavItem.chat/code`、对应 View/ViewModel、session history、runtime、配置和恢复分支必须继续保留。
+后续不得把“隐藏入口”误写成移除 Chat/Code target、源码、数据、协议或 CLI/iOS 能力；需要恢复入口时
+应只调整 presentation visibility。
 
 本文是 AI Agent 每轮进入本仓库时的入口文件。执行任何代码修改、配置修改、构建脚本修改或测试源码修改之前，必须先按顺序阅读并核对下列文档：
 
@@ -71,9 +77,19 @@ Ekagium 的目标产品层只组合和扩展 macOS Cowork：在现有 harness �
 PermissionEngine、EventLog 和 lifecycle 语义不变。Session `index.html` 由宿主从固定模板初始化，
 之后 exact `@main` 可以直接编辑整份页面；ordinary sub-agent 若参与，应编辑互不重叠的辅助/元素
 document，并由 `@main` 集成或引用。禁止多个 Agent 并发修改同一主 HTML。Canvas 当前不进入 iOS。
-第一阶段按已确认的临时双窗口路线实施：现有 harness 窗口保持原样，独立 Canvas 调试窗口只按
-SessionID 展示同一 Session 的 Canvas；不得为它复制 Cowork runtime 或把窗口生命周期当成 Canvas
-生命周期。最终合窗只更换 UI 容器，不得重写 CanvasHost 或 harness 业务链路。
+当前 macOS Cowork detail 已按用户确认使用原生水平 split 原样组合：左侧 `CoworkCanvasHost` 读取
+同一 `CoworkViewModel.canvasDocument`，右侧继续使用既有 `CoworkShell`。不得重新增加独立 Canvas
+窗口、scene、header action 或第二套 presentation；不得为组合视图复制 Cowork runtime，也不得把
+视图生命周期当成 Canvas 生命周期。后续渲染器替换不得重写 CanvasHost 的 Session 输入边界或
+harness 业务链路。
+macOS 主 sidebar 当前只展示 Cowork 模式；Chat/Code 只是 presentation-hidden，底层实现与数据边界
+不变。不得用删除 enum case、switch branch、View/ViewModel、runtime 或历史存储的方式实现入口隐藏。
+
+2026-08-17 用户要求把迁移时被拍平的 `OpenSource/` 恢复为父仓库 gitlink。当前 `.gitmodules`
+登记 26 个 shallow 上游仓库，父 index 对每个 `OpenSource/<project>` 只保存一个 mode `160000` 的
+精确 commit SHA；这些 SHA 与源 Intatis 的 gitlink 一致。`OpenSource/` 仍只是开源评估 checkout，
+不是 SwiftPM/XcodeGen path dependency 或已经获准分发的 runtime。不得再次把子仓库内容拍平成父仓库
+普通文件，也不得在没有用户逐仓库明确授权时递归 stage、commit、push 或改变子仓库指针。
 
 根目录 `Chromium/`、`.deps/` 与 `build/` 是迁移前 Ekagium 留下的本地 Chromium、官方 CEF 下载/解包和 CEF 构建资产，不属于导入的 Intatis 业务树。未经用户明确要求，不得删除、覆盖、迁移、重新下载或把它们误写成当前 Intatis SwiftPM/XcodeGen 的依赖；Intatis 自己的 SwiftPM 产物目录是 `.build/`。
 
@@ -122,9 +138,15 @@ managed-terminal Seatbelt、Hardened Runtime、签名/公证或 iOS 平台边界
   ElementLease 或 capability inheritance；允许后续任务重新委派或由同一 Agent 顺序编辑其他元素。
 - 不为 Ekagium Canvas 重写现有 Cowork harness、CoworkViewModel、Orchestrator、scheduler、
   MessageBus、permission queue、EventLog 或 session lifecycle；右侧 harness 只允许必要的 UI 组合/窄栏适配。
-- 临时双窗口阶段不得让 Canvas 窗口自建第二套 CoworkViewModel、Orchestrator、scheduler、MessageBus、
-  permission queue、EventLog、AppSessionRuntime 或 Session authority；窗口打开/关闭不得创建、重置、删除
-  或停止 Session Canvas。独立 Canvas 窗口只是临时调试容器，不是最终产品布局。
+- 主界面只允许一个左右拼接的 Cowork presentation：不得重新增加独立 Canvas Window、value-driven
+  `WindowGroup`、`Open Canvas` header action 或窗口恢复 resolver；组合视图不得自建第二套
+  CoworkViewModel、Orchestrator、scheduler、MessageBus、permission queue、EventLog、
+  AppSessionRuntime 或 Session authority，打开/关闭也不得创建、重置、删除或停止 Session Canvas。
+- macOS sidebar 的 Chat/Code 入口只能隐藏，不能删除对应 `IntatisNavItem` case、detail branch、
+  View/ViewModel、session/runtime/history/configuration 或恢复能力；默认可见/初始模式为 Cowork。
+- `OpenSource/` 必须保持 `.gitmodules` + 26 个 mode-`160000` gitlink 的父仓库边界；父仓库不得
+  递归跟踪其源码。更新任一 SHA、origin、shallow 策略或子仓库内容属于单独的上游/Git 操作，必须
+  经过明确授权和 `docs/OPEN_SOURCE_REUSE.md` 的 provenance/许可证核对。
 - 不让多个 Agent 并发 patch 同一 Session 主画布 HTML。宿主只拥有首次模板创建；exact `@main` 是
   当前共享 `index.html` 的唯一协调编辑者。ordinary sub-agent 若被委派，应使用互不重叠的辅助/元素
   HTML 路径并由 `@main` 集成；不得把这一纪律硬编码成永久 owner/lease。
@@ -144,11 +166,12 @@ managed-terminal Seatbelt、Hardened Runtime、签名/公证或 iOS 平台边界
 - Code 链路：`CodeViewModel` → `GoalInputParser` → 共享 headless `AgentRuntime.code` → `AgentLoop`（maxIterations 50）→ `ContextBuilder` + `RuntimeEnvironmentManifest` → `OpenAIWireProvider` → `runTool` → `PermissionEngine`（3 层门）→ `EventLog` → `CodeProjection`。
 - Ekagium Canvas 当前原型链路：fresh Cowork 七事件 bootstrap → `CoworkViewModel` 独立、幂等、无
   provider 地创建 `.egakium/canvas/<SessionID>/index.html` → exact `@main` root prompt 获得该精确
-  workspace-relative 路径并可用既有 file/patch + permission 链直接编辑 → 独立 `CoworkCanvasWindow`
-  按 exact SessionID 恢复 primary workspace bookmark、只读打开既有文件并用网络阻断的 `WKWebView`
-  调试预览。现有 harness/runtime 继续只有一套。正式 CEF BrowserView/Helper、ElementID/layout/event/
-  bridge schema 与最终中央 Canvas + 右侧 harness 合窗仍是待实现目标。ordinary sub-agent 的辅助/元素
-  HTML 范围来自当次 TaskContract/context，不形成永久角色或 ownership，也不得并发编辑共享入口。
+  workspace-relative 路径并可用既有 file/patch + permission 链直接编辑 → `CoworkSessionView` 用原生
+  水平 split 将读取 `vm.canvasDocument` 的 `CoworkCanvasHost` 放左侧、原 `CoworkShell` 放右侧。产品
+  没有独立 Canvas scene/window/action；唯一 Canvas presentation 使用网络阻断的 `WKWebView` 调试
+  预览，现有 harness/runtime 继续只有一套。正式 CEF BrowserView/Helper、ElementID/layout/event/
+  bridge schema 仍待实现。ordinary sub-agent 的辅助/元素 HTML 范围来自当次 TaskContract/context，
+  不形成永久角色或 ownership，也不得并发编辑共享入口。
 - Cowork 链路：`CoworkViewModel` → `GoalInputParser` + `CoworkMentionRouter` → `SubmittedIntentStore`（outbox → 原子 `user_message + queued`）→ `Orchestrator.runtime`（先取得 session writer lease）→ FIFO scheduler → 共享 headless `AgentRuntime.cowork` → `AgentLoop` → `PermissionEngine` → durable tool execution ticket → executor → `EventLog`；`MessageBus` → `Mediator`。fresh Cowork 在任何模型请求前，以同一原子 7-event batch 登记完整 session settings、`@main` 与 `@permission-reviewer` 各自的 workspace/capability lease 和 identity；两者共享 canonical workspace，但 exact inference binding 分别由 main/session selection 与顶层 `permission_reviewer_model` 决定，identity/lease 也独立，reviewer 为 read_only、空工具/通信/委派且 depth 0。`permission_reviewer_model` 只接受已配置的 `<provider>/<model-id>` base profile，不增加 UI；字段缺失时仅在配置解析层一次性继承同一 JSON 文档的顶层 `model`，兼容来源缺失/未知、显式空值、错误类型、不可解析 route 或已选配置整体损坏/不可读必须让 reviewer fail closed，不能回退 UI/session default、live/historical `@main` 或其后续 rebind。GoalVerifier 继续冻结首个可解析的 exact `@main` binding，与 reviewer 配置互不替代。GUI/CLI 默认启用该保留控制面 agent，`AgentPermissionResponder` 把结构化 `PermissionReviewTask` 交给独立 `PermissionReviewControlPlane` FIFO/single-flight；reviewer 有独立 timeout/cancel 与可选 soft token warning，不占普通 scheduler 槽，只返回 `allow` / `deny`。reviewer 默认不得注入 `temperature`、output-token 或字符上限；只有用户/host 显式策略或真实上游/上下文约束存在时才可传递相应控制。request/settled 均先落 EventLog，allow 只有 settled 成功后生效；pre-submit caller cancel 直接返回 typed deny、不创建 review lifecycle；timeout、malformed、provider/persistence failure 和已登记 review 在 terminal-claim 前被观察到的 cancel durable deny 当前调用，不转 GUI 人工等待；claim 后 cancel 保留唯一 settlement 但最终 authorization delivery deny。每个 provider dispatch 都使用 exact `{reviewTaskID, nonce}` generation；provider/timeout 竞争同代首 terminal，caller cancel 由同步 request token、actor path 与下游围栏共同处理。production 按冻结 reviewer exact binding 逐代 fresh-resolve provider wrapper；timeout/cancel 只影响当前 call，若已有 active generation 就只 retire 该代，late/duplicate output 无权影响新代或执行工具。`ToolCallingProvider.stream` 必须立即返回 request-owned stream，并传播 consumer termination；不得用 `Task.detached` 宣称支持同步永久阻塞实现。旧 `provider_still_stopping` 只保留 legacy decode。Phase A 后 GUI composer 始终可编辑，Send 先冻结并持久化本地提交；reviewer 未就绪只显示状态并使后续 ask-class tool fail closed，不阻止普通主请求。CLI `/auto` 重启，只有用户明确 `/default` 才进入人工模式。审查者不得作为普通 send/delegate/message/ask 目标，不得运行嵌套 `AgentLoop`。
 - Cowork automatic 的 request-owned provider-facing business schema 增加 required string `__intatis_authorization_context`；任何 `strict:true` function 的 decorated copy 必须递归满足 `required == properties.keys` 与 `additionalProperties:false`，上述 strict object 不变量违规必须在发网前 typed fail closed。`tool_search` 本身保持原样，但其 request-owned `tool_search_output` 中延迟发现的 function/namespace 子工具也必须装饰；durable output 不变。原 ToolDescriptor/business required/executor schema 不变；宿主仅在 deterministic gate 实际进入 automatic ask 时消费并验证该字段，deterministic allow/deny 忽略其语义。acting model 在原 business function call/generation 内用这一句话说明“为什么这个 exact action 服务当前任务”，不得复制全文、声明风险或自行给出权限结论；不再有第二次 acting-model Reporter 请求。宿主先剥离 sidecar，再用 stripped canonical business arguments 做原 schema、gate、authorization、durable history 与执行。live reviewer 只收到 complete safe business arguments、complete same-generation sidecar 和 mechanical host binding/gate/lease/action facts；不得发送 TaskContract objective/role/deliverable、causal userGoal、用户消息、assistant history、PDF 或图片原文。valid sidecar 只在当前 turn 的 acting-model 内存 conversation 中保留为正确格式示例，raw sidecar 与 transient exact-args 不进入 EventLog/permission lifecycle，durable history 仍只保存 stripped business call。missing/malformed/secret-bearing sidecar 是可纠正的 acting-model tool-input failure：只写 failed/runtimeFailed `tool_result`，不创建 `permission_request` / `permission_resolved`、不调用 reviewer、也不消耗 permission denial fuse；同 business args 修正后仍可进入 reviewer。binding/authorization snapshot 无法证明则另行 typed fail closed。manual/nonautomatic 模式出现保留字段必须在业务执行前拒绝。automatic responder 必须实现 bound-invocation overload，live cached/duplicate request 必须复验 exact transient invocation，recovered allow 不得重新交付；唯一无 acting-model sidecar 的 automatic `agent.attach` 必须走 dedicated host-admission entry，并核对 exact admission identity 与先行 durable events。Cowork 若误注入 in-engine reviewer，control-plane 前必须 fail closed；shipping 默认不得这样配置。reviewer 无工具，只接受短 reason + final-line ASCII `ALLOW` / `DENY`；对 live bound invocation，reviewer reason 与 provider diagnostic 不得进入 durable lifecycle/tool-result，改用固定宿主文案。旧 Reporter context/type 仅保留 legacy decode/reconciliation，不得恢复第二次 acting-model dispatch。acting model 仍可能在普通 assistant 文本中自行复述 sidecar，该普通文本按既有消息规则持久化；malformed acting-provider error preview 仍依赖通用 bounded/secret sanitizer。live 路径也没有固定 sidecar byte ceiling 或 `review_input_too_large` admission，未来上限只能由真实 route budget 推导，不得把这些后续能力写成当前事实。
 - Cowork run/mailbox 终态：只有 exact `@main` root 可见 `finish_run` / `stop_run`，模型只给 reason，所有 identity 由宿主绑定；close intent 先成为 in-process admission tombstone，EventLog first-write claim 必须先于既有 admission 等待与 exact-run drain 落盘，user/runtime/host-lifecycle source 保真，恢复时不得复活，普通 final 不伪造显式 claim。mailbox 按 authority class 收窄：ordinary message one-way/no ACK，information request 只允许一个 exact `reply_message(inReplyTo:)` terminal，information reply receipt 不得再 reply/ACK；确需继续时用 fresh `request_information(based_on: reply MessageID)`，保留 conversation root。因此 `information_replied` 只终结当前 correlation，不得成为长期协作的全局回复禁令。

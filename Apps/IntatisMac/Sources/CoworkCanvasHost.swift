@@ -5,61 +5,44 @@ import WebKit
 import IntatisCore
 import IntatisSharedUI
 
-struct CoworkCanvasWindowValue: Codable, Hashable {
-    let sessionID: SessionID
-}
-
 @MainActor
-private final class CoworkCanvasWindowModel: ObservableObject {
-    @Published private(set) var document: SessionCanvasDocument?
-    @Published private(set) var errorMessage: String?
+private final class CoworkCanvasHostModel: ObservableObject {
     @Published private(set) var reloadRevision: UInt64 = 0
 
-    let sessionID: SessionID
-
-    private var workspaceAccess: WorkspaceAccessLease?
     private var monitorTask: Task<Void, Never>?
+    private var monitoredIndexURL: URL?
     private var lastSignature: FileSignature?
 
-    init(sessionID: SessionID) {
-        self.sessionID = sessionID
-    }
+    func present(_ document: SessionCanvasDocument?) {
+        let indexURL = document?.indexURL
+        guard indexURL != monitoredIndexURL else { return }
 
-    func start() {
-        guard monitorTask == nil else { return }
-        errorMessage = nil
+        monitorTask?.cancel()
+        monitorTask = nil
+        monitoredIndexURL = indexURL
+        if let indexURL {
+            lastSignature = fileSignature(at: indexURL)
+        } else {
+            lastSignature = nil
+        }
+
+        guard let indexURL else { return }
+        reloadRevision &+= 1
         monitorTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-            do {
-                guard let access = try WorkspaceAccess.restoredWorkspace(
-                    for: sessionID) else {
-                    throw IntatisError.io(
-                        "The primary Cowork workspace must be reopened before the Canvas can be displayed.")
-                }
-                guard let document = try SessionCanvasStore.existingCanvas(
-                    in: access.canonicalURL,
-                    sessionID: sessionID) else {
-                    throw IntatisError.notFound(
-                        "The Session Canvas has not been initialized. Open the Cowork Session before retrying.")
-                }
-                workspaceAccess = access
-                self.document = document
-                lastSignature = fileSignature(at: document.indexURL)
-                reloadRevision &+= 1
-
-                while !Task.isCancelled {
+            while !Task.isCancelled {
+                do {
                     try await Task.sleep(nanoseconds: 600_000_000)
-                    guard !Task.isCancelled else { break }
-                    let signature = fileSignature(at: document.indexURL)
-                    if signature != lastSignature {
-                        lastSignature = signature
-                        reloadRevision &+= 1
-                    }
+                } catch {
+                    return
                 }
-            } catch is CancellationError {
-                // Window closure owns normal monitor cancellation.
-            } catch {
-                errorMessage = error.localizedDescription
+                guard let self,
+                      !Task.isCancelled,
+                      self.monitoredIndexURL == indexURL else { return }
+                let signature = self.fileSignature(at: indexURL)
+                if signature != self.lastSignature {
+                    self.lastSignature = signature
+                    self.reloadRevision &+= 1
+                }
             }
         }
     }
@@ -67,15 +50,8 @@ private final class CoworkCanvasWindowModel: ObservableObject {
     func stop() {
         monitorTask?.cancel()
         monitorTask = nil
-        workspaceAccess?.release()
-        workspaceAccess = nil
-    }
-
-    func retry() {
-        stop()
-        document = nil
-        errorMessage = nil
-        start()
+        monitoredIndexURL = nil
+        lastSignature = nil
     }
 
     func reload() {
@@ -104,12 +80,21 @@ private final class CoworkCanvasWindowModel: ObservableObject {
     }
 }
 
-struct CoworkCanvasWindowView: View {
-    @StateObject private var model: CoworkCanvasWindowModel
+struct CoworkCanvasHost: View {
+    @StateObject private var model = CoworkCanvasHostModel()
 
-    init(sessionID: SessionID) {
-        _model = StateObject(
-            wrappedValue: CoworkCanvasWindowModel(sessionID: sessionID))
+    let document: SessionCanvasDocument?
+    let errorMessage: String?
+    let onRetry: (() -> Void)?
+
+    init(
+        document: SessionCanvasDocument?,
+        errorMessage: String?,
+        onRetry: (() -> Void)? = nil
+    ) {
+        self.document = document
+        self.errorMessage = errorMessage
+        self.onRetry = onRetry
     }
 
     var body: some View {
@@ -118,12 +103,10 @@ struct CoworkCanvasWindowView: View {
             Divider()
             content
         }
-        .frame(minWidth: 720, minHeight: 520)
-        .navigationTitle(
-            IntatisLocalization.format(
-                "Canvas — %@",
-                model.sessionID.rawValue))
-        .task { model.start() }
+        .onAppear { model.present(document) }
+        .onChange(of: document) { _, document in
+            model.present(document)
+        }
         .onDisappear { model.stop() }
     }
 
@@ -136,7 +119,7 @@ struct CoworkCanvasWindowView: View {
                 Text(IntatisLocalization.string("Session Canvas"))
                     .font(.headline)
                 Text(
-                    model.document?.relativeIndexPath
+                    document?.relativeIndexPath
                         ?? IntatisLocalization.string("Preparing index.html…"))
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
@@ -153,19 +136,19 @@ struct CoworkCanvasWindowView: View {
                     IntatisLocalization.string("Reload Canvas"),
                     systemImage: "arrow.clockwise")
             }
-            .disabled(model.document == nil)
+            .disabled(document == nil)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
     }
 
     @ViewBuilder private var content: some View {
-        if let document = model.document {
+        if let document {
             CoworkCanvasWebView(
                 indexURL: document.indexURL,
                 readAccessURL: document.directoryURL,
                 reloadRevision: model.reloadRevision)
-        } else if let errorMessage = model.errorMessage {
+        } else if let errorMessage {
             ContentUnavailableView {
                 Label(
                     IntatisLocalization.string("Canvas Unavailable"),
@@ -173,8 +156,10 @@ struct CoworkCanvasWindowView: View {
             } description: {
                 Text(errorMessage)
             } actions: {
-                Button(IntatisLocalization.string("Retry")) {
-                    model.retry()
+                if let onRetry {
+                    Button(IntatisLocalization.string("Retry")) {
+                        onRetry()
+                    }
                 }
             }
         } else {

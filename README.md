@@ -4,8 +4,9 @@
 状态：pre-1.0；Ekagium v0.2 源码与构建元数据可验证，Developer ID 正式签名、公证与发行验收仍未完成。
 
 Ekagium 是 Apple-first、Swift-native 优先的本地 AI 工作区，当前建立在导入的 Intatis
-技术基线上。macOS 提供 Chat、Code、Cowork 三个产品面；iOS 是严格的 Chat 子集；CLI
-提供 headless Code/Cowork 和外部 MCP client。所有运行时能力围绕结构化 EventLog、共享
+技术基线上。macOS 底层仍保留 Chat、Code、Cowork 三个产品面，但当前主 sidebar 只展示 Cowork，
+Chat 与 Code 入口仅隐藏、未删除；iOS 是严格的 Chat 子集；CLI 提供 headless Code/Cowork 和外部
+MCP client。所有运行时能力围绕结构化 EventLog、共享
 AgentKernel、显式工具注册和权限链组织，而不是让 UI 直接调用模型或本地执行器。
 
 用户可见品牌已统一为 `Ekagium`。为避免破坏现有构建、会话和本地数据，本轮不批量重命名
@@ -19,9 +20,12 @@ Session Canvas 的 `.egakium/` 路径也作为兼容 identity 保持不变。
 
 ### macOS
 
-- Chat：OpenAI-compatible streaming、provider/model/variant 配置、透明 hosted web search、
+当前用户可见模式入口只有 Cowork。下列 Chat 与 Code 能力继续编译和保留，以便后续仅通过
+presentation visibility 恢复，不代表它们已从产品或数据模型中删除。
+
+- Chat（入口隐藏）：OpenAI-compatible streaming、provider/model/variant 配置、透明 hosted web search、
   citations、会话历史、多模态产物和本地诊断导出。
-- Code：单 workspace agent、文件/patch/Git、managed terminal、Skills、MCP、文档/媒体、
+- Code（入口隐藏）：单 workspace agent、文件/patch/Git、managed terminal、Skills、MCP、文档/媒体、
   浏览器和模型驱动 Knowledge 工具；所有工具均经过 CapabilityLease、WorkspaceLease、
   PathConfinement 与权限链。
 - Cowork：多 agent roster、FIFO scheduler、WorkTask/Goal、MessageBus/Mediator、per-agent
@@ -61,6 +65,8 @@ profiles 和外部 MCP client。macOS/Linux 平台能力与 sandbox/guard 可用
 Apps/                 macOS、iOS 与 CLI 入口
 Packages/             14 个公共库、内部 C/guard target 与测试
 Vendor/               经审计并固定的第三方派生源码
+OpenSource/           26 个独立 shallow 上游研究 checkout；父仓库只跟踪 gitlink
+.gitmodules           OpenSource 路径、公开 origin 与 shallow 初始化配置
 ThirdPartyNotices/    许可证、来源与资源清单
 Tests/                MCP conformance 与独立 parity fixtures
 docs/                 当前规范和已标记的历史设计文档
@@ -70,6 +76,15 @@ Package.swift         SwiftPM 产品、target 与测试图
 ```
 
 精确 target 和入口见 [`docs/PROJECT_MAP.md`](docs/PROJECT_MAP.md)。
+
+`OpenSource/` 不在 SwiftPM/XcodeGen 产品依赖图中，常规构建不要求下载这些大型研究 checkout。
+确需核对上游源码时，可在 clone 后显式运行：
+
+```sh
+git submodule update --init --depth 1 -- OpenSource
+```
+
+父仓库只提交 gitlink；不要在父仓库中递归 `git add OpenSource/*/*`。
 
 ## 开发与验证
 

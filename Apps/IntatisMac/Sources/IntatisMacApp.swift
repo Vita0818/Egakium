@@ -1071,7 +1071,6 @@ struct CoworkSessionView: View {
     let onShowSessions: () -> Void
     let onNewSession: () -> Void
     let onSessionDidBecomeReady: () -> Void
-    let onOpenCanvas: () -> Void
     @Binding var showsInspector: Bool
     @State private var showProjectSettings = false
     @State private var showGoalEditor = false
@@ -1093,7 +1092,6 @@ struct CoworkSessionView: View {
         onShowSessions: @escaping () -> Void,
         onNewSession: @escaping () -> Void,
         onSessionDidBecomeReady: @escaping () -> Void,
-        onOpenCanvas: @escaping () -> Void,
         showsInspector: Binding<Bool>
     ) {
         self.vm = vm
@@ -1104,7 +1102,6 @@ struct CoworkSessionView: View {
         self.onShowSessions = onShowSessions
         self.onNewSession = onNewSession
         self.onSessionDidBecomeReady = onSessionDidBecomeReady
-        self.onOpenCanvas = onOpenCanvas
         self._showsInspector = showsInspector
         self._agentThreadPresentation = StateObject(
             wrappedValue: CoworkAgentThreadPresentationModel(
@@ -1134,7 +1131,16 @@ struct CoworkSessionView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        HSplitView {
+            CoworkCanvasHost(
+                document: vm.canvasDocument,
+                errorMessage: vm.canvasInitializationError)
+                .frame(
+                    minWidth: 320,
+                    idealWidth: 480,
+                    maxWidth: .infinity,
+                    maxHeight: .infinity)
+
             CoworkShell(threadPage: agentThreadPresentation.page,
                         presentationScope: IntatisThreadPresentationScope(
                             kind: .cowork,
@@ -1207,14 +1213,6 @@ struct CoworkSessionView: View {
                                 action: {
                                     vm.toggleVoiceInput()
                                 }),
-                        headerActions: [
-                            IntatisThreadHeaderAction(
-                                title: IntatisLocalization.string("Open Canvas"),
-                                systemImage: "rectangle.on.rectangle.angled",
-                                isDisabled: vm.canvasDocument == nil,
-                                isIconOnly: true,
-                                action: onOpenCanvas),
-                        ],
                         showsInspector: $showsInspector,
                         input: $vm.input,
                         onSend: { vm.send() },
@@ -1247,6 +1245,11 @@ struct CoworkSessionView: View {
                         onShowLatest: {
                             agentThreadPresentation.showLatest()
                         })
+                .frame(
+                    minWidth: 440,
+                    idealWidth: 620,
+                    maxWidth: .infinity,
+                    maxHeight: .infinity)
         }
         // SwiftUI preserves this view's structural identity when one Cowork
         // session replaces another. Key startup to the durable session ID so
@@ -1747,21 +1750,6 @@ struct IntatisMacApp: App {
         }
         .defaultSize(width: 1100, height: 760)
 
-        WindowGroup(
-            IntatisLocalization.string("Canvas"),
-            for: CoworkCanvasWindowValue.self
-        ) { $value in
-            if let value {
-                CoworkCanvasWindowView(sessionID: value.sessionID)
-            } else {
-                ContentUnavailableView(
-                    IntatisLocalization.string("No Canvas Session"),
-                    systemImage: "rectangle.on.rectangle.angled",
-                    description: Text(IntatisLocalization.string(
-                        "Open a Canvas from an active Cowork Session.")))
-            }
-        }
-        .defaultSize(width: 1080, height: 760)
     }
 }
 

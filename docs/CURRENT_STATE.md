@@ -14,20 +14,26 @@
 > 每个 Cowork Session 独立的 HTML/DOM 画布，右侧复用现有 Cowork harness；每个画布元素是一份
 > 独立 HTML 小网页，`@main` 通过提示词负责布局与委派，ordinary sub-agent 默认按一次任务编辑
 > 一个元素。用户随后选择方案一：宿主首次创建 `index.html`，exact `@main` 可直接编辑整份页面。
-> 当前最小双窗口/WKWebView 原型已进入业务源码；正式 CEF、Element/layout schema、bridge 和最终
-> 中央 Canvas + 右侧 harness 合窗仍不存在。完整合同见 `docs/EGAKIUM_CANVAS_COWORK.md`。
+> 当前 WKWebView 原型与主界面原样左右拼接已进入业务源码：左侧可复用 CanvasHost 与右侧原
+> Cowork harness 共用同一个 `CoworkViewModel`/Session。用户在实际打开后明确纠正为只保留这一
+> 个组合窗口；独立 Canvas scene、window、header action 与 resolver 已移除。正式 CEF、Element/
+> layout schema 与 bridge 仍不存在。macOS 主 sidebar 当前进一步只展示 Cowork，初始模式也是
+> Cowork；Chat/Code 入口仅隐藏，相关实现、runtime、session/history 与配置仍保留。完整合同见
+> `docs/EGAKIUM_CANVAS_COWORK.md`。
 
 文档状态：当前源码摘要
-最近源码核对：2026-08-16
+最近源码核对：2026-08-17
 最近产品方向核对：2026-08-16
 产品基线：v0.2（build 49）
 
 ## 版本与发行状态
 
-- 当前 Git root 的 `HEAD` 与 `origin/main` 均为标题为 `v0.1` 的提交 `e6073d8`；仓库没有
-  Git tag。该提交标题只描述 Git 里程碑，不是产品版本事实源。当前工作树包含尚未提交的
-  Intatis 基线导入、Canvas 原型以及本轮品牌/版本改动，必须以工作树事实和 `project.yml`
-  为准。
+- 当前 `origin/main` 仍是 `v0.1` `e6073d832`，本地 `main` 保持两层尚未推送提交并超前两个：
+  重写后的 `v0.2` 从一开始就以 26 个 gitlink 表示 `OpenSource/`，重写后的 `v0.3` 保留后续产品
+  改动和当前文档。仓库没有 Git tag，也没有 push；从 `origin/main` 到当前 `main` 仍是普通
+  fast-forward 关系，不需要 force。提交标题只描述里程碑，产品版本仍以 `project.yml` 为准。
+  旧 flattened `v0.2` / `v0.3` 不再被 branch/tag 引用；其对象可能因 reflog 暂留本机 3.26 GiB
+  pack，但不属于正常 `main` push 的可达对象集合。
 - `project.yml` 的 `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` 当前为 `0.2 (49)`；
   两个仓库参考 Info.plist、生成后的 `Intatis.xcodeproj`、README 与活跃状态文档使用同一
   基线。用户可见 App 名、导航/对话文案、配置导入文案、诊断导出名和 Canvas 模板品牌均为
@@ -50,7 +56,8 @@
 
 ### macOS
 
-macOS 是完整产品：Chat、Code、Cowork、Settings 和本地诊断导出。
+macOS 底层仍是完整的 Chat、Code、Cowork、Settings 和本地诊断导出产品图；当前用户可见 sidebar
+只展示 Cowork，Chat/Code 入口仅隐藏、未删除。初始 selection 为 Cowork，Settings 继续可见。
 
 - Chat 使用无 Intatis Tools 的 `ChatLoop`，支持 OpenAI-compatible streaming、provider/model/
   variant 配置、provider-hosted search wire、citations、会话历史和本地图片附件。macOS Chat 已移除
@@ -662,17 +669,25 @@ profiles 与外部 MCP client。macOS/Linux 的 stdio、sandbox、bwrap/guard �
 - `Orchestrator` 只给 exact `@main` root prompt 注入精确入口路径、整页 HTML/CSS/JavaScript 直编和
   “ordinary sub-agent 不得并发编辑共享入口”的合同；现有 workspace file/patch、CapabilityLease、
   PermissionEngine 与 durable execution 路径保持不变，没有新增隐藏 Canvas 写入后门。
-- 现有 Cowork harness 保持原布局，并通过内容 header action 打开 value-driven 独立 Canvas 窗口。
-  窗口只携带 exact SessionID、恢复同一 primary workspace bookmark、只打开已经初始化的文件，不
-  新建 CoworkViewModel/runtime/EventLog；关闭窗口不会停止或重置 Session。
+- `CoworkSessionView` 现在用原生 `HSplitView` 原样左右组合：左侧 `CoworkCanvasHost` 直接消费
+  `vm.canvasDocument`，右侧保留参数和业务行为未改的既有 `CoworkShell`；两侧共用同一个 exact
+  Session、`CoworkViewModel`、runtime、EventLog 与权限控制面。当前最小宽度只是父级 split 的展示
+  约束，没有新增窄栏业务模式、overlay、drawer 或第二份 harness。
+- App scene 已移除 value-driven Canvas `WindowGroup`，Cowork header 也不再提供 `Open Canvas`；此前
+  Canvas window value、workspace resolver/model 与 window view wrapper 已删除。打开或恢复 Cowork
+  时只有一个组合 surface，不能再落入只显示画布、看不到 harness 的窗口。
 - 当前渲染是 non-persistent、Session-directory read access、top-level scheme allowlist、content-rule
   network deny 的 `WKWebView` 调试适配层，并轮询文件变化刷新。它不是正式 CEF CanvasHost，也不是
   sandbox/Helper/签名/公证证据。
+- 2026-08-16 当前工作树已通过 `SessionCanvasStoreTests` 6/6、`ThreadLayoutTests` 21/21、XcodeGen、
+  v0.2/build 49 一致性门和 `IntatisMac` arm64 Debug unsigned build；独立入口移除后的最新重跑结果见
+  `docs/TESTING.md`。仍未进行 GUI 分隔拖拽、双 Session、真实 provider 或 CEF 手测，不能从编译和
+  离线测试外推这些交互结果。
 - 迁移前 `Chromium/`、`.deps/`、`build/` 与 `docs/egakium-cef-baseline/` 只是保留资产/历史证据；
   当前 SwiftPM/XcodeGen target 尚未消费它们，旧 `USE_SANDBOX=OFF` 原型也不是安全或发行证据。
-- 仍缺：真实 GUI 双 Session/窗口生命周期手测、正式 CEF BrowserView/Helper、ElementID/layout/
-  revision/event projection、ArtifactStore 关系、内部 scheme/iframe sandbox/bridge、最终合窗和
-  CEF signing/notarization 闭环。
+- 仍缺：真实 GUI 双 Session、左右分隔拖拽与单组合窗口恢复手测、正式 CEF BrowserView/Helper、
+  ElementID/layout/revision/event projection、ArtifactStore 关系、内部 scheme/iframe sandbox/bridge
+  与 CEF signing/notarization 闭环。
 
 1. 先等待现有两条 App submission 到达 terminal，期间不要继续重复上传；随后只运行一次
    新的可恢复两阶段流程，完成 App/DMG notarization、staple、codesign 与 Gatekeeper

@@ -8,7 +8,9 @@
 
 当前业务源码仍是从 Intatis 导入的 SwiftPM/XcodeGen 基线；用户已确认 Ekagium 的下一产品层为
 Cowork-first / Canvas-first macOS 工作台。方案一的 Session Canvas 初始化、exact `@main` 直编提示和
-独立 WKWebView 调试窗口已有最小原型；正式 CEF、元素/layout/bridge schema 与最终合窗仍未实现。
+单一 Cowork 窗口内的左 WKWebView Canvas / 右原 harness 拼接已经实现；此前独立 Canvas scene/action
+已按用户 2026-08-16 的纠正移除。macOS 主 sidebar 当前只展示 Cowork；Chat/Code 入口只是隐藏，
+对应实现、runtime 与数据仍保留。正式 CEF 与元素/layout/bridge schema 仍未实现。
 产品合同见 `EGAKIUM_CANVAS_COWORK.md`，迁移边界见 `EGAKIUM_MIGRATION.md`。
 
 ## 当前规范
@@ -16,7 +18,7 @@ Cowork-first / Canvas-first macOS 工作台。方案一的 Session Canvas 初始
 | 文档 | 权威范围 |
 |---|---|
 | `EGAKIUM_MIGRATION.md` | Intatis 工作树导入、Ekagium 保留资产、展示层换名与验证边界 |
-| `EGAKIUM_CANVAS_COWORK.md` | 已确认但尚未实现的 Cowork-first / Canvas-first 产品与架构合同 |
+| `EGAKIUM_CANVAS_COWORK.md` | 已确认的 Cowork-first / Canvas-first 合同、当前单窗口拼接与待实现 CEF/元素边界 |
 | `VERSIONING.md` | 产品版本与 build number 的唯一治理规则 |
 | `CURRENT_STATE.md` | 当前能力、验证状态、已知缺口 |
 | `PROJECT_MAP.md` | 当前目录、target、入口、关键文件和脚本 |

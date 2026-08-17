@@ -67,11 +67,14 @@ private struct SessionActionTarget: Identifiable {
 }
 
 struct IntatisMacRootView: View {
+    // Chat and Code remain compiled product surfaces. Their navigation entries
+    // are intentionally hidden while Ekagium presents the Cowork-first UI.
+    private static let visibleNavigationItems: Set<IntatisNavItem> = [.cowork]
+
     @EnvironmentObject var env: AppEnvironment
-    @Environment(\.openWindow) private var openWindow
     @ObservedObject private var runtimeManager: AppSessionRuntimeManager
     @Environment(\.colorScheme) private var scheme
-    @State private var selection: IntatisNavItem = .chat
+    @State private var selection: IntatisNavItem = .cowork
     @State private var isSettings = false
     @State private var didInit = false
     @State private var recentChatSessions: [AppSessionSummary] = []
@@ -98,6 +101,9 @@ struct IntatisMacRootView: View {
 
     private var items: [IntatisNavItem] {
         IntatisNavItem.allCases.filter { item in
+            guard Self.visibleNavigationItems.contains(item) else {
+                return false
+            }
             switch item {
             case .chat: return true
             case .code: return PlatformProfile.current.supports(.code)
@@ -250,10 +256,6 @@ struct IntatisMacRootView: View {
                 onShowSessions: showCoworkSessions,
                 onNewSession: startNewCoworkSession,
                 onSessionDidBecomeReady: refreshCoworkSessions,
-                onOpenCanvas: {
-                    openWindow(value: CoworkCanvasWindowValue(
-                        sessionID: vm.sessionID))
-                },
                 showsInspector: $showsCoworkInspector)
                 .id(presentationScope)
         } else {

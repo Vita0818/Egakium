@@ -51,7 +51,10 @@ xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisiOS \
 - 本轮没有运行完整 SwiftPM test suite、GUI 人工验收、真机、真实 provider、Developer ID
   签名、公证、DMG、安装或发行验证。
 
-## Ekagium Canvas 方案一原型（2026-08-15）
+## Ekagium Canvas 方案一原型（2026-08-15，历史证据）
+
+本节保留 2026-08-15 原型当时的验证。其独立 Canvas Window 路线已被用户 2026-08-16 的单窗口
+纠正取代并从当前源码移除，不能继续作为现行产品入口或验收要求。
 
 本轮实现的自动化验证命令：
 
@@ -80,12 +83,127 @@ xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisMac \
   ordinary sub-agent 并发隔离合同，worker prompt 不含路径；
 - `IntatisMac` arm64 Debug、`CODE_SIGNING_ALLOWED=NO` 构建通过；构建产物是 arm64 Mach-O；
 - 未构建遗留 `IntatisMacAppStore`，未链接或修改 `Chromium/`、`.deps/`、`build/` 中的 CEF 资产；
-- 未运行真实 GUI 双 Session/Canvas Window 手测、真实 provider、CEF build/Helper、签名、公证或发行验证。
+- 当时未运行真实 GUI 双 Session/Canvas Window 手测、真实 provider、CEF build/Helper、签名、公证或
+  发行验证。
 
-下一轮人工原型验收至少应覆盖：新建两个 Cowork Session 后各自文件存在且互不串线；内容 header
-`Open Canvas` 打开正确窗口；直接编辑相应 `index.html` 后自动刷新；Canvas 窗口关闭/重开不创建、
-覆盖、删除或停止 Session；同一 Canvas 多窗口不产生第二套 runtime；外部网络资源加载被阻断；
-Command-W、Command-Q、Session 删除与冷启动行为保持既有 lifecycle 合同。
+当前人工原型验收至少应覆盖：新建两个 Cowork Session 后各自文件存在且互不串线；每次打开或恢复
+Cowork 都只出现一个组合窗口并同时看到左 Canvas 与右 harness；直接编辑相应 `index.html` 后自动
+刷新；组合窗口关闭/重开不创建、覆盖、删除或停止 Session；外部网络资源加载被阻断；Command-W、
+Command-Q、Session 删除与冷启动行为保持既有 lifecycle 合同。
+
+## Ekagium Canvas 原样左右拼接与 Canvas-only 入口移除（2026-08-16）
+
+本轮只改 macOS presentation 组合，不修改测试源码、Canvas lifecycle、Cowork runtime 或权限链。验证
+命令为：
+
+```sh
+xcodegen generate
+
+env CLANG_MODULE_CACHE_PATH=/private/tmp/egakium-canvas-join-clang-cache \
+  SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/egakium-canvas-join-swiftpm-cache \
+  swift test --filter SessionCanvasStoreTests
+
+env CLANG_MODULE_CACHE_PATH=/private/tmp/egakium-canvas-join-clang-cache \
+  SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/egakium-canvas-join-swiftpm-cache \
+  swift test --filter ThreadLayoutTests
+
+scripts/check-version-consistency.sh
+
+xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisMac \
+  -configuration Debug -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath /private/tmp/EkagiumCanvasJoinCompileProbe \
+  -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile \
+  COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
+
+rg -n 'CoworkCanvasWindowValue|CoworkCanvasWindowModel|CoworkCanvasWindowView|onOpenCanvas|Open Canvas' \
+  Apps/IntatisMac/Sources
+
+test ! -e Apps/IntatisMac/Sources/CoworkCanvasWindow.swift
+# 上述 rg 预期无输出（exit 1 表示没有匹配）；test 预期 exit 0。
+```
+
+真实结果：
+
+- `CoworkSessionView` 的左 `CoworkCanvasHost` / 右现有 `CoworkShell` 原生 `HSplitView` 组合，以及
+  独立 Canvas scene/header action/value/resolver/view 的移除，均通过 `IntatisMac` arm64 Debug unsigned
+  编译；构建退出 0，只有仓库既有 unused-result / deprecated `onChange` warning 和 Xcode 的
+  exit-code-0 噪声诊断；
+- `SessionCanvasStoreTests` 6/6、`ThreadLayoutTests` 21/21，均为 0 failures；前者确认 Canvas
+  no-overwrite/Session 隔离/unsafe path/existing lookup 边界未变，后者确认现有 Cowork rail、composer、
+  error presentation、window toolbar/inspector 与 repeated resize geometry 回归未破坏；
+- 受限外层 sandbox 的首次 SwiftPM 尝试在 manifest 阶段被 `sandbox-exec: Operation not permitted`
+  拦住，没有执行测试；按项目测试说明在允许 SwiftPM 自身 sandbox 的宿主边界重跑后得到上述通过结果，
+  不把首次环境失败记作产品失败；
+- XcodeGen 生成成功，版本一致性门输出 `Ekagium version is consistent: 0.2 (build 49)`；
+- 上述残留标识扫描无输出，旧 `CoworkCanvasWindow.swift` 也已不存在；当前 App source 只保留
+  `CoworkCanvasHost.swift`，不再存在 Canvas-only window/action 路径；
+- 未运行 GUI 像素/交互手测、分隔线拖拽、双 Session 串线、macOS state restoration、真实 provider、
+  CEF、签名、公证或发行验证。因此自动化结果不能证明实际窗口默认宽度、Canvas/harness 光学比例、
+  拖拽手感或系统恢复后的设备级行为。
+
+## macOS Chat/Code 入口隐藏（2026-08-16）
+
+本轮只修改 macOS root sidebar 的 presentation visibility 和初始 selection；Chat/Code 源码、runtime、
+session/history/configuration/recovery 均保留，也没有修改测试源码。验证命令为：
+
+```sh
+xcodegen generate
+scripts/check-version-consistency.sh
+swift test --filter ThreadLayoutTests
+
+xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisMac \
+  -configuration Debug -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath /private/tmp/EkagiumCoworkOnlyNavigationProbe \
+  -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile \
+  COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
+
+rg -n 'visibleNavigationItems|@State private var selection|case chat, code, cowork|case \.chat:|case \.code:' \
+  Apps/IntatisMac/Sources/IntatisMacRootView.swift
+```
+
+真实结果：
+
+- `visibleNavigationItems` 精确为 `[.cowork]`，初始 `selection` 精确为 `.cowork`；sidebar 的
+  `ForEach(items)` 因此只生成 Cowork 行，不会启动后停留在隐藏的 Chat；
+- 同一源码静态核对确认 `IntatisNavItem.chat/code`、Chat/Code detail switch、history、新建/恢复与
+  runtime 路径仍存在。实现方式是可逆的 visibility filter，不是删除产品面或数据；
+- `ThreadLayoutTests` 21/21、0 failures；`IntatisMac` arm64 Debug unsigned build 退出 0；XcodeGen
+  生成成功，版本门仍为 `Ekagium 0.2 (build 49)`；
+- 构建日志只有仓库既有 unused-result / deprecated `onChange` warning 及 Xcode 的 exit-code-0
+  噪声诊断，没有本轮入口隐藏引入的编译错误；
+- 未运行实际 App 的 GUI/Accessibility 手测、签名、公证或发行验证。自动化证明可见集合、默认选择和
+  全量 macOS 编译边界，不把它外推为设备级像素或交互验收。
+
+## OpenSource gitlink 恢复与本地历史重写（2026-08-17）
+
+本轮只改变父仓库 Git 表示和本机子仓库 metadata，不修改产品源码、测试源码、依赖 manifest 或
+上游工作树内容。核对命令包括：
+
+```sh
+git ls-files --stage OpenSource
+git config -f .gitmodules --get-regexp '^submodule\..*\.(path|url|shallow)$'
+git submodule status -- OpenSource
+git status --short OpenSource
+git rev-list --left-right --count origin/main...HEAD
+git count-objects -vH
+```
+
+真实结果：
+
+- 父 index 从 231,413 个普通 OpenSource entries 转为精确 26 个 mode `160000` gitlink；
+- `.gitmodules` 各有 26 个 path、URL 和 `shallow = true`，URL 均为公开 upstream；
+- 26 个 gitlink SHA 与源 Intatis 逐项一致；本机 26 个子仓库 HEAD 与父 index 一致且全部 clean；
+- 本机 11 GB 工作树原地保留，没有复制或读取迁移时排除的 `.env`、证书、私钥或 provisioning
+  profile；这些有意缺失路径只在对应子仓库本地 index 标记为 skip-worktree；
+- 用户明确授权后，使用旁路 index/tree 与 `commit-tree` 重建仅本地的两层提交：新 `v0.2` 以
+  `origin/main` 为父并直接包含 26 个 gitlink，新 `v0.3` 以新 `v0.2` 为父且 tree 与重写前的
+  最终 staged tree 一致；原提交 message 与 author/committer metadata 保留；
+- 本地 `main` 通过带旧 SHA 条件的单次 `update-ref` 原子切换，仍只比 `origin/main` 超前两个提交，
+  且 `origin/main` 是其祖先；没有 checkout 旧 tree、没有删除工作树文件，也没有 push/force push；
+- 旧 flattened commit 不再被 branch/tag 引用，正常 `main` push 的可达对象集合不包含其
+  231,413 个 OpenSource blob。`.git` pack 在 reflog 到期/GC 前仍可约为 3.26 GiB，这是本机恢复
+  保留，不代表 push 会传输这些不可达旧对象；本轮没有 expire reflog 或运行 GC；
+- 这是 Git-only 结构验证，没有运行 Swift build/test 或 Xcode build，因为产品源码与构建图未变。
 
 ## 版本一致性
 

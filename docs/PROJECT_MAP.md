@@ -7,7 +7,8 @@
 >
 > 2026-08-15 已确认的 Ekagium Canvas/Cowork 目标见
 > `docs/EGAKIUM_CANVAS_COWORK.md`。当前目录图已有方案一 Session Canvas 初始化、exact `@main`
-> 直编提示和 WKWebView 调试窗口；仍无正式 CEF target/Helper、Element/layout/event schema 或 bridge。
+> 直编提示、可复用 WKWebView CanvasHost，以及唯一主 Cowork detail 的左 Canvas/右 harness 拼接；
+> 仍无正式 CEF target/Helper、Element/layout/event schema 或 bridge。
 
 文档状态：当前仓库地图
 最近源码地图自查：2026-08-16
@@ -21,11 +22,23 @@ macOS 唯一发行 target 是 Developer ID/direct-distribution `IntatisMac`。
 它是 legacy/non-shipping target，不是产品面、架构约束或默认验收项。分发
 合同见 `docs/MACOS_DISTRIBUTION.md`。
 
-## 2026-08-15 Ekagium Canvas 方案一原型地图
+## 2026-08-17 OpenSource gitlink 地图
+
+- 根 `.gitmodules` 登记 26 个公开 upstream、exact path 与 `shallow = true`；父仓库 index 对
+  `OpenSource/<project>` 只保存 mode `160000` 的固定 commit SHA。
+- 26 个 SHA 与源 `/Users/vita/Vitemis/Intatis` 的父 gitlink 逐项一致；当前本机子仓库 HEAD 也与
+  父 index 一致。源 Intatis 缺少 `.gitmodules`，本仓库补齐了可初始化映射，而不是复制该缺口。
+- `OpenSource/` 是文档/PDF/OCR/EPUB/Office/MCP 等上游研究 checkout，不在 `Package.swift`、
+  `project.yml`、App resource 或 release graph 中。实际采用项仍只以 `NOTICE.md`、
+  `ThirdPartyNotices/`、`Vendor/`、`Package.swift` 和受控 runtime/helper 记录为准。
+- 父仓库不得再次递归跟踪这 26 个工作树的普通文件；任一 pointer 更新都是显式 Git + provenance
+  变更，不得随普通产品提交漂移。
+
+## 2026-08-16 Ekagium Canvas 方案一与 UI 拼接地图
 
 - `Packages/IntatisCore/Sources/SessionCanvasStore.swift`：SessionID 校验、primary workspace 下
   `.egakium/canvas/<SessionID>/index.html` 的固定模板、逐层 no-symlink 路径检查、完整临时文件 +
-  no-replace link 首次发布、幂等恢复，以及供窗口使用的 non-creating `existingCanvas` lookup。
+  no-replace link 首次发布、幂等恢复，以及 non-creating `existingCanvas` lookup。
 - `Packages/IntatisCore/Tests/SessionCanvasStoreTests.swift`：首次创建与编辑保留、同 workspace 多
   Session 隔离、非法 ID、symlink 拒绝和 existing lookup 不创建文件。
 - `Apps/IntatisMac/Sources/CoworkViewModel.swift`：在 fresh 七事件 bootstrap 或 historical main attach
@@ -36,14 +49,17 @@ macOS 唯一发行 target 是 Developer ID/direct-distribution `IntatisMac`。
   继续承担真实写入。
 - `Packages/IntatisAgentKernel/Tests/ContextProjectionTests.swift`：exact `@main` 获得路径而 ordinary
   worker 不获得的 prompt 合同测试。
-- `Apps/IntatisMac/Sources/CoworkCanvasWindow.swift`：value payload、workspace bookmark RAII、只打开
-  已初始化文件的窗口 model、文件变化刷新，以及 non-persistent、Session-directory read access、
-  top-level scheme allowlist、content-rule network deny 的薄 `WKWebView` preview。
-- `Apps/IntatisMac/Sources/IntatisMacRootView.swift` / `IntatisMacApp.swift`：通过已有
-  `CoworkShell.headerActions` 提供 `Open Canvas`，并用 exact SessionID value-driven `WindowGroup`
-  打开独立窗口；不动态增加 window toolbar item，不创建第二套 Cowork runtime。
-- 当前没有 `CanvasHost` Swift package、CEF framework linkage、ElementID/layout/event projection 或
-  native bridge；`Chromium/`、`.deps/`、`build/` 仍不在 SwiftPM/XcodeGen 产品依赖图中。
+- `Apps/IntatisMac/Sources/CoworkCanvasHost.swift`：可复用 `CoworkCanvasHost`、共享文件变化刷新与
+  non-persistent、Session-directory read access、top-level scheme allowlist、content-rule network deny
+  的薄 `WKWebView` preview；不包含 Canvas window value、resolver/model 或 window wrapper。
+- `Apps/IntatisMac/Sources/IntatisMacRootView.swift` / `IntatisMacApp.swift`：`CoworkSessionView` 以原生
+  `HSplitView` 将 `CoworkCanvasHost(vm.canvasDocument)` 放左侧、现有 `CoworkShell` 放右侧。App scene
+  不再注册 Canvas `WindowGroup`，header 不再提供 `Open Canvas`；只有一个组合 presentation，也不创建
+  第二套 Cowork runtime。`IntatisMacRootView.visibleNavigationItems` 当前仅含 `.cowork`，初始 selection
+  为 `.cowork`；`.chat` / `.code` enum、detail、ViewModel、history 与 runtime 分支仍原样保留。
+- 当前 `CoworkCanvasHost` 是 `IntatisMac` app target 内的可复用 presentation type，不是独立 Swift
+  package 或正式 CEF host。仍无 CEF framework linkage、ElementID/layout/event projection 或 native
+  bridge；`Chromium/`、`.deps/`、`build/` 仍不在 SwiftPM/XcodeGen 产品依赖图中。
 
 ## 2026-08-10 模型驱动 Knowledge 接线地图
 
@@ -147,6 +163,7 @@ Intatis/
 ├── .build/            SwiftPM 构建产物（gitignored）
 ├── .agents/skills/    项目级 Agent Skills；当前含 intatis-skill-creator
 ├── .git/              Git 仓库（产品版本以 project.yml 为准；commit 标题只记录里程碑）
+├── .gitmodules        26 个 OpenSource shallow gitlink 的 path/origin 配置
 ├── .gitattributes     LF 规范化
 ├── .gitignore         忽略 .build、Intatis.xcodeproj、dist、*.env、.intatis 本地运行/受管 worktree 状态
 ├── .swiftpm/          SwiftPM 缓存
@@ -161,6 +178,7 @@ Intatis/
 ├── Experiments/       不接入生产 build graph 的独立实验；当前含 WebRendererParity
 ├── Makefile           build/test/release/install/app 便利 target
 ├── NOTICE.md          项目来源、当前上游采用状态 + 第三方依赖声明
+├── OpenSource/        独立上游研究 checkout；父仓库只跟踪 26 个 mode-160000 pointer
 ├── ThirdPartyNotices/ OKF/Yams / Markdown / syntax / math / MCP SDK / tool_search / HTTP / Swift Crypto / Codex Skill 采用声明
 ├── ThirdPartyStandards/ byte-exact 第三方标准；当前含 Open Knowledge Format v0.2
 ├── Vendor/            仓内维护的第三方派生源码
@@ -298,7 +316,7 @@ route，使用 required hosted-search request，且只经 `ToolRegistry` / `Tool
 - iOS 预渲染救援资源：`Apps/IntatisiOS/Resources/Settings.bundle/Root.plist` 通过系统 Settings 写入同一 renderer key，values 为 `microsoft` / `plainSafe` 且默认 Microsoft；`project.yml` 将该目录只加入 iOS app resource phase。最终 `IntatisiOS.app/Settings.bundle/Root.plist` 必须存在，plain-safe 仍须可在打开问题 session 前选择。
 - 开源声明入口：`NOTICE.md`、`ThirdPartyNotices/MarkdownRendering.md`、`ThirdPartyNotices/SyntaxHighlighting.md`、`ThirdPartyNotices/MathRendering.md`；`Packages/IntatisSharedUI/Sources/ThirdPartyNoticesView.swift` 在设置 UI 暴露声明，`project.yml` 将根 NOTICE 与三份 notice 复制到 macOS/iOS app bundle。
 - 渲染测试/fixture：`MarkdownSchedulerTests.swift`、`MessageRendererModeTests.swift`、`MessageRenderingTests.swift` 与 vendor formula/parser/platform suites 共同覆盖模式、背压、raw/final、delimiter/code/currency/fallback、attachment source、两平台 TextKit 2 paragraph/live-provider integration、Dynamic Type 与 semantic appearance；既有 vendored AppKit/UIKit stable-width invalidation 与 `DocumentView`/ParagraphView equality/selection contracts 继续保留。当前 `MessageRenderingTests` 41/41，`ThreadScrollCoordinatorTests` 28/28；两者新增 16-row history window/paging/page-scope、真实 `NSScrollView` top↔bottom 和 macOS 三 surface 无消息级 lazy 的结构合同。此前 vendor full 77 XCTest + 11 Swift Testing = 88/88 是独立既有结果。AppKit `ParagraphNSView` 还冻结 TextKit 2 root content-storage retention、wholesale replacement 后 primary-manager restoration、coalesced viewport layout、flexible intrinsic width、exact proposal ownership 与 one-entry measurement；`InlineMathAttachment` 冻结专用动态 UTI、direct provider 与无 generic attachment cell。`Tests/Fixtures/incident-1249-sanitized-v1.json` 是脱敏的 17-message / 1,249-delta 固定样本，SHA-256 `fb548849d0b708d31e8c6d055805f29f5c09ee4c8306bf9adc537a48e95707f1`，不得因公式功能改写；validation-only host 除 formula stages 外还提供 production `CodeShell` 的 `thread-burst` stage。旧 lazy 容器曾完成三次 180 秒 soak、60 秒显式 AX 滚动和约 90 秒 Hangs/Time Profiler，这只保留为历史证据；当前 bounded history window 已完成真实 session entry/scroll/paging，但尚未重跑 >160 秒 soak。2026-07-18 三实例事故的最终 retaining edge 仍以 `UNKNOWN` 历史 evidence 保留；当前证据仍不等于真实 clipboard/VoiceOver 或低端真机通过，plain-safe 也不能冒充 no-math baseline。
-- macOS UI 信息架构：`Apps/IntatisMac/Sources/IntatisMacRootView.swift`（系统 `NavigationSplitView` sidebar 内的 `Ekagium` 标题、带 SF Symbol 的 Chat/Code/Cowork 竖向三行导航且仅当前项使用 interactive Liquid Glass、mode history/New、底部 Settings；session display name 解析；新建 Cowork session 选择主 workspace）、`Apps/IntatisMac/Sources/IntatisChatScreen.swift`（session-title Chat header；16-row bounded eager transcript page 与 Earlier/Newer/Latest；仅用户消息保留 trailing 原生 `Glass.regular` 气泡 cap/gutter，且无自定义蓝色描边；assistant/agent/system 包括失败/中断回复均无外层卡片；无通用 agent 头像/Agent badge；名称旁稳定消息时间；composer 第一排 40pt、关闭态仅模型名的 model/variant glass 菜单左、usage 右；第二排复用 Cowork paperclip 附件 surface）、`Apps/IntatisMac/Sources/ComposerAttachmentSurfaces.swift`（Chat/Cowork 共用的 40pt paperclip、文件选择、URL 拖放、附件数量菜单和逐项删除）、`Packages/IntatisSharedUI/Sources/CodeViews.swift`（紧凑 session-title Code shell + 原生 inspector；同一 bounded history/page-scope 合同；Code/Cowork 共用仅用户消息有 regular Liquid Glass 气泡、其余 conversation row 无框正文、名称旁时间与专用结构化卡片分流；permission card/notice 可由宿主选择保留 Material 或让外层 rail 提供 surface）、`Packages/IntatisSharedUI/Sources/CoworkViews.swift`（紧凑 session-title Cowork shell + bounded history/page-scope + 宽屏 permission-first Liquid Glass rail；rail 作为同一 detail canvas 的 trailing overlay，不再有 divider 或整栏 `.bar` 背景，thread ScrollView 延伸至最右侧并以 trailing scroll-content margin 为 cards 留位；pending permission/notice 位于第一位，其后为 Agents/Goal/Tasks，Cowork rail 不再显示 Git；pending 时宽屏 rail 临时固定可见，窄到无法容纳 rail 时才在 thread 提供同一卡片兜底；不复制 Goal/Tasks；两排 composer 与可选 stop；status rail toggle 使用系统 compact 圆形 icon control）、`Apps/IntatisMac/Sources/IntatisMacApp.swift` / `MCPProjectSettingsSurfaces.swift` / `AppInferenceCatalog.swift` / `CoworkViewModel.swift` / `CoworkProjectSettings.swift`（Cowork 无常驻 reviewer 顶部横幅，也无独立 MCP Content header shortcut；MCP 内容浏览收进 `Project Settings → MCP → Browse Content`；第一排 secret-free exact profile 菜单与 Chat/Code 共用 40pt interactive Liquid Glass 几何，关闭态仅显示 model title；忙时仍可暂存下一次 `@main`，Send 冻结、FIFO 执行边界才 main-only durable rebind；第二排保留既有附件入口并使用同一个共享附件 surface；future-agent default、其他 ordinary agent rebind 与异常恢复入口位于 Project Settings）、`Packages/IntatisSharedUI/Sources/ThreadSurfaces.swift`（用户消息原生 regular glass surface、Recent 旁 30×30 原生圆形 glass `+`、原生圆形 icon controls、40pt composer control/selection-menu contract、两排 composer、首排 usage、session presentation、history window/pager/page scope、消息时间格式与 role-aware message-width policy reusable surfaces；单行等高、多行底边对齐、无 top accessory 时不生成空行）、`Packages/IntatisSharedUI/Sources/ProviderModelMenu.swift`（弹出菜单内部由 Chat/Code/Cowork 共用 provider 分组、真实 model ID + optional presentation variant identity、模型名与灰色 detail；关闭态按钮不复用这些辅助信息）
+- macOS UI 信息架构：`Apps/IntatisMac/Sources/IntatisMacRootView.swift`（系统 `NavigationSplitView` sidebar 内的 `Ekagium` 标题、唯一可见的 Cowork 导航行及其 interactive Liquid Glass、Cowork history/New、底部 Settings；Chat/Code mode/history/detail 实现保留但不进入当前 `items` 投影；session display name 解析；新建 Cowork session 选择主 workspace）、`Apps/IntatisMac/Sources/IntatisChatScreen.swift`（session-title Chat header；16-row bounded eager transcript page 与 Earlier/Newer/Latest；仅用户消息保留 trailing 原生 `Glass.regular` 气泡 cap/gutter，且无自定义蓝色描边；assistant/agent/system 包括失败/中断回复均无外层卡片；无通用 agent 头像/Agent badge；名称旁稳定消息时间；composer 第一排 40pt、关闭态仅模型名的 model/variant glass 菜单左、usage 右；第二排复用 Cowork paperclip 附件 surface）、`Apps/IntatisMac/Sources/ComposerAttachmentSurfaces.swift`（Chat/Cowork 共用的 40pt paperclip、文件选择、URL 拖放、附件数量菜单和逐项删除）、`Packages/IntatisSharedUI/Sources/CodeViews.swift`（紧凑 session-title Code shell + 原生 inspector；同一 bounded history/page-scope 合同；Code/Cowork 共用仅用户消息有 regular Liquid Glass 气泡、其余 conversation row 无框正文、名称旁时间与专用结构化卡片分流；permission card/notice 可由宿主选择保留 Material 或让外层 rail 提供 surface）、`Packages/IntatisSharedUI/Sources/CoworkViews.swift`（紧凑 session-title Cowork shell + bounded history/page-scope + 宽屏 permission-first Liquid Glass rail；rail 作为同一 detail canvas 的 trailing overlay，不再有 divider 或整栏 `.bar` 背景，thread ScrollView 延伸至最右侧并以 trailing scroll-content margin 为 cards 留位；pending permission/notice 位于第一位，其后为 Agents/Goal/Tasks，Cowork rail 不再显示 Git；pending 时宽屏 rail 临时固定可见，窄到无法容纳 rail 时才在 thread 提供同一卡片兜底；不复制 Goal/Tasks；两排 composer 与可选 stop；status rail toggle 使用系统 compact 圆形 icon control）、`Apps/IntatisMac/Sources/IntatisMacApp.swift` / `MCPProjectSettingsSurfaces.swift` / `AppInferenceCatalog.swift` / `CoworkViewModel.swift` / `CoworkProjectSettings.swift`（Cowork 无常驻 reviewer 顶部横幅，也无独立 MCP Content header shortcut；MCP 内容浏览收进 `Project Settings → MCP → Browse Content`；第一排 secret-free exact profile 菜单与 Chat/Code 共用 40pt interactive Liquid Glass 几何，关闭态仅显示 model title；忙时仍可暂存下一次 `@main`，Send 冻结、FIFO 执行边界才 main-only durable rebind；第二排保留既有附件入口并使用同一个共享附件 surface；future-agent default、其他 ordinary agent rebind 与异常恢复入口位于 Project Settings）、`Packages/IntatisSharedUI/Sources/ThreadSurfaces.swift`（用户消息原生 regular glass surface、Recent 旁 30×30 原生圆形 glass `+`、原生圆形 icon controls、40pt composer control/selection-menu contract、两排 composer、首排 usage、session presentation、history window/pager/page scope、消息时间格式与 role-aware message-width policy reusable surfaces；单行等高、多行底边对齐、无 top accessory 时不生成空行）、`Packages/IntatisSharedUI/Sources/ProviderModelMenu.swift`（弹出菜单内部由 Chat/Code/Cowork 共用 provider 分组、真实 model ID + optional presentation variant identity、模型名与灰色 detail；关闭态按钮不复用这些辅助信息）
 - Code/Cowork 错误展示路由：`Apps/IntatisMac/Sources/IntatisMacApp.swift` 把 Code 的
   voice/composer 与 Cowork 的 voice/composer/inference/projection/session-storage 错误完整传入
   SharedUI；`ThreadSurfaces.swift` 从 raw bounded page 收集 `.error`、失败 execution row、
@@ -349,7 +367,8 @@ route，使用 required hosted-search request，且只经 `ToolRegistry` / `Tool
 - Cowork 设计文档：`docs/COWORK_AGENT_ARCHITECTURE.md`、`COWORK_TASK_CONTEXT_MODEL.md`、`COWORK_AGENT_INVOCATION_MODEL.md`、`COWORK_CURRENT_FINDINGS.md`、`COWORK_MIGRATION_PLAN.md`、`COWORK_V0_10_SMOKE.md`、`COWORK_V0_10_STATUS.md`；当前 per-agent inference durable 契约：`docs/PER_AGENT_INFERENCE_PROFILES.md`
 - Ekagium Canvas/Cowork 产品合同：`docs/EGAKIUM_CANVAS_COWORK.md`（中央 per-session HTML Canvas、
   右侧现有 Cowork harness、独立 HTML 元素、`@main`/sub-agent prompt 分工、CEF/持久化安全边界；
-  当前方案一最小 WKWebView 双窗口原型已有对应业务源码，正式 CEF/Element schema/合窗待实现）
+  当前方案一 WKWebView host 与唯一主界面左右拼接已有对应业务源码，正式 CEF/Element
+  schema/bridge 待实现）
 - 开源复用政策：`docs/OPEN_SOURCE_REUSE.md`（允许的复用形式、许可证准入、provenance、NOTICE、Apple-first 集成、OpenCode 当前 research-only 状态与上游升级规则）
 
 ## 生成物 / 产物

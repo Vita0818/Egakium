@@ -27,6 +27,20 @@ external-runtime 以独立 helper/process/service 运行上游实现
 
 逐行把 TypeScript、Rust、Go 等源码翻译成 Swift 仍属于 `derived`，必须保留来源与许可证记录，不能标成独立 clean-room 实现。
 
+## `OpenSource/` 研究 checkout 的 Git 身份
+
+根 `.gitmodules` 当前登记 26 个 shallow 上游研究 checkout；父仓库只以 mode `160000` gitlink 固定
+各自 commit，不逐文件 vendor 这 11 GB 工作树。该表示方式本身属于 source/provenance 调研基础设施，
+不把任一项目自动分类为 `vendored`、`dependency` 或 `external-runtime`，也不构成许可证/分发准入。
+
+- `.gitmodules` 是 path、公开 origin 与 shallow 初始化配置的事实源；exact commit 由父 tree 的
+  gitlink 保存。
+- 常规 SwiftPM/XcodeGen 构建不初始化、编译或打包 `OpenSource/`。
+- 实际采用的代码、crate/package、binary、model/font/data 或 helper 必须在正式采用位置另行固定
+  provenance，并更新 `NOTICE.md` / `ThirdPartyNotices/`；不能只引用研究 checkout 的存在。
+- pointer 更新不得随普通父仓库提交漂移。任何 SHA/origin 变更都必须按下方检查清单重新审计。
+- 父仓库不得递归跟踪、stage 或提交子仓库内容；子仓库自身的 commit/push 也需要用户逐仓库授权。
+
 ## 许可证准入
 
 - MIT、BSD-2-Clause、BSD-3-Clause、ISC、Apache-2.0 等宽松许可证可在完成文件级和依赖级核对后采用。
