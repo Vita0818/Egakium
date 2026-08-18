@@ -42,7 +42,7 @@ Codex CLI 为一个 thread 保存一列有顺序的 model items。用户消息�
 - `codex-rs/rollout/src/policy.rs`
 - 上述模块对应的 context、history、resume 和 compaction tests
 
-## Intatis 现在已经做到什么
+## Egakium 现在已经做到什么
 
 适用范围是符合条件的 Cowork 稳定 `@main` root submission。普通 worker 仍只拿自己的任务上下文，Code 模式也还没有切换到这条 durable tool-history 链。
 
@@ -75,7 +75,7 @@ Codex CLI 为一个 thread 保存一列有顺序的 model items。用户消息�
 
 ## 这轮有没有复制 Codex 源码
 
-没有。本轮是 `reference`：固定上游 commit，阅读行为和测试，再用 Intatis 的 Swift、EventLog、权限和 lease 边界独立实现。没有复制、逐行翻译、vendor 或链接 Codex Rust 源码、prompt、测试、品牌文案或 UI 资产，因此本轮不需要修改 `NOTICE.md`。
+没有。本轮是 `reference`：固定上游 commit，阅读行为和测试，再用 Egakium 的 Swift、EventLog、权限和 lease 边界独立实现。没有复制、逐行翻译、vendor 或链接 Codex Rust 源码、prompt、测试、品牌文案或 UI 资产，因此本轮不需要修改 `NOTICE.md`。
 
 ## 当前验证
 
@@ -95,8 +95,8 @@ Codex CLI 为一个 thread 保存一列有顺序的 model items。用户消息�
 
 - SwiftPM full suite：1000 tests / 14 skipped / 0 failures。
 - `swift build --disable-sandbox`：通过。
-- IntatisMac macOS Debug build：通过。
-- IntatisiOS Simulator Debug build：通过。
+- EgakiumMac macOS Debug build：通过。
+- EgakiumiOS Simulator Debug build：通过。
 - 两个 Xcode build 只有项目既有警告，没有新增编译错误。
 
 这些结果证明当前源码可以编译、既有测试没有回归；它们不替代前面列出的真实 provider 长会话、杀进程恢复、compaction、reasoning、多模态、resume 和 fork 验证。最终命令与环境记录见 `docs/TESTING.md`。

@@ -1,4 +1,4 @@
-# Intatis Cowork 自动权限审查：Codex 与成熟开源实现源码审计
+# Egakium Cowork 自动权限审查：Codex 与成熟开源实现源码审计
 
 ## MODEL_CHECK_RESULT
 
@@ -6,8 +6,8 @@
 
 ## PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 两者一致，符合预期仓库根目录。
 - 开始调研前工作区已有对话渲染、工程配置、NOTICE、项目文档等未提交改动；本报告没有覆盖、回退或整理这些既有改动。
 
@@ -18,7 +18,7 @@
 
 ## 1. 结论先行
 
-前一版 Intatis 方案只学到了“独立权限审查者”的外形，没有学到成熟实现最关键的权限事实分层。
+前一版 Egakium 方案只学到了“独立权限审查者”的外形，没有学到成熟实现最关键的权限事实分层。
 
 本次源码审计后的核心结论是：
 
@@ -26,7 +26,7 @@
 
 因此，“审查者应该和主管处于同一级别并拥有完全相同的上下文”不是 Codex 的实现方式，也不是本次故障的正确修复方向。Codex 的 Guardian 刻意拥有更窄的上下文和更少的能力；它与主管共享的是同一份宿主确认过的准确动作事实，而不是完整 transcript，也不是两套可能漂移的字符串工具清单。
 
-Intatis 最近一次误拒绝的本质是：
+Egakium 最近一次误拒绝的本质是：
 
 ```text
 CapabilityLease 中的抽象能力：apply_patch
@@ -80,7 +80,7 @@ Codex 官方文档把 auto-review 定义为沙箱边界上的自动审查者：�
 
 Codex 的 `ToolRouter` 同时持有 model-visible specs 和 host registry；tool spec 与 handler 在同一构造过程注册，模型不能看到一套工具、执行器再使用另一套手工映射。[`router.rs`](https://github.com/openai/codex/blob/1bbdb32789e1f79932df44941236ea3658f6e965/codex-rs/core/src/tools/router.rs#L35-L77) 和 [`spec_plan.rs`](https://github.com/openai/codex/blob/1bbdb32789e1f79932df44941236ea3658f6e965/codex-rs/core/src/tools/spec_plan.rs#L155-L196) 展示了这个同源关系。未注册工具由宿主直接拒绝，不会送给 Guardian 猜测。
 
-这正是 Intatis 应吸收的第一个原则：具体工具身份、模型 schema、permission adapter 和 executor 不能分别维护。
+这正是 Egakium 应吸收的第一个原则：具体工具身份、模型 schema、permission adapter 和 executor 不能分别维护。
 
 ### 3.3 宿主先构造强类型的准确动作
 
@@ -137,7 +137,7 @@ OpenCode 当前没有额外 LLM 权限审查者。它使用宿主规则产生 `a
 2. `apply_patch` 会先解析实际 patch、文件路径和元数据，再产生 permission request，获准后才执行。[`apply_patch.ts`](https://github.com/anomalyco/opencode/blob/04bdf7732bae0cbb2ab3e003d65bddb8d56edacf/packages/opencode/src/tool/apply_patch.ts#L193-L248)
 3. `--auto` 只自动回答原本会进入 `ask` 的请求；显式 `deny` 在事件产生前已经终局，auto 不能覆盖。[权限文档](https://dev.opencode.ai/docs/permissions/)
 
-不应照搬的部分：OpenCode 的 permission policy 不是 Intatis 的 OS sandbox、WorkspaceLease 和 durable execution ticket；个别旧版 rule/memory 的 last-match 行为也可能让后续 allow 覆盖前面的 deny。Intatis 应保留 hard-deny-first 和现有平台安全边界。
+不应照搬的部分：OpenCode 的 permission policy 不是 Egakium 的 OS sandbox、WorkspaceLease 和 durable execution ticket；个别旧版 rule/memory 的 last-match 行为也可能让后续 allow 覆盖前面的 deny。Egakium 应保留 hard-deny-first 和现有平台安全边界。
 
 ## 5. Cline：工具身份的单一事实源
 
@@ -148,11 +148,11 @@ Cline 最值得借鉴的是 RuntimeBuilder 和 AgentRuntime 的同源工具模�
 - Auto-approve 按准确工具名、类别、MCP 设置和用户配置确定性判断，不调用第二个 LLM。[`sdk-tool-policies.ts`](https://github.com/cline/cline/blob/50d1578a7ea3a9004319a81993c9ffe48cc4dd2d/apps/vscode/src/sdk/sdk-tool-policies.ts#L13-L100)
 - 未知工具、缺少 callback、异常和失败路径都 fail closed，并把具体原因返回调用链。
 
-不应照搬的部分：Cline 某些 SDK policy 对未列出的工具采用较宽松默认值。Intatis 的 unknown/unmapped capability 必须保持 ask 或 deny，不得 default auto-approve。
+不应照搬的部分：Cline 某些 SDK policy 对未列出的工具采用较宽松默认值。Egakium 的 unknown/unmapped capability 必须保持 ask 或 deny，不得 default auto-approve。
 
 ## 6. Goose：LLM 审查必须保持窄职责
 
-Goose 确实存在额外 LLM `SmartApprove`，但其职责比 Intatis 当前 reviewer 窄得多：
+Goose 确实存在额外 LLM `SmartApprove`，但其职责比 Egakium 当前 reviewer 窄得多：
 
 1. 用户的准确工具规则优先；
 2. 工具 annotation 和已有只读缓存其次；
@@ -161,25 +161,25 @@ Goose 确实存在额外 LLM `SmartApprove`，但其职责比 Intatis 当前 rev
 
 宿主的优先顺序见 [`permission_inspector.rs`](https://github.com/aaif-goose/goose/blob/9aa03bff206b234827fe63eb5937457c3c1cb5a4/crates/goose/src/permission/permission_inspector.rs#L130-L216)。多个 inspector 组合时只能收紧，不能由后面的判断放宽前面的拒绝。[`tool_inspection.rs`](https://github.com/aaif-goose/goose/blob/9aa03bff206b234827fe63eb5937457c3c1cb5a4/crates/goose/src/tool_inspection.rs#L213-L252)
 
-Goose 的反例同样重要：当前 judge prompt 声称会考虑参数，但实际实现主要传工具名，并按工具名缓存判断。[`permission_judge.rs`](https://github.com/aaif-goose/goose/blob/9aa03bff206b234827fe63eb5937457c3c1cb5a4/crates/goose/src/permission/permission_judge.rs#L89-L115) Intatis 不应复制这种“按工具名缓存语义安全性”的做法，因为同一个工具对不同路径、命令、diff、network target 的风险可能完全不同。
+Goose 的反例同样重要：当前 judge prompt 声称会考虑参数，但实际实现主要传工具名，并按工具名缓存判断。[`permission_judge.rs`](https://github.com/aaif-goose/goose/blob/9aa03bff206b234827fe63eb5937457c3c1cb5a4/crates/goose/src/permission/permission_judge.rs#L89-L115) Egakium 不应复制这种“按工具名缓存语义安全性”的做法，因为同一个工具对不同路径、命令、diff、network target 的风险可能完全不同。
 
 ## 7. 四个项目的共同规律
 
-| 维度 | Codex | OpenCode | Cline | Goose | 对 Intatis 的含义 |
+| 维度 | Codex | OpenCode | Cline | Goose | 对 Egakium 的含义 |
 |---|---|---|---|---|---|
 | 工具是否存在 | 宿主 registry | 宿主 registry | 单一 Tool Map | 宿主 Tool collection | reviewer 不参与 |
 | 工具到权限映射 | ToolRuntime/强类型 action | canonical permission | tool/category policy | exact rule/annotation | 必须确定性完成 |
 | hard deny | Guardian 前终局 | auto 前终局 | policy 前置 | inspector 只能收紧 | 模型不能覆盖 |
 | LLM reviewer | 只审边界动作 | 无 | 无 | 只判未知工具是否只读 | 职责必须窄 |
 | reviewer 上下文 | 精简 transcript + exact action | 不适用 | 不适用 | 窄 tool facts | 无需复制主管完整上下文 |
-| 参数/资源 | 命令、路径、patch、网络目标等准确事实 | preflight 后 ask | 由实际 Tool 实例处理 | 当前实现偏弱 | Intatis 必须按具体调用审查 |
+| 参数/资源 | 命令、路径、patch、网络目标等准确事实 | preflight 后 ask | 由实际 Tool 实例处理 | 当前实现偏弱 | Egakium 必须按具体调用审查 |
 | 失败处理 | fail closed，理由保真 | deny/ask 明确 | fail closed | LLM 失败回退更严格路径 | 状态与理由不可丢失 |
 
 共同规律可以压缩成一句话：
 
 > 宿主负责事实和权限边界，模型最多负责语义判断；模型不能成为工具注册表、capability resolver 或路径授权器。
 
-## 8. Intatis 当前已经做对的部分
+## 8. Egakium 当前已经做对的部分
 
 以下设计不应因本次问题被推翻：
 
@@ -194,7 +194,7 @@ Goose 的反例同样重要：当前 judge prompt 声称会考虑参数，但实
 
 最后一点说明当前代码已经出现 canonical action 的雏形，但它还不是完整的授权绑定：review task 仍同时暴露 `tool=write_file` 和原始 `capability_lease=[apply_patch]`，system prompt 仍要求 reviewer 拒绝 `lease-inconsistent` 请求。模型仍可能重新解释这两个名称的关系。
 
-## 9. Intatis 当前真正的问题
+## 9. Egakium 当前真正的问题
 
 ### 9.1 Capability 名称和具体 Tool 名称处于不同抽象层
 
@@ -303,7 +303,7 @@ struct RegisteredTool {
 }
 ```
 
-这里不是要求从零编写解析或执行引擎，而是把 Intatis 已有的工具 wrapper、descriptor、permission adapter 和 executor 绑定到同一个注册对象。
+这里不是要求从零编写解析或执行引擎，而是把 Egakium 已有的工具 wrapper、descriptor、permission adapter 和 executor 绑定到同一个注册对象。
 
 ### 10.3 不可变 `ResolvedToolAuthorization`
 
@@ -391,11 +391,11 @@ struct PermissionResolution {
 
 ## 11. 审查触发范围：需要单独做产品决定
 
-Codex 只审查越过 sandbox boundary 的动作，沙箱内原本允许的普通动作不送 Guardian。Intatis 当前原则是普通文件写入、exec、network、destructive 进入 ask/reviewer。
+Codex 只审查越过 sandbox boundary 的动作，沙箱内原本允许的普通动作不送 Guardian。Egakium 当前原则是普通文件写入、exec、network、destructive 进入 ask/reviewer。
 
 这里有两个可行策略：
 
-### 策略 A：保留 Intatis 的严格逐次审查
+### 策略 A：保留 Egakium 的严格逐次审查
 
 - 继续让每次 workspace write 进入 reviewer；
 - 但 reviewer 只判断用户授权和语义风险；
@@ -414,23 +414,23 @@ Codex 只审查越过 sandbox boundary 的动作，沙箱内原本允许的普�
 
 ## 12. 开源复用建议
 
-用户希望优先复用成熟开源实现而不是自行编写核心。对权限系统而言，最合理的复用边界不是把另一个项目的整个 runtime 拉入 Intatis，而是选择性派生以下成熟结构和测试模式：
+用户希望优先复用成熟开源实现而不是自行编写核心。对权限系统而言，最合理的复用边界不是把另一个项目的整个 runtime 拉入 Egakium，而是选择性派生以下成熟结构和测试模式：
 
 | 可复用方向 | 优先参考 | 复用方式建议 |
 |---|---|---|
 | 强类型 ApprovalAction schema | Codex | 固定 commit 后派生 Swift data model；保留来源与许可证 |
-| Guardian prompt contract | Codex | 只复用公开 model-facing contract 的通用部分；去除品牌并映射 Intatis 术语 |
+| Guardian prompt contract | Codex | 只复用公开 model-facing contract 的通用部分；去除品牌并映射 Egakium 术语 |
 | 单一 registry 生成 spec/handler | Codex、Cline | 选择性派生 registry pattern，接入现有 Swift Tool wrappers |
 | canonical permission mapping | OpenCode | 参考/派生映射与测试，不继承其默认策略 |
 | rule-first、LLM-last precedence | Goose | 参考行为和回归测试；不复制 tool-name-only cache |
-| denial/circuit-breaker tests | Codex、Intatis 现有测试 | 派生精确动作、重复拒绝、理由保真的测试矩阵 |
+| denial/circuit-breaker tests | Codex、Egakium 现有测试 | 派生精确动作、重复拒绝、理由保真的测试矩阵 |
 
 不能直接照搬：
 
 - OpenCode 的 app-level policy 不能替代 macOS sandbox、WorkspaceLease 或 durable ticket；
-- Cline 的宽松未列出工具默认值不能进入 Intatis；
-- Goose 的 tool-name-only judge/cache 不能进入 Intatis；
-- 任一上游的默认网络、文件或 exec 权限都不能绕过 Intatis 三层权限门；
+- Cline 的宽松未列出工具默认值不能进入 Egakium；
+- Goose 的 tool-name-only judge/cache 不能进入 Egakium；
+- 任一上游的默认网络、文件或 exec 权限都不能绕过 Egakium 三层权限门；
 - Rust/TypeScript runtime 不应作为不可审计的第二事实源隐式进入 iOS target。
 
 实际复制前必须再次核对每个目标文件、根 LICENSE、NOTICE 和传递依赖。本报告没有完成“可直接复制哪些文件”的许可证批次审计，因此目前只能作为架构与候选复用清单，不能被视作已获准复制。
@@ -486,14 +486,14 @@ Codex 只审查越过 sandbox boundary 的动作，沙箱内原本允许的普�
 ## 15. 不确定性与限制
 
 - Codex、OpenCode、Cline 和 Goose 都是活跃项目；本报告只对表中固定 commit 负责，不能把浮动 `main` 的未来行为当成已审计事实。
-- 本次没有运行 Intatis 的真实 provider 自动 reviewer，因此无法量化修正前后的误拒绝率、延迟或 token 成本。
+- 本次没有运行 Egakium 的真实 provider 自动 reviewer，因此无法量化修正前后的误拒绝率、延迟或 token 成本。
 - 最近会话的现象证明了当前名称漂移和理由丢失，但没有在本轮重新发送任何真实 provider 请求，避免产生外部费用和状态变化。
 - Cline 与 Goose 本次只做公开源码架构研究，没有完成后续直接复制所需的文件级许可证批次审计。
 - “普通 workspace 写入是否仍逐次送审”是产品安全策略，不能由一次技术修复自行改变。
 
 ## PROJECT_AUDIT_SUMMARY
 
-- Intatis 当前已有三层权限门、独立 durable Cowork reviewer、CapabilityLease/WorkspaceLease、PathConfinement、root identity 复核和 durable tool execution ticket，基础安全方向正确。
+- Egakium 当前已有三层权限门、独立 durable Cowork reviewer、CapabilityLease/WorkspaceLease、PathConfinement、root identity 复核和 durable tool execution ticket，基础安全方向正确。
 - `Orchestrator.toolRegistry(for:)` 已由 capability 生成具体工具面，但 reviewer prompt 仍把 concrete tool 与 raw capability 字符串同时交给模型重新判断一致性。
 - `PermissionIntent.defaultAction` 已部分归一 `write_file` / `apply_patch` 为 `filesystem.edit`，但缺少宿主签发的 membership 结论和 registry identity。
 - `PermissionReviewControlPlane` 持久化具体 reviewer reason，`AgentPermissionResponder` 却只把 decision 返回 `AgentLoop`，造成详细原因在主 agent 路径中丢失。
@@ -501,7 +501,7 @@ Codex 只审查越过 sandbox boundary 的动作，沙箱内原本允许的普�
 
 ## DOCS_CONTENT_SUMMARY
 
-- 本报告记录了四个固定上游版本、源码证据、项目间对比、Intatis 最近误拒绝的原因、建议目标架构、复用边界、实施顺序和回归矩阵。
+- 本报告记录了四个固定上游版本、源码证据、项目间对比、Egakium 最近误拒绝的原因、建议目标架构、复用边界、实施顺序和回归矩阵。
 - 没有更新 `docs/CURRENT_STATE.md`、`docs/ARCHITECTURE.md`、`docs/DO_NOT_BREAK.md` 或 `docs/NEXT_TARGET.md`，因为本轮没有改变实现或当前项目状态；在用户确认目标方案并实际落地后，再同步这些权威状态文档。
 
 ## VALIDATION_RESULT

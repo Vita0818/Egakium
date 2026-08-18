@@ -1,4 +1,4 @@
-# Intatis 对话渲染调研与落地报告：Markdown / Code / LaTeX
+# Egakium 对话渲染调研与落地报告：Markdown / Code / LaTeX
 
 > 日期：2026-07-15
 > 状态：已从只读调研更新为本轮实际落地版
@@ -9,7 +9,7 @@
 
 本轮已经按“三个东西、三条独立方向”完成实现，而不是把它们混成一个万能 renderer：
 
-| 独立方向 | 最终采用 | Intatis 自己负责 | 明确不自研 |
+| 独立方向 | 最终采用 | Egakium 自己负责 | 明确不自研 |
 | --- | --- | --- | --- |
 | Markdown | MarkdownUI 2.4.1 | 消息入口、主题、链接/图片策略、流式调度、回退 | CommonMark/GFM parser、AST、block/inline 排版 |
 | Code | 选择性 vendored highlight.js 11.11.1，通过 JavaScriptCore 薄适配 | 完整代码框、语言栏、复制、Menlo、选择、双向滚动、缓存、回退 | lexer、语言 grammar、关键字表、token 分类与语法着色 |
@@ -20,21 +20,21 @@
 ```text
 EventLog / Projection 中的 raw message（唯一真值）
                          ↓
-          IntatisMessageContentView
+          EgakiumMessageContentView
              ├─ MarkdownUI 2.4.1
-             │    └─ fenced code → IntatisCodeBlockView
+             │    └─ fenced code → EgakiumCodeBlockView
              │                       └─ highlight.js 11.11.1
              │                          （JavaScriptCore 薄适配）
              └─ 显式 math delimiter → iosMath 2.5.0
 ```
 
-实际审计改变了调研阶段的代码方向：CodeEditor 与 HighlighterSwift 都没有进入依赖图，也没有复制其 wrapper。HighlighterSwift 的实证 SwiftPM 构建表明资源 bundle 会复制完整主题目录，其中含 `nnfx` / `kimbie` 的 CC BY-SA 资产；因此最终只选择性 vendor 三个逐文件审计的资源。`highlight.min.js` 直接锚定官方 `highlightjs/cdn-release` 11.11.1 tag 的生成文件；两个 a11y CSS 的实际字节源是 HighlighterSwift 3.1.0 的适配版，并同时保留 HighlighterSwift MIT modifications 与 highlight.js BSD-3-Clause 许可链。审计还剔除了一个虽仍显示 11.11.1 package version、却由 release 后开发 commit 生成的候选脚本，避免版本标签与实际执行字节不一致。最终官方 common build 注册 36 个常用 grammar，覆盖 Intatis 暴露的语言，同时把三项资源从约 994 KiB 降到 129,157 bytes。
+实际审计改变了调研阶段的代码方向：CodeEditor 与 HighlighterSwift 都没有进入依赖图，也没有复制其 wrapper。HighlighterSwift 的实证 SwiftPM 构建表明资源 bundle 会复制完整主题目录，其中含 `nnfx` / `kimbie` 的 CC BY-SA 资产；因此最终只选择性 vendor 三个逐文件审计的资源。`highlight.min.js` 直接锚定官方 `highlightjs/cdn-release` 11.11.1 tag 的生成文件；两个 a11y CSS 的实际字节源是 HighlighterSwift 3.1.0 的适配版，并同时保留 HighlighterSwift MIT modifications 与 highlight.js BSD-3-Clause 许可链。审计还剔除了一个虽仍显示 11.11.1 package version、却由 release 后开发 commit 生成的候选脚本，避免版本标签与实际执行字节不一致。最终官方 common build 注册 36 个常用 grammar，覆盖 Egakium 暴露的语言，同时把三项资源从约 994 KiB 降到 129,157 bytes。
 
 ## 1. 调研结论与证据边界
 
 ### 1.1 ChatGPT 网页端能借鉴什么
 
-ChatGPT 网页端 renderer 源码没有公开，不能可靠断言其内部使用 KaTeX、MathJax、Shiki、highlight.js 或任何特定库。压缩 bundle、DOM class 和网络资源最多只能形成推测，不能成为 Intatis 的开源 provenance。
+ChatGPT 网页端 renderer 源码没有公开，不能可靠断言其内部使用 KaTeX、MathJax、Shiki、highlight.js 或任何特定库。压缩 bundle、DOM class 和网络资源最多只能形成推测，不能成为 Egakium 的开源 provenance。
 
 可确认并借鉴的是成熟对话产品的外部行为：
 
@@ -58,25 +58,25 @@ OpenAI 公开的 `openai/chatkit-js` 不是 ChatGPT 网页端源码。公开 iss
 | [Chatbox](https://github.com/chatboxai/chatbox) | 语言栏、复制、横滚、Shiki singleton、LRU | 借鉴完整代码块 UX；GPL-3.0 源码不复制 |
 | [Enchanted](https://github.com/AugustDev/enchanted) | SwiftUI + MarkdownUI、流式更新批处理 | 证明 Apple-native MarkdownUI 接入路径可行 |
 
-这些项目只提供架构与交互参考。最终核心引擎来自已固定版本的 MarkdownUI、highlight.js 和 iosMath；Intatis 没有翻写网页项目的 parser、grammar 或排版实现。
+这些项目只提供架构与交互参考。最终核心引擎来自已固定版本的 MarkdownUI、highlight.js 和 iosMath；Egakium 没有翻写网页项目的 parser、grammar 或排版实现。
 
 ## 2. 三条独立渲染方向
 
 ### 2.1 MarkdownRenderer：MarkdownUI 2.4.1
 
-MarkdownUI 负责 Markdown tokenization、AST 和 SwiftUI block/inline 渲染。Intatis 不维护自己的 CommonMark/GFM 语法或 block visitor。
+MarkdownUI 负责 Markdown tokenization、AST 和 SwiftUI block/inline 渲染。Egakium 不维护自己的 CommonMark/GFM 语法或 block visitor。
 
 本地薄层只做：
 
 - 根据消息角色决定 `.richText` 或 `.plainText`；
-- 注入 Intatis 主题；
-- 将 fenced code block 交给独立 `IntatisCodeBlockView`；
-- 把派生的 `intatis-math://` 图片 URL 交给独立公式 provider；
+- 注入 Egakium 主题；
+- 将 fenced code block 交给独立 `EgakiumCodeBlockView`；
+- 把派生的 `egakium-math://` 图片 URL 交给独立公式 provider；
 - 限制链接 scheme；
 - 拦截 Markdown 远程图片；
 - 管理流式延迟、取消、完成态缓存和纯文本回退。
 
-未启用 raw HTML 执行。链接只允许 `http`、`https`、`mailto`。MarkdownUI 的 `NetworkImage` 仍在固定依赖图中，但 Intatis 覆盖 block 与 inline image provider，不允许消息内容隐式下载远程图片。
+未启用 raw HTML 执行。链接只允许 `http`、`https`、`mailto`。MarkdownUI 的 `NetworkImage` 仍在固定依赖图中，但 Egakium 覆盖 block 与 inline image provider，不允许消息内容隐式下载远程图片。
 
 #### MarkdownUI 2.4.1 上游复杂度风险
 
@@ -87,7 +87,7 @@ MarkdownUI 负责 Markdown tokenization、AST 和 SwiftUI block/inline 渲染。
 - open PR [#438](https://github.com/gonzalezreal/swift-markdown-ui/pull/438)：上游分析将问题指向递归 `Text + Text` 构造，并记录真机约 500、模拟器约 3000 个相关节点的量级差异；
 - open issue [#445](https://github.com/gonzalezreal/swift-markdown-ui/issues/445)：列表嵌套达到约 10 层时布局性能急剧下降。
 
-这些数字是上游 issue/PR 中的复现与分析，不是 Intatis 可依赖的稳定平台上限。PR #438 尚未合并；Intatis 不复制其 renderer 核心修复，也不把未合并 patch 伪装成本项目原创。当前选择是在进入 `MarkdownContent` / SwiftUI renderer 前，用已固定的 cmark-gfm AST 做只读 complexity gate；parser、AST 语义和 Markdown 排版核心仍归上游，Intatis 只做是否允许 rich projection 的安全决策。
+这些数字是上游 issue/PR 中的复现与分析，不是 Egakium 可依赖的稳定平台上限。PR #438 尚未合并；Egakium 不复制其 renderer 核心修复，也不把未合并 patch 伪装成本项目原创。当前选择是在进入 `MarkdownContent` / SwiftUI renderer 前，用已固定的 cmark-gfm AST 做只读 complexity gate；parser、AST 语义和 Markdown 排版核心仍归上游，Egakium 只做是否允许 rich projection 的安全决策。
 
 ### 2.2 CodeRenderer：完整代码框 + highlight.js 11.11.1
 
@@ -115,7 +115,7 @@ MarkdownUI 负责 Markdown tokenization、AST 和 SwiftUI block/inline 渲染。
 - 未知语言、超限、加载失败，以及暂时禁用的受影响 C-family grammar 都立即显示完整 plaintext；
 - 复制永远使用未经改写的 `source`。
 
-语法识别由固定的 highlight.js 引擎及其上游 grammar 完成。Intatis 的 JavaScriptCore adapter 只执行以下接口转换：
+语法识别由固定的 highlight.js 引擎及其上游 grammar 完成。Egakium 的 JavaScriptCore adapter 只执行以下接口转换：
 
 ```text
 (source, normalizedLanguage, light/dark theme)
@@ -134,19 +134,19 @@ adapter 在返回前校验最终 attributed string 与 raw source 完全一致�
 - 块级：`\[...\]`
 - 块级：`$$...$$`
 
-单 `$...$` 不启用，普通 `$25.00` 保持货币文本。适配器会跳过由同一 pinned cmark-gfm 识别出的所有 CommonMark code block（包括缩进、blockquote/list 嵌套、tab 与未闭合 fence）以及有效 inline code span，因此代码中的 TeX 字符串不会被误判为公式；Intatis 不自己维护另一套 fence grammar。块级公式仅在 column-one、独占逻辑行的顶层定界符中启用；list、blockquote、table 或 prose 内的 display delimiter 保留字面 source，避免为了插入根级空行而破坏 Markdown 容器结构。
+单 `$...$` 不启用，普通 `$25.00` 保持货币文本。适配器会跳过由同一 pinned cmark-gfm 识别出的所有 CommonMark code block（包括缩进、blockquote/list 嵌套、tab 与未闭合 fence）以及有效 inline code span，因此代码中的 TeX 字符串不会被误判为公式；Egakium 不自己维护另一套 fence grammar。块级公式仅在 column-one、独占逻辑行的顶层定界符中启用；list、blockquote、table 或 prose 内的 display delimiter 保留字面 source，避免为了插入根级空行而破坏 Markdown 容器结构。
 
-iosMath 负责 TeX tokenization、命令解析、atom tree、字体度量、排版和绘制。Intatis 只：
+iosMath 负责 TeX tokenization、命令解析、atom tree、字体度量、排版和绘制。Egakium 只：
 
 - 识别上述明确边界；
 - 用 iosMath parser 预验证表达式；
-- 把合法表达式映射为进程内 `intatis-math://` 派生 URL；
+- 把合法表达式映射为进程内 `egakium-math://` 派生 URL；
 - 用 `MTMathUILabel` 包装 inline/display 渲染；
 - 为超宽 display 公式提供水平滚动；
 - display 公式提供包含原 TeX 的 accessibility label；inline image 使用 labeled initializer，但 MarkdownUI 2.4.1 把它拼入 `Text` attachment 后，macOS Accessibility tree 仍只暴露 replacement character，因此 inline 数学语义化 VoiceOver 仍是明确待验证/上游限制；
 - 对无效或未闭合公式保留可复制的字面定界符与原文。
 
-inline 公式通过透明 template image 接入 MarkdownUI 的 inline image provider；display 公式使用原生 SwiftUI wrapper。MarkdownUI 会把“整段只有一个 image”的段落提升到 block image provider，因此 Intatis 的 block provider 也显式识别 `.inline` math 并改走 standalone inline math view，不会把纯公式段误判为被拦截的远程图片。两者都不走 WebView、远程脚本或 CDN。
+inline 公式通过透明 template image 接入 MarkdownUI 的 inline image provider；display 公式使用原生 SwiftUI wrapper。MarkdownUI 会把“整段只有一个 image”的段落提升到 block image provider，因此 Egakium 的 block provider 也显式识别 `.inline` math 并改走 standalone inline math view，不会把纯公式段误判为被拦截的远程图片。两者都不走 WebView、远程脚本或 CDN。
 
 ## 3. 为什么没有采用 CodeEditor / HighlighterSwift
 
@@ -155,7 +155,7 @@ inline 公式通过透明 template image 接入 MarkdownUI 的 inline image prov
 调研阶段曾考虑 ZeeZide/CodeEditor 和 `mchakravarty/CodeEditorView` 一类完整编辑器组件。实证后未采用，原因是：
 
 - 对话场景需要只读代码框，不需要编辑器状态、命令和大面积交互表面；
-- 外框、语言栏、复制和滚动本来就是 Intatis 产品接口层；
+- 外框、语言栏、复制和滚动本来就是 Egakium 产品接口层；
 - 采用完整编辑器会引入比需求更大的依赖和维护面；
 - 语法核心仍可直接复用成熟 highlight.js，而无需自研 lexer/grammar。
 
@@ -163,7 +163,7 @@ inline 公式通过透明 template image 接入 MarkdownUI 的 inline image prov
 
 ### 3.2 HighlighterSwift
 
-HighlighterSwift wrapper 及其 modifications 是 MIT，但其 SwiftPM resource bundle 的实证构建会复制完整主题目录，其中包含 CC BY-SA 的 `nnfx` / `kimbie` 主题。这个整包资源范围不符合 Intatis 当前依赖准入策略。
+HighlighterSwift wrapper 及其 modifications 是 MIT，但其 SwiftPM resource bundle 的实证构建会复制完整主题目录，其中包含 CC BY-SA 的 `nnfx` / `kimbie` 主题。这个整包资源范围不符合 Egakium 当前依赖准入策略。
 
 最终处理方式不是重写高亮器，而是：
 
@@ -173,33 +173,33 @@ HighlighterSwift wrapper 及其 modifications 是 MIT，但其 SwiftPM resource 
 4. 不引入 HighlighterSwift Swift wrapper 和其他主题；
 5. 用很薄的 JavaScriptCore adapter 调用上游引擎。
 
-这满足“核心解析/grammar/高亮引擎直接复用成熟开源项目，Intatis 只写接口”的边界。
+这满足“核心解析/grammar/高亮引擎直接复用成熟开源项目，Egakium 只写接口”的边界。
 
 ## 4. 实际集成架构
 
 ### 4.1 文件与职责
 
 ```text
-Packages/IntatisSharedUI/Sources/MessageRendering/
-├─ IntatisMessageContentView.swift  # 公共入口、MarkdownUI 主题与安全 provider
-├─ IntatisRenderDocument.swift      # raw truth、cmark code range、显式公式路由、AST 缓存
-├─ IntatisCodeBlockView.swift       # 完整代码框 + highlight.js 薄适配
-├─ IntatisMathView.swift            # iosMath 的 SwiftUI/AppKit/UIKit 包装
+Packages/EgakiumSharedUI/Sources/MessageRendering/
+├─ EgakiumMessageContentView.swift  # 公共入口、MarkdownUI 主题与安全 provider
+├─ EgakiumRenderDocument.swift      # raw truth、cmark code range、显式公式路由、AST 缓存
+├─ EgakiumCodeBlockView.swift       # 完整代码框 + highlight.js 薄适配
+├─ EgakiumMathView.swift            # iosMath 的 SwiftUI/AppKit/UIKit 包装
 └─ Resources/
    ├─ highlight.min.js
    ├─ a11y-light.css
    └─ a11y-dark.css
 ```
 
-`IntatisMessageContentView` 的输入只有稳定消息 ID、raw text、完成状态、rich/plain policy 和现有 thread style。它位于 SharedUI 派生展示层，不改变 ChatLoop、AgentLoop、provider 请求、ConversationProjection、EventLog JSONL、Envelope 或 `seq` 语义。
+`EgakiumMessageContentView` 的输入只有稳定消息 ID、raw text、完成状态、rich/plain policy 和现有 thread style。它位于 SharedUI 派生展示层，不改变 ChatLoop、AgentLoop、provider 请求、ConversationProjection、EventLog JSONL、Envelope 或 `seq` 语义。
 
 ### 4.2 Chat / Code / Cowork 接入
 
 | 产品面 | 接入点 | 富文本策略 |
 | --- | --- | --- |
-| macOS Chat | `Apps/IntatisMac/Sources/IntatisChatScreen.swift` | assistant / agent 消息使用 rich renderer；user / system 保持原有纯文本 |
-| iOS Chat / Shared Chat | `Packages/IntatisSharedUI/Sources/Views.swift` | assistant / agent 消息 rich；user / system plain |
-| Code | `Packages/IntatisSharedUI/Sources/CodeViews.swift` | agent 正文 rich；用户输入和结构化专用卡片保持 plain/原视图 |
+| macOS Chat | `Apps/EgakiumMac/Sources/EgakiumChatScreen.swift` | assistant / agent 消息使用 rich renderer；user / system 保持原有纯文本 |
+| iOS Chat / Shared Chat | `Packages/EgakiumSharedUI/Sources/Views.swift` | assistant / agent 消息 rich；user / system plain |
+| Code | `Packages/EgakiumSharedUI/Sources/CodeViews.swift` | agent 正文 rich；用户输入和结构化专用卡片保持 plain/原视图 |
 | Cowork | 复用 `CodeItemRow` | 继承 Code 的 agent 富文本路径，不创建第四套 renderer |
 
 这样既覆盖三种产品面，又避免把 patch、permission、error、tool result 等结构化内容错误地当成任意 Markdown 执行。
@@ -271,7 +271,7 @@ gate 对 parser/extension 初始化失败、计数超限、未知节点类型或
 - `CODE_BLOCK` 继续按 cmark 的 start/end line 保护完整 raw block；
 - 单行 `CODE` 直接把 cmark `SOURCEPOS` 的 byte-oriented line/column 映射为 Swift `String.Index`；
 - 多行 `CODE` 不能盲信 `endColumn`：cmark 在 blockquote/list continuation line 上会先扣除容器前缀，再报告末列；
-- 对多行 `CODE`，Intatis 使用 cmark 已解析节点的 `endLine` 与 `cmark_node_get_backtick_count`，只在对应 raw 末行、从上游 end column 之后定位该已知长度的 closing run，并以此校正保护范围；
+- 对多行 `CODE`，Egakium 使用 cmark 已解析节点的 `endLine` 与 `cmark_node_get_backtick_count`，只在对应 raw 末行、从上游 end column 之后定位该已知长度的 closing run，并以此校正保护范围；
 - 上述处理是对已解析节点的 source-position repair，不查找 opener、不自行决定哪一组反引号配对，也不实现第二套 CommonMark code-span parser；
 - closing run、UTF-8 边界或 range 无法被证明时，检查器 fail closed，整条消息回退 raw plain；
 - cmark 行号映射覆盖 LF、CR、CRLF，且 CRLF 视为一个逻辑换行；fenced、indented、blockquote/list 内 code 保留原始 Unicode source；
@@ -284,7 +284,7 @@ gate 对 parser/extension 初始化失败、计数超限、未知节点类型或
 - Markdown 不执行 raw HTML；
 - 链接只允许 `http` / `https` / `mailto`；
 - block/inline Markdown 图片 provider 都拦截任意外部图片；
-- `intatis-math://` 只解析当前文档已登记的表达式；
+- `egakium-math://` 只解析当前文档已登记的表达式；
 - math adapter 不进入 cmark 识别的 block code 或有效 inline code span；
 - highlight.js 只接收字符串并返回样式结果，不运行消息代码；
 - 不支持 CDN、远程 script、远程 grammar、WebView 或隐式网络资源；
@@ -292,11 +292,11 @@ gate 对 parser/extension 初始化失败、计数超限、未知节点类型或
 
 在 Markdown 路径中，字节数门不能替代结构复杂度门。只有通过第 5.3 节 pinned cmark AST 只读检查的文本才允许构造 `MarkdownContent`；soft/line break、list nesting、总节点或总深度任一超限时，整条消息必须直接使用 raw plain projection。
 
-highlight.js 官方 issue [#4362](https://github.com/highlightjs/highlight.js/issues/4362) 仍记录 11.11.1 C/C++ `FUNCTION_DECLARATION` grammar 的二次复杂度 ReDoS；本轮本地 PoC 也观察到输入翻倍时耗时约四倍。Intatis 不修改上游 grammar：`c`、`cpp` 在采用已修复且重新审计的 release 前固定走 plaintext，完整代码框、Menlo、选择、滚动和复制仍保留。官方 common build 不含同样受影响的 Arduino grammar；其余已登记 grammar 继续使用官方引擎与 64 KiB 总输入门。
+highlight.js 官方 issue [#4362](https://github.com/highlightjs/highlight.js/issues/4362) 仍记录 11.11.1 C/C++ `FUNCTION_DECLARATION` grammar 的二次复杂度 ReDoS；本轮本地 PoC 也观察到输入翻倍时耗时约四倍。Egakium 不修改上游 grammar：`c`、`cpp` 在采用已修复且重新审计的 release 前固定走 plaintext，完整代码框、Menlo、选择、滚动和复制仍保留。官方 common build 不含同样受影响的 Arduino grammar；其余已登记 grammar 继续使用官方引擎与 64 KiB 总输入门。
 
 ### 6.2 产品与权限边界
 
-渲染依赖只通过 `IntatisSharedUI` 进入 Apple 平台，不进入 CLI/headless 执行图。iOS 仍是 Chat 子集；本功能没有把 shell、Git、patch、本地 agent workspace 或 Cowork 执行能力引入 iOS。
+渲染依赖只通过 `EgakiumSharedUI` 进入 Apple 平台，不进入 CLI/headless 执行图。iOS 仍是 Chat 子集；本功能没有把 shell、Git、patch、本地 agent workspace 或 Cowork 执行能力引入 iOS。
 
 renderer 不拥有也不修改 PermissionEngine、CapabilityLease、WorkspaceLease、PathConfinement、SecretScanner、Mediator、durable tool execution 或 EventLog。未来若为代码块增加“运行”按钮，那是一个新的权限化工具任务，不能复用纯展示组件绕过现有安全链路。
 
@@ -307,9 +307,9 @@ renderer 不拥有也不修改 PermissionEngine、CapabilityLease、WorkspaceLea
 | 依赖 | 精确版本 | `Package.resolved` commit | 作用 |
 | --- | --- | --- | --- |
 | MarkdownUI | 2.4.1 | `5f613358148239d0292c0cef674a3c2314737f9e` | Markdown parser 与 SwiftUI renderer |
-| NetworkImage | 6.0.0 | `7aff8d1b31148d32c5933d75557d42f6323ee3d1` | MarkdownUI 依赖图固定；远程 provider 被 Intatis 覆盖 |
-| swift-cmark | 0.5.0 | `3ccff77b2dc5b96b77db3da0d68d28068593fa53` | MarkdownUI 的 CommonMark parser；Intatis 只读审计复杂度并读取 CODE/CODE_BLOCK source metadata |
-| swift-snapshot-testing | 1.12.0 | `26ed3a2b4a2df47917ca9b790a57f91285b923fb` | MarkdownUI 测试侧依赖固定；不链接 Intatis app 产品 |
+| NetworkImage | 6.0.0 | `7aff8d1b31148d32c5933d75557d42f6323ee3d1` | MarkdownUI 依赖图固定；远程 provider 被 Egakium 覆盖 |
+| swift-cmark | 0.5.0 | `3ccff77b2dc5b96b77db3da0d68d28068593fa53` | MarkdownUI 的 CommonMark parser；Egakium 只读审计复杂度并读取 CODE/CODE_BLOCK source metadata |
+| swift-snapshot-testing | 1.12.0 | `26ed3a2b4a2df47917ca9b790a57f91285b923fb` | MarkdownUI 测试侧依赖固定；不链接 Egakium app 产品 |
 | iosMath | 2.5.0 | `838cddc01fdd67efd530f8bb67959ad2715f9b06` | TeX parser、layout 与字体资源 |
 
 `Package.swift` 对五项使用 exact constraint，避免 MarkdownUI 的开放依赖范围在后续 resolve 时漂移。
@@ -346,19 +346,19 @@ renderer 不拥有也不修改 PermissionEngine、CapabilityLease、WorkspaceLea
 
 ### 9.1 最终自动化与构建状态
 
-complexity gate、source range 和反引号回归落地后，最终验证结果如下。这里把 renderer 结果、外层 sandbox 无法启动的系统 importer，以及仓库既有 IntatisTools 环境失败分开记录，不用一个笼统的“全量通过”掩盖执行边界。
+complexity gate、source range 和反引号回归落地后，最终验证结果如下。这里把 renderer 结果、外层 sandbox 无法启动的系统 importer，以及仓库既有 EgakiumTools 环境失败分开记录，不用一个笼统的“全量通过”掩盖执行边界。
 
 | 检查 | 结果 |
 | --- | --- |
 | `swift package dump-package` | 通过；iOS/macOS 26 与 target 图解析正常 |
 | `swift package resolve` | 通过；五项 SwiftPM 依赖保持精确 pins |
-| `swift build --target IntatisSharedUI --scratch-path /private/tmp/intatis-render-build` | 通过 |
+| `swift build --target EgakiumSharedUI --scratch-path /private/tmp/egakium-render-build` | 通过 |
 | `MessageRenderingTests` | 共 29 项；外层 sandbox 可运行的 28 项为 28/28 通过 |
 | `testBundledHighlightJSEngineReturnsTheExactSource` | 唯一无法在外层 sandbox 自动执行的 focused test；AppKit HTML importer helper 不能在该环境启动，不是 assertion failure |
-| 排除 IntatisTools 与上述 importer test 的仓库回归 | 546 tests、0 failures |
-| 全量测试（跳过上述 importer test） | 633 tests、14 skipped、34 failures（9 unexpected）；全部来自既有 IntatisTools 外层 sandbox 中 `sandbox-exec` / loopback 受限，与本渲染任务无关 |
+| 排除 EgakiumTools 与上述 importer test 的仓库回归 | 546 tests、0 failures |
+| 全量测试（跳过上述 importer test） | 633 tests、14 skipped、34 failures（9 unexpected）；全部来自既有 EgakiumTools 外层 sandbox 中 `sandbox-exec` / loopback 受限，与本渲染任务无关 |
 | `xcodegen generate` | 通过 |
-| macOS IntatisMac Xcode build | 通过 |
+| macOS EgakiumMac Xcode build | 通过 |
 | generic iOS Simulator Xcode build | 通过 |
 
 29 项 focused test matrix 覆盖：
@@ -395,7 +395,7 @@ complexity gate、source range 和反引号回归落地后，最终验证结果�
 
 ### 9.2 专用离线 fixture
 
-macOS DEBUG app 新增 `-IntatisRendererFixture` 启动参数。fixture 不创建生产 `AppEnvironment`，离线覆盖：
+macOS DEBUG app 新增 `-EgakiumRendererFixture` 启动参数。fixture 不创建生产 `AppEnvironment`，离线覆盖：
 
 - heading、emphasis、链接、引用、列表、task list、table；
 - Swift、TypeScript、未知语言、超长单行和完整代码框；
@@ -410,7 +410,7 @@ macOS DEBUG app 新增 `-IntatisRendererFixture` 启动参数。fixture 不创�
 已通过 macOS Accessibility tree、可见截图和真实交互验证：
 
 独立审计修复多行 inline-code source-position 后，又用重新构建的最终
-`IntatisMac.app` 启动浅色离线 fixture；最新 Accessibility tree 与截图再次确认
+`EgakiumMac.app` 启动浅色离线 fixture；最新 Accessibility tree 与截图再次确认
 Markdown 层级、GFM table、Swift 完整代码框及 sole-inline/display 公式均可见。
 下面的深色、Copy、横滚、stream 与 production-root 结果来自同一轮实现的完整
 交互矩阵；末次修复只改 cmark 代码范围推导，并已另由 28/28 focused、546/0
@@ -426,7 +426,7 @@ Markdown 层级、GFM table、Swift 完整代码框及 sole-inline/display 公�
 - 超长代码行不换行，真实横向滚动可以到达行尾哨兵；
 - 三阶段 streaming 全部通过：初始文本、未闭合中间态和最终闭合后的代码/公式渲染均可达且无崩溃；
 - Markdown 远程图片被 provider 阻断并显示 blocked 状态；
-- 不带 `-IntatisRendererFixture` 启动参数的正常主界面 smoke test 通过，期间没有发送 provider 请求。
+- 不带 `-EgakiumRendererFixture` 启动参数的正常主界面 smoke test 通过，期间没有发送 provider 请求。
 
 首轮视觉检查曾发现三个集成问题：inline 公式出现黑底、短代码在双向 ScrollView 中居中、无效 TeX 的反斜杠被 Markdown 吃掉。实现分别改为透明 template image、`.defaultScrollAnchor(.topLeading)` 和展示缓冲区定界符转义；修复后的浅色/深色、公式、未知语言左对齐和定界符保真均已由 Computer Use 复验通过。这也是使用真实 UI/Computer Use 而不只依赖单元测试的直接收益。
 
@@ -468,7 +468,7 @@ iosMath 2.5.0 会把八套 OpenType 数学字体复制进资源 bundle。字体�
 2. 确认 App Store / Developer ID 最终产物中可访问全部 NOTICE/字体许可。
 3. 在 OS 26 真机补做 Dynamic Type、普通 inline math VoiceOver、低内存和 512 KiB 边界压力回归。
 4. 若需要完全自动化 AppKit HTML importer test，提供不受 Codex 外层 sandbox 限制的宿主测试环境；当前真实 app 证据已覆盖产品路径。
-5. 将 IntatisTools 的既有 `sandbox-exec` / loopback 外层 sandbox 失败作为独立任务处理，不与 renderer 回归混为一谈。
+5. 将 EgakiumTools 的既有 `sandbox-exec` / loopback 外层 sandbox 失败作为独立任务处理，不与 renderer 回归混为一谈。
 6. 若未来需要单 `$...$`、远程图片或代码执行，分别建立新的产品/安全设计，不在当前 adapter 中隐式打开。
 
 ## 12. 最终实现原则
@@ -477,7 +477,7 @@ iosMath 2.5.0 会把八套 OpenType 数学字体复制进资源 bundle。字体�
 
 1. Markdown、代码、LaTeX 是三套独立能力。
 2. 三套真正的 parser / grammar / 排版核心都来自成熟开源项目。
-3. Intatis 只写消息路由、平台包装、产品 UI、安全策略、流式与缓存接口。
+3. Egakium 只写消息路由、平台包装、产品 UI、安全策略、流式与缓存接口。
 4. 代码交付物是完整代码框；高亮只是其中一部分。
 5. 原始消息永远保留为事实源并可整条降级，不被富文本派生状态替换；代码块 Copy 明确复制 raw code source。
 6. 依赖引入以实证构建和逐资产许可证审计为准，不因 wrapper 的顶层许可而忽略 bundle 内容。
@@ -491,8 +491,8 @@ Codex，基于 GPT-5；无法确认更细的公开内部变体。
 
 ### PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 路径匹配预期：是
 
 ### FILES_WRITTEN
@@ -503,7 +503,7 @@ Codex，基于 GPT-5；无法确认更细的公开内部变体。
 
 ### PROJECT_AUDIT_SUMMARY
 
-- renderer 位于 `IntatisSharedUI` 的 UI projection 边界；
+- renderer 位于 `EgakiumSharedUI` 的 UI projection 边界；
 - raw EventLog / projection / provider wire payload 未改变；
 - iOS 平台仍只链接 Chat 子集；
 - Cowork 复用 Code 消息视图，没有新建平行第四套实现；
@@ -515,9 +515,9 @@ Codex，基于 GPT-5；无法确认更细的公开内部变体。
 - display iosMath 已有 TeX accessibility label；inline attachment 在当前 macOS AX tree 中仍不暴露数学语义，OS 26 VoiceOver/上游可行性需要专项验证；
 - GUST/LPPL 字体许可是否获项目明确接受，当前仍是发布 blocker；
 - AppKit HTML importer test 受 Codex 外层 sandbox 限制，不能在该环境自动执行；
-- 仓库全量测试仍有既有 IntatisTools `sandbox-exec` / loopback 环境失败，但隔离后的非 Tools、非 importer 546 项为 0 failures；
+- 仓库全量测试仍有既有 EgakiumTools `sandbox-exec` / loopback 环境失败，但隔离后的非 Tools、非 importer 546 项为 0 failures；
 - 最终商店/Developer ID 包如何展示第三方 notices，需要在发行流程中确认。
 
 ### NEXT_RECOMMENDED_ACTION
 
-renderer 源码、相关自动化、双平台构建与最终 Computer Use 已收敛。下一步优先关闭 iosMath 字体许可证与二进制 NOTICE 展示两个发布门，并专项验证普通 inline math 的 VoiceOver 限制；IntatisTools 的外层 sandbox 失败应另开任务，不阻塞本渲染实现的事实记录。
+renderer 源码、相关自动化、双平台构建与最终 Computer Use 已收敛。下一步优先关闭 iosMath 字体许可证与二进制 NOTICE 展示两个发布门，并专项验证普通 inline math 的 VoiceOver 限制；EgakiumTools 的外层 sandbox 失败应另开任务，不阻塞本渲染实现的事实记录。

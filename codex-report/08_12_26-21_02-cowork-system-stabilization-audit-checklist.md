@@ -1,8 +1,8 @@
-# Intatis Cowork 系统稳定化：问题清单、全链审计与重构门禁
+# Egakium Cowork 系统稳定化：问题清单、全链审计与重构门禁
 
 > 日期：2026-08-12
 >
-> 仓库：`/Users/vita/Vitemis/Intatis`
+> 仓库：`/Users/vita/Vitemis/Egakium`
 >
 > 报告性质：事故汇总、风险清单、只读审计计划与后续修复门禁
 >
@@ -62,7 +62,7 @@
 Cowork automatic 模式会在 provider-facing 工具 schema 中加入：
 
 ```text
-__intatis_authorization_context
+__egakium_authorization_context
 ```
 
 旧实现把该字段加入对象的 `properties`，但刻意不加入 `required`，同时保留工具原有的 `strict:true`。对 OpenAI-compatible strict function schema，这会形成不合法组合：
@@ -87,10 +87,10 @@ OpenRouter 和配置为 OpenAI-compatible adapter 的 Moonshot 共用同一套�
 - Cowork 的一次正常模型请求会携带当前 Agent 可见的 `tools` 目录。
 - 这些 JSON Schema 是告诉模型“如果你决定调用工具，必须返回什么结构”。
 - provider 先验证工具声明，再开始生成正文或 `tool_calls`。
-- 模型真正返回某个 `tool_call` 后，Intatis 才在本地进入 gate、reviewer、durable ticket 和 executor。
+- 模型真正返回某个 `tool_call` 后，Egakium 才在本地进入 gate、reviewer、durable ticket 和 executor。
 - 工具执行本身没有被发送给 OpenRouter/Moonshot 代替本地执行。
 
-因此，当 `__intatis_authorization_context` 出现在工具 schema 里时，它只是模型未来可能输出的一个 tool-call argument 合同，不代表 PermissionReviewer 已经运行。旧 schema 本身不合法，所以即使用户只发普通消息、模型还没选择任何工具，provider 也会在请求入口直接返回 400。
+因此，当 `__egakium_authorization_context` 出现在工具 schema 里时，它只是模型未来可能输出的一个 tool-call argument 合同，不代表 PermissionReviewer 已经运行。旧 schema 本身不合法，所以即使用户只发普通消息、模型还没选择任何工具，provider 也会在请求入口直接返回 400。
 
 该 sidecar 的设计目的，是让 acting model 在同一个业务 tool call 里附带一句与 exact action 绑定的理由。宿主在本地剥离它，再把安全、完整的 business arguments 和这句 sidecar 交给独立 reviewer；它不应该进入业务 executor schema或 durable business arguments。
 
@@ -323,7 +323,7 @@ raw reviewer text 按隐私设计不写入 EventLog，因此无法从现有持�
 - `AutomaticPermissionReviewTests`
 - `PerAgentInferenceProfileTests`
 - `CLIProviderAdapterTests`
-- `IntatisCLITests`
+- `EgakiumCLITests`
 - `swift build`
 
 这些结果说明改动在当时的工作树上通过了相应本地检查，但不等于：
@@ -1086,25 +1086,25 @@ validated
 
 后续审计至少覆盖以下触点；这不是修改授权，也不是穷举列表：
 
-- `Packages/IntatisAgentKernel/Sources/AgentLoop.swift`
-- `Packages/IntatisAgentKernel/Sources/AuthorizationSidecar.swift`
-- `Packages/IntatisAgentKernel/Sources/ContextBuilder.swift`
-- `Packages/IntatisProviders/Sources/OpenAIToolCalling.swift`
-- `Packages/IntatisCowork/Sources/Orchestrator.swift`
-- `Packages/IntatisCowork/Sources/WorkTaskTools.swift`
-- `Packages/IntatisCowork/Sources/PermissionReviewControlPlane.swift`
-- `Packages/IntatisPermission/Sources/PermissionReviewTextVerdict.swift`
-- `Packages/IntatisConversation/Sources/CodeProjection.swift`
-- `Packages/IntatisSharedUI/Sources/CodeViews.swift`
-- `Packages/IntatisConversation/Sources/RuntimeErrorPresentation.swift`
-- `Apps/IntatisMac/Sources/AppConfig.swift`
-- `Apps/IntatisMac/Sources/CoworkViewModel.swift`
-- `Apps/IntatisMac/Sources/IntatisMacApp.swift`
-- `Apps/intatis-cli/Sources/CLIConfig.swift`
-- `Apps/intatis-cli/Sources/CLIProviderCatalog.swift`
-- `Apps/intatis-cli/Sources/CLIInferenceProfiles.swift`
-- `Apps/intatis-cli/Sources/Interactive.swift`
-- `Packages/IntatisSkills/Resources/BundledSkills/cowork-agent-orchestration/SKILL.md`
+- `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift`
+- `Packages/EgakiumAgentKernel/Sources/AuthorizationSidecar.swift`
+- `Packages/EgakiumAgentKernel/Sources/ContextBuilder.swift`
+- `Packages/EgakiumProviders/Sources/OpenAIToolCalling.swift`
+- `Packages/EgakiumCowork/Sources/Orchestrator.swift`
+- `Packages/EgakiumCowork/Sources/WorkTaskTools.swift`
+- `Packages/EgakiumCowork/Sources/PermissionReviewControlPlane.swift`
+- `Packages/EgakiumPermission/Sources/PermissionReviewTextVerdict.swift`
+- `Packages/EgakiumConversation/Sources/CodeProjection.swift`
+- `Packages/EgakiumSharedUI/Sources/CodeViews.swift`
+- `Packages/EgakiumConversation/Sources/RuntimeErrorPresentation.swift`
+- `Apps/EgakiumMac/Sources/AppConfig.swift`
+- `Apps/EgakiumMac/Sources/CoworkViewModel.swift`
+- `Apps/EgakiumMac/Sources/EgakiumMacApp.swift`
+- `Apps/egakium-cli/Sources/CLIConfig.swift`
+- `Apps/egakium-cli/Sources/CLIProviderCatalog.swift`
+- `Apps/egakium-cli/Sources/CLIInferenceProfiles.swift`
+- `Apps/egakium-cli/Sources/Interactive.swift`
+- `Packages/EgakiumSkills/Resources/BundledSkills/cowork-agent-orchestration/SKILL.md`
 
 ## 20. 当前未提交工作树说明
 
@@ -1179,7 +1179,7 @@ validated
 ## 24. 本报告自身的检查记录
 
 - `MODEL_CHECK_RESULT`：仓库内无法确认当前服务端精确模型名称；当前会话运行于 Codex。
-- `PATH_CHECK_RESULT`：`pwd` 与 Git root 均为 `/Users/vita/Vitemis/Intatis`，匹配预期。
+- `PATH_CHECK_RESULT`：`pwd` 与 Git root 均为 `/Users/vita/Vitemis/Egakium`，匹配预期。
 - `FILES_WRITTEN`：仅新增本报告。
 - `PROJECT_AUDIT_SUMMARY`：基于 Cowork → AgentKernel → Permission → Tool executor → EventLog → Projection/UI 全链进行事故归档。
 - `DOCS_CONTENT_SUMMARY`：本文记录已证实事故、系统性风险、只读审计矩阵、不变量、回放语料、阶段门禁和待决架构问题。

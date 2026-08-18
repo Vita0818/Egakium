@@ -1,4 +1,4 @@
-# Intatis Chat Session 自动命名完整流程与实现设计
+# Egakium Chat Session 自动命名完整流程与实现设计
 
 文档状态：已按冻结方案实施；本文已回写当前实现事实
 
@@ -10,7 +10,7 @@
 
 ## 1. 结论
 
-Intatis 可以在不改变现有 Chat 架构的前提下实现自动命名。
+Egakium 可以在不改变现有 Chat 架构的前提下实现自动命名。
 
 推荐实现不是让 Chat 获得 `rename_session` 工具，也不是把 Chat 切换到
 `AgentLoop`，而是在一个正常 Chat turn 成功完成后，由宿主启动一次独立、临时、无工具的
@@ -43,7 +43,7 @@ Intatis 可以在不改变现有 Chat 架构的前提下实现自动命名。
 产品讨论中可以把它理解成一个“隐秘的独立 session”，但源码和协议中应使用更准确的名称：
 **临时标题请求（ephemeral title request）**。
 
-它不是一个真正的 Intatis session：
+它不是一个真正的 Egakium session：
 
 - 不创建新的 `SessionID`；
 - 不创建新的 session 目录；
@@ -67,7 +67,7 @@ Intatis 可以在不改变现有 Chat 架构的前提下实现自动命名。
 ChatViewModel -> ChatLoop -> ChatProvider -> EventLog -> ConversationProjection
 ```
 
-`Packages/IntatisConversation/Sources/ChatLoop.swift` 明确位于 Conversation 层，不依赖
+`Packages/EgakiumConversation/Sources/ChatLoop.swift` 明确位于 Conversation 层，不依赖
 Tools、Permission 或 AgentKernel。macOS Chat 与 iOS Chat 共用这条无工具链路。
 
 自动标题必须继续遵守这条边界：标题生成只是第二次普通 `ChatProvider` 请求，不注册工具，
@@ -135,7 +135,7 @@ iOS 当前主要在 `isStreaming` 从 true 变为 false 时刷新 Recent。自�
 
 ### 4.1 “最多三次”的边界
 
-“最多三次”指 Intatis 宿主最多启动三个逻辑标题 generation，不等于底层一定只有三个 HTTP 请求。
+“最多三次”指 Egakium 宿主最多启动三个逻辑标题 generation，不等于底层一定只有三个 HTTP 请求。
 当前 `OpenAIWireProvider` 的 streaming runtime policy 是 `maxAttempts = 2`，并且只允许在底层
 `HTTPByteStreaming` 尚未向 provider parser 产出任何 response chunk 时重试。因此一个逻辑 generation
 在该 provider 上最多可能对应两个 HTTP attempt；parser 已收到任意 response chunk 后的失败不会
@@ -237,7 +237,7 @@ ChatRequest(
 - 使用与主 Chat turn 相同的 provider instance、model 和已配置 variant/options；
 - 不重新读取用户当下可能已切换的模型选择；
 - 不提供 `webSearch`；
-- 不提供任何 Intatis tool 或 ToolRegistry；
+- 不提供任何 Egakium tool 或 ToolRegistry；
 - 不调用 PermissionEngine；
 - 不传图片、附件、文件名、路径或 base64；
 - 不写入 `message_delta`、`message_completed`、`turn_stats` 或 `turn_outcome`；
@@ -253,7 +253,7 @@ ChatRequest(
 第一次和第二次逻辑 generation 使用以下 System 指令：
 
 ```text
-你是 Intatis 会话标题生成器。你的唯一任务是根据提供的对话数据生成会话标题。
+你是 Egakium 会话标题生成器。你的唯一任务是根据提供的对话数据生成会话标题。
 
 严格遵守以下规则：
 
@@ -284,7 +284,7 @@ ChatRequest(
 只能输出标题，不得输出任何其他字符。
 ```
 
-该 prompt 是 Intatis 自有产品指令，不复制第三方产品 prompt、文案或品牌表达。
+该 prompt 是 Egakium 自有产品指令，不复制第三方产品 prompt、文案或品牌表达。
 
 ## 9. 输出处理：只验收，不改写
 
@@ -336,7 +336,7 @@ ChatRequest(
   generation；
 - timeout 结果不进入 EventLog，不显示错误；
 - 官方 `OpenAIWireProvider` 会在 stream termination 时取消底层 URLSession task；
-- 对任意第三方 `ChatProvider`，Intatis 只能保证不再接受、提交或发布迟到结果，不能保证物理网络
+- 对任意第三方 `ChatProvider`，Egakium 只能保证不再接受、提交或发布迟到结果，不能保证物理网络
   瞬间停止；若它不响应取消，自动标题保持该 session single-flight 并停在清理状态，不阻塞主 Chat；
 - timeout 消耗一次逻辑 attempt；
 - 当前 Chat 的 Stop 只取消当前 Chat turn，不取消已经由成功 turn 启动的独立标题请求；
@@ -406,7 +406,7 @@ pending trigger 只保存最新的成功水位，避免用户在标题请求期�
 同时仍保持严格 single-flight。后续 generation 使用触发它的那个 turn 所冻结的 exact route，不沿用
 更早 turn 或读取此刻可变的全局 model selection。
 
-多个 Intatis 进程仍可能各自发出一个标题模型请求。v1 不做跨进程网络 single-flight，但 EventLog
+多个 Egakium 进程仍可能各自发出一个标题模型请求。v1 不做跨进程网络 single-flight，但 EventLog
 set-if-absent 会保证只有一个标题能够提交，后到者只得到 no-op。
 
 ## 12. EventLog 原子提交
@@ -574,7 +574,7 @@ EventLog set-if-absent 为硬边界。
 
 ### 17.3 Secret 检测能力
 
-Conversation/iOS 不链接 `IntatisPermission.SecretScanner`，不能为了标题功能扩大平台依赖。
+Conversation/iOS 不链接 `EgakiumPermission.SecretScanner`，不能为了标题功能扩大平台依赖。
 v1 使用已经位于共享协议层的确定性
 `PermissionReviewTextSanitizer.sanitizeDiagnostic(...)`，发现 redaction/truncation 即拒绝整个标题。
 这里必须是会额外屏蔽完整 HTTP(S) URL 的 `sanitizeDiagnostic`，不能误用普通 `sanitize`。再叠加第 9 节
@@ -595,7 +595,7 @@ usage。该能力不在 v1 范围。
 
 本次实现的生产落点如下：
 
-1. 新增 `Packages/IntatisConversation/Sources/ChatSessionAutoTitle.swift`
+1. 新增 `Packages/EgakiumConversation/Sources/ChatSessionAutoTitle.swift`
    - 固定且不对产品调用方开放调节的 3 次／15 秒 v1 policy；
    - completed-turn projector；
    - JSON context builder；
@@ -605,23 +605,23 @@ usage。该能力不在 v1 范围。
    - process-level per-session coordinator；
    - verified commit DTO；
    - macOS/iOS 共用的 exact-session revision/seq watermark reducer。
-2. 修改 `Packages/IntatisConversation/Sources/SessionProjectionStore.swift`
+2. 修改 `Packages/EgakiumConversation/Sources/SessionProjectionStore.swift`
    - 新增 EventLog-lock 内 set-if-absent；
    - append 后 projection read-back verification。
-3. 修改 `Packages/IntatisConversation/Sources/ChatLoop.swift`
+3. 修改 `Packages/EgakiumConversation/Sources/ChatLoop.swift`
    - 在 assistant completion 与 `turn_outcome(completed)` 都 durable 后返回 authoritative terminal seq。
-4. 修改 `Packages/IntatisProviders/Sources/ChatProvider.swift`
+4. 修改 `Packages/EgakiumProviders/Sources/ChatProvider.swift`
    - 明确 `stream(_:)` 必须立即返回 request-owned stream，并传播 consumer termination 的公共行为合同。
-5. 修改 `Packages/IntatisSharedUI/Sources/ChatViewModel.swift`
+5. 修改 `Packages/EgakiumSharedUI/Sources/ChatViewModel.swift`
    - `loop.send()` 成功后 enqueue；
    - 不纳入 `isBusy`；
    - 当前 turn 的 Stop 不取消已独立启动的标题 generation；
    - 失败不写 `errorText`。
-6. 修改 `Apps/IntatisMac/Sources/SessionRuntimeManager.swift`
+6. 修改 `Apps/EgakiumMac/Sources/SessionRuntimeManager.swift`
    - 持有/注入 coordinator；
    - exact runtime delete/Command-Q 时 cancel+await 对应标题 consumer；
    - 把 verified commit 映射到现有 display-name publisher。
-7. 修改 `Apps/IntatisiOS/Sources/IntatisiOSApp.swift`
+7. 修改 `Apps/EgakiumiOS/Sources/EgakiumiOSApp.swift`
    - environment 持有/注入 coordinator；
    - 增加 exact-session metadata publisher；
    - 使用双平台共用的 per-session revision/seq watermark；
@@ -730,14 +730,14 @@ durable 行为已同步到：
 建议实施后的最小验证命令：
 
 ```sh
-swift test --filter IntatisConversationTests
-swift test --filter IntatisSharedUITests
+swift test --filter EgakiumConversationTests
+swift test --filter EgakiumSharedUITests
 swift test
 xcodegen generate
-xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisMac \
+xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumMac \
   -configuration Debug -destination 'platform=macOS' \
   COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
-xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisiOS \
+xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumiOS \
   -configuration Debug -destination 'generic/platform=iOS Simulator' \
   COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
 git diff --check
@@ -789,21 +789,21 @@ git diff --check
 
 ## PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 两者一致，符合预期仓库边界。
 
 ## FILES_WRITTEN
 
-- `Packages/IntatisConversation/Sources/ChatSessionAutoTitle.swift`（新增）
-- `Packages/IntatisConversation/Sources/ChatLoop.swift`
-- `Packages/IntatisConversation/Sources/SessionProjectionStore.swift`
-- `Packages/IntatisProviders/Sources/ChatProvider.swift`
-- `Packages/IntatisSharedUI/Sources/ChatViewModel.swift`
-- `Apps/IntatisMac/Sources/SessionRuntimeManager.swift`
-- `Apps/IntatisiOS/Sources/IntatisiOSApp.swift`
-- `Packages/IntatisConversation/Tests/ChatSessionAutoTitleTests.swift`（新增）
-- `Packages/IntatisSharedUI/Tests/ChatAutoTitleViewModelTests.swift`（新增）
+- `Packages/EgakiumConversation/Sources/ChatSessionAutoTitle.swift`（新增）
+- `Packages/EgakiumConversation/Sources/ChatLoop.swift`
+- `Packages/EgakiumConversation/Sources/SessionProjectionStore.swift`
+- `Packages/EgakiumProviders/Sources/ChatProvider.swift`
+- `Packages/EgakiumSharedUI/Sources/ChatViewModel.swift`
+- `Apps/EgakiumMac/Sources/SessionRuntimeManager.swift`
+- `Apps/EgakiumiOS/Sources/EgakiumiOSApp.swift`
+- `Packages/EgakiumConversation/Tests/ChatSessionAutoTitleTests.swift`（新增）
+- `Packages/EgakiumSharedUI/Tests/ChatAutoTitleViewModelTests.swift`（新增）
 - `docs/ARCHITECTURE.md`
 - `docs/CURRENT_STATE.md`
 - `docs/PROJECT_MAP.md`
@@ -844,10 +844,10 @@ iOS target 仍是七产品 Chat 子集。
 - public symbol graph：通过；公开面含 `ChatSessionAutoTitleCoordinator.init()`，不含可配置的
   `ChatSessionAutoTitlePolicy`；
 - `xcodegen generate`：通过；
-- `IntatisiOS` Debug / generic iOS Simulator / no-sign build：通过；
+- `EgakiumiOS` Debug / generic iOS Simulator / no-sign build：通过；
 - iOS `project.yml` 静态复核：仍只链接 Core、Protocol、Providers、Conversation、Artifacts、
   Multimodal、SharedUI；
-- 根 `swift test` 与 `IntatisMac` build 均已尝试，但被同一工作树中本任务以外、尚未完成的
+- 根 `swift test` 与 `EgakiumMac` build 均已尝试，但被同一工作树中本任务以外、尚未完成的
   Knowledge/DocumentTools 改动在自动标题测试或 app target 编译前阻塞；失败位置分别是重复的
   `KnowledgeStoreWriterLease`、以及 `ToolProtocol.swift` 引用尚未定义的 `Document*Tool`。这两项不能
   记为自动标题测试失败，也不能由本任务越权修复；
@@ -858,10 +858,10 @@ iOS target 仍是七产品 Chat 子集。
 
 本报告第 21 节列出的 provider 遵从、token ceiling、transport retry、跨重启 attempt、秘密识别、
 成本显示和真实 route 质量仍是明确边界。另因共享工作树的无关未完成改动，当前尚无最终
-`IntatisMac` 全 target build 结果；平台 A→B 视觉刷新与真实标题质量也尚未做交互式 smoke。
+`EgakiumMac` 全 target build 结果；平台 A→B 视觉刷新与真实标题质量也尚未做交互式 smoke。
 
 ## NEXT_RECOMMENDED_ACTION
 
 自动标题实现本身已经完成。待同一工作树中的 Knowledge/DocumentTools 改动稳定后，建议重新运行根
-`swift test` 与 `IntatisMac` build；随后用一个真实 Chat route 做首轮命名、`NO_TITLE` 后续命名、手工
+`swift test` 与 `EgakiumMac` build；随后用一个真实 Chat route 做首轮命名、`NO_TITLE` 后续命名、手工
 Rename 竞争和 A→B 晚到标题的 macOS/iOS UI smoke。无需为此给 Chat 增加工具或改变架构。

@@ -1,11 +1,11 @@
-# Intatis 多 Agent 任务编排审计报告
+# Egakium 多 Agent 任务编排审计报告
 
 ## MODEL_CHECK_RESULT
 Gemini 3.1 Pro (High)
 
 ## PATH_CHECK_RESULT
-- `pwd`: `/Users/vita/Vitemis/Intatis`
-- `git rev-parse`: `/Users/vita/Vitemis/Intatis`
+- `pwd`: `/Users/vita/Vitemis/Egakium`
+- `git rev-parse`: `/Users/vita/Vitemis/Egakium`
 工作目录匹配预期，当前目录为合法的 Git 根目录。
 
 ## PROJECT_AUDIT_SUMMARY
@@ -18,7 +18,7 @@ Gemini 3.1 Pro (High)
 - `AGENTS.md`：规定了副驾驶的审计规则，明确了修改范围、路径要求及报告格式。
 
 ## FINDINGS
-经过对当前项目文档的审计，Intatis 的多 Agent 任务编排（Cowork）展现了极高的严谨性和成熟度，主要体现在以下架构水平：
+经过对当前项目文档的审计，Egakium 的多 Agent 任务编排（Cowork）展现了极高的严谨性和成熟度，主要体现在以下架构水平：
 
 1. **去递归化的异步调度 (No Recursive AgentLoop)**
    彻底禁止了一个 Agent 同步去启动或阻塞等待另一个 Agent 的循环（`AgentLoop`）。所有协作必须将指令封装为根任务（Root TaskContract），然后通过 `AgentScheduler` 驱动。每个 Agent 都有其独立的 claim 生命周期。
@@ -40,7 +40,7 @@ Gemini 3.1 Pro (High)
 5. **通信与委派的隔离**
    系统明确区分了 `ask_agent`（简单发消息问询，`MessageBus` 投递）和 `delegate_task`（完整分包委派，必须返回受调解（Mediator）检验的结构化 `TaskReport`）。
 
-**结论**：Intatis 摒弃了简单粗暴的 Agent 嵌套循环模式，采用了一套企业级、高确定性的分布式系统设计思维（租约、总线、独立调度器、严格上下文裁剪和强崩溃恢复）来管理本地多模型 Agent 协作。编排水平处于比较成熟且复杂的架构验证阶段。
+**结论**：Egakium 摒弃了简单粗暴的 Agent 嵌套循环模式，采用了一套企业级、高确定性的分布式系统设计思维（租约、总线、独立调度器、严格上下文裁剪和强崩溃恢复）来管理本地多模型 Agent 协作。编排水平处于比较成熟且复杂的架构验证阶段。
 
 ## FILES_WRITTEN
 - `gemini-report/07_12_26-22_25-cowork-orchestration-audit.md`

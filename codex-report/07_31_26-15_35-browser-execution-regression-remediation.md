@@ -1,4 +1,4 @@
-# Intatis 浏览器执行回归修复报告
+# Egakium 浏览器执行回归修复报告
 
 日期：2026-07-31  
 范围：Code / Cowork / CLI 的真实 `browser_*` 执行 lane  
@@ -15,7 +15,7 @@ browser backend failed: browser did not expose a DevTools port
 ```
 
 与此同时 macOS 显示 Microsoft Edge `EXC_CRASH (SIGABRT)`；crash report 表明
-Edge 由 Intatis 的 Node child 拉起。该组合证明：
+Edge 由 Egakium 的 Node child 拉起。该组合证明：
 
 1. 浏览器工具确实已注册，模型也确实调用到了它；
 2. 权限审查已经 allow，不是 reviewer timeout；
@@ -33,7 +33,7 @@ Seatbelt；这个策略会被 Node 启动的整个 Edge 进程树继承。
   command policy；
 - 即使逐项放开启动读取，Chromium helper 仍报告
   `forbidden-sandbox-reinit`，因为 helper 需要建立自己的 renderer/service
-  sandbox，而它已经继承 Intatis 外层 Seatbelt。
+  sandbox，而它已经继承 Egakium 外层 Seatbelt。
 
 Edge 因此在 DevToolsActivePort 出现前 abort。旧 CDP wrapper 又只在端口出现后
 才完整安装 cleanup，于是用户看到的是二次症状“没有 DevTools port”，并可能残留
@@ -59,7 +59,7 @@ allow 只会扩大策略且仍不可靠。
 ### 3.3 添加 `--no-sandbox`
 
 否决。它可能让浏览器启动，但会关闭 Chromium renderer/service 隔离，把执行
-回归变成安全回归。Intatis shipping code 不允许该参数。
+回归变成安全回归。Egakium shipping code 不允许该参数。
 
 ### 3.4 回到任意 shell string
 
@@ -97,10 +97,10 @@ ticket 或 AgentLoop。
 每次真实 action 在创建目录前声明并验证：
 
 ```text
-.intatis/browser/profiles/<profile>
-.intatis/browser/downloads/<profile>
-.intatis/browser/state/<profile>.json
-.intatis/browser/history.jsonl
+.egakium/browser/profiles/<profile>
+.egakium/browser/downloads/<profile>
+.egakium/browser/state/<profile>.json
+.egakium/browser/history.jsonl
 ```
 
 截图再加入 output path，上传再加入 input path。runner 随后重新验证 canonical
@@ -146,11 +146,11 @@ Edge/Chrome 启动参数还使用 Chromium 源码公开的
 
 ## 5. 修改文件
 
-- `Packages/IntatisTools/Sources/BrowserTools.swift`
-- `Packages/IntatisTools/Sources/ToolProtocol.swift`
-- `Packages/IntatisTools/Sources/ShellGit.swift`
-- `Packages/IntatisTools/Sources/TerminalTools.swift`
-- `Packages/IntatisTools/Tests/IntatisToolsTests.swift`
+- `Packages/EgakiumTools/Sources/BrowserTools.swift`
+- `Packages/EgakiumTools/Sources/ToolProtocol.swift`
+- `Packages/EgakiumTools/Sources/ShellGit.swift`
+- `Packages/EgakiumTools/Sources/TerminalTools.swift`
+- `Packages/EgakiumTools/Tests/EgakiumToolsTests.swift`
 - `docs/CURRENT_STATE.md`
 - `docs/ARCHITECTURE.md`
 - `docs/DO_NOT_BREAK.md`
@@ -183,7 +183,7 @@ testRealBrowserUploadDownloadWhenEnabled
 ### 6.2 自动化回归
 
 ```text
-IntatisToolsTests.IntatisToolsTests
+EgakiumToolsTests.EgakiumToolsTests
   pre-final full run: 97 executed / 15 opt-in skipped / 0 failures
 
 testCDPNewPageFallbackValidatesReturnedWebSocketEndpointBeforeConnect
@@ -211,9 +211,9 @@ testRealCDPBrowserIgnoresStaleDevToolsActivePortWhenEnabled
 ### 6.3 App build
 
 ```text
-Xcode 27 IntatisMac macOS Debug
+Xcode 27 EgakiumMac macOS Debug
 CODE_SIGNING_ALLOWED=NO
-derived data: /private/tmp/intatis-browser-regression-dd
+derived data: /private/tmp/egakium-browser-regression-dd
 result: succeeded
 ```
 

@@ -1,8 +1,8 @@
 # COWORK_PRINCIPLES
 
 文档状态：当前 Cowork/AgentKernel 原则
-最近规则核对：2026-08-16
-产品基线：v0.2（build 49）
+最近规则核对：2026-08-18
+产品基线：v0.4（build 50）
 
 本文提炼自仓内 v0.10 历史 Cowork 设计文档、`PER_AGENT_INFERENCE_PROFILES.md` 及
 项目操作规则。旧设计文档只保留迁移 provenance；本文件是当前原则基准，**不是**完成度
@@ -23,11 +23,16 @@ AgentLoop must never directly recurse into another AgentLoop.
 
 含义：一个 agent 可在一个任务里 coordinate、在另一个任务里 count files、在第三个任务里 review code。其当前行为由它收到的 task contract 与 capability lease 决定，而非硬编码类型。
 
-## 1.1 Ekagium Canvas 产品层中的角色解释
+## 1.1 Egakium Canvas 产品层中的角色解释
 
-2026-08-15 用户确认 Ekagium 的 macOS 主工作流以当前 Cowork runtime 为底座：中央是一张每个
+2026-08-15 用户确认 Egakium 的 macOS 主工作流以当前 Cowork runtime 为底座：中央是一张每个
 Cowork Session 独立的 HTML/DOM Canvas，右侧复用现有 Cowork harness；每个 Canvas 元素是一份
 独立 HTML 小网页。完整产品合同见 `docs/EGAKIUM_CANVAS_COWORK.md`。
+
+Canvas renderer 还受项目级 dependency-first/no-fallback 约束：官方 CEF 是唯一接受 renderer；当前
+target 已直接使用 pinned CEF，WKWebView/WebKit Canvas 与 fallback 已删除。该决定不改变下述
+Cowork/Agent 分工；现有 renderer 只能维持 CEF 官方 API 的最薄接线，CEF 受阻时报告 blocker，不能
+由 Agent 自行选择另一 renderer 或恢复注入式 DOM adapter。
 
 这一产品形态不改变本文件的第一原则：
 
@@ -39,6 +44,17 @@ Cowork Session 独立的 HTML/DOM Canvas，右侧复用现有 Cowork harness；�
 - 默认不让多个 Agent 同时编辑同一元素网页，更不允许多个 Agent 并发 patch Session 主画布 HTML；
 - 主画布 shell、元素布局和元素内容必须分离。`@main` 协调整体 layout，sub-agent 完成元素内部
   HTML/CSS/JS/assets；任何具体权限仍来自既有 CapabilityLease/WorkspaceLease，而不是 prompt；
+- 当前 provisional DOM v1 只把 `#canvas` direct `.egakium-element`、safe/unique
+  `data-element-id`、source x/y/width/height 和 relative sandboxed iframe 当作页面协作 shape；
+  host 的 selection/drag/resize/keyboard 与 non-persistent Web override 都是 presentation，不是
+  Element owner/lease、durable layout、WorkTask 或 EventLog authority；
+- 所有 child HTML 只复用一份 identity/path-free `SessionCanvasElementTemplate`。成功的 ordinary
+  `spawn_agent` 由宿主在 child exact workspace root 下自动创建一个 fresh no-overwrite element file，
+  并把同一 validated descriptor 带入 durable spawn events、ToolResult、`list_agents` 与 child prompt；
+  manual/legacy attach worker 才使用 prompt copy fallback。宿主创建不等于 agent 写权限：read-only
+  child 不能编辑；`@main` 必须等待 ToolResult 后再在 later TaskContract/`delegate_task` 中引用 exact
+  path。模板与 spawn provenance 都不能把 Agent 变成永久 Element owner，recycle 不删除文件，已有
+  destination 也不能被 fresh template 覆盖；
 - Canvas 接入必须复用现有 spawn/delegate/task/mailbox/scheduler/EventLog/permission flow，不能新增
   同步嵌套 AgentLoop、第二套 Orchestrator 或绕开 durable ToolResult 因果边界；
 - 现有 Cowork harness 移到右侧只属于 UI 组合，不能借机改变 composer、submission、Goal/WorkTask、
@@ -195,7 +211,7 @@ Goal 生命周期必须由 host 串行化：start、ordinary turn、Goal mutatio
 
 ContinuationRun 还必须有模型可表达、宿主可强制执行的终止边界。只有 exact `@main` root 可见 `finish_run` / `stop_run`，且模型只能提供 completed/stopped 意图与有界 reason；所有 session/run/Goal/submission/root identity 和 source 必须从当前 invocation 注入。close installation 在 EventLog await 前先形成 actor-local admission/authorization tombstone；EventLog 再在完整已知历史与跨进程锁内对 exact RunID 安装 first-write durable close claim，且 claim 必须先于等待既有 admission、provider/tool cleanup 与 exact-run drain 落盘。Orchestrator 随后只 drain 同 run 的其余 task/message，恢复也不得复活。该 claim 不替代 run checkpoint/completed/cancelled 状态机，也不影响其他 run。普通 final 文本不能被 host 猜测成显式 claim；root failure/timeout 使用 runtime source，用户取消使用 user source，session lifecycle shutdown 使用 hostLifecycle source。
 
-模型可见的 agent/task/message/goal/run/session 操作与文件、网络、文档工具遵循同一个 ToolCall 协议。WorkTask CRUD、Goal create/update、run close 与 session rename 都必须先过 schema、lease（Cowork）与 PermissionEngine；`task_get/update` 使用当前 Session 的 durable WorkTask ID（正常为 `wt_…`）和最新 authoritative revision，不能把 AgentInvocation `task_…` ID 或聊天历史快照当成 WorkTask authority，也不能重复 settle 已 terminal 的 WorkTask。WorkTask permission preview 只提供 bounded、脱敏的语义字段，完整执行参数继续由 digest/count 和 immutable authorization 绑定。worker 默认只能读取和更新自己当前 AgentInvocation 绑定的 WorkTask，不能改 DAG/priority/retry/cancel、提交 Goal verdict、关闭 run 或改 session 名称。一个外部 ToolCall 只能有一个权限决定；`spawn_agent` 是独立显式动作，`delegate_task` 只选择已 attached worker。获准后的内部 message、lease、AgentInvocation、WorkTask linkage 与 scheduler admission 必须在一个 EventLog batch 中提交，commit 后才更新内存，不能再次递归进入 PermissionEngine。Code 与 Cowork agent 共用 headless `AgentRuntime`；首个 system message 必须稳定声明 Intatis 模式、API tools 权威性、严格 JSON Schema 与 ToolResult 完成语义，动态 workspace/task/lease/goal/run 数据仍放在 user-role untrusted context。
+模型可见的 agent/task/message/goal/run/session 操作与文件、网络、文档工具遵循同一个 ToolCall 协议。WorkTask CRUD、Goal create/update、run close 与 session rename 都必须先过 schema、lease（Cowork）与 PermissionEngine；`task_get/update` 使用当前 Session 的 durable WorkTask ID（正常为 `wt_…`）和最新 authoritative revision，不能把 AgentInvocation `task_…` ID 或聊天历史快照当成 WorkTask authority，也不能重复 settle 已 terminal 的 WorkTask。WorkTask permission preview 只提供 bounded、脱敏的语义字段，完整执行参数继续由 digest/count 和 immutable authorization 绑定。worker 默认只能读取和更新自己当前 AgentInvocation 绑定的 WorkTask，不能改 DAG/priority/retry/cancel、提交 Goal verdict、关闭 run 或改 session 名称。一个外部 ToolCall 只能有一个权限决定；`spawn_agent` 是独立显式动作，`delegate_task` 只选择已 attached worker。获准后的内部 message、lease、AgentInvocation、WorkTask linkage 与 scheduler admission 必须在一个 EventLog batch 中提交，commit 后才更新内存，不能再次递归进入 PermissionEngine。Code 与 Cowork agent 共用 headless `AgentRuntime`；首个 system message 必须稳定声明 Egakium 模式、API tools 权威性、严格 JSON Schema 与 ToolResult 完成语义，动态 workspace/task/lease/goal/run 数据仍放在 user-role untrusted context。
 
 ### 2.3b Coordinator routing Skill
 
@@ -527,7 +543,7 @@ unknown future events do not cause EventLog sequence reuse
 
 ## 9. 平台边界
 
-macOS 是全量 Ekagium 产品，内部实现仍使用 Intatis 技术 identity。iOS 是 macOS 的真子集：
+macOS 是全量 Egakium 产品，内部实现仍使用 Egakium 技术 identity。iOS 是 macOS 的真子集：
 ```text
 iOS supports Chat, multimodal, providers, artifacts, session history.
 iOS must not include local workspace Agent execution.
@@ -537,11 +553,11 @@ iOS must not link shell/git/patch/local-agent workspace modules.
 
 ## 10. 开源复用与产品身份规则
 
-Intatis 允许按 `docs/OPEN_SOURCE_REUSE.md` 选择性复制、翻译、修改或运行兼容许可证的公开 agent/runtime 实现，包括 OpenCode 等项目中经过文件级许可证和 provenance 核对的源码、公开 model-facing prompt 与测试。复用不能改变本原则定义的 TaskContract、Scoped Context、CapabilityLease、WorkspaceLease、TaskGraph/Scheduler、MessageBus 和无嵌套 `AgentLoop` 边界；上游实现若与这些原则冲突，必须适配后再进入 Intatis，不能因“来自成熟项目”而直接放行。
+Egakium 允许按 `docs/OPEN_SOURCE_REUSE.md` 选择性复制、翻译、修改或运行兼容许可证的公开 agent/runtime 实现，包括 OpenCode 等项目中经过文件级许可证和 provenance 核对的源码、公开 model-facing prompt 与测试。复用不能改变本原则定义的 TaskContract、Scoped Context、CapabilityLease、WorkspaceLease、TaskGraph/Scheduler、MessageBus 和无嵌套 `AgentLoop` 边界；上游实现若与这些原则冲突，必须适配后再进入 Egakium，不能因“来自成熟项目”而直接放行。
 
-永久禁止使用泄露/私有源码或 prompt，也不复制第三方产品名称、Logo、图标、截图、UI 资产、商标性外观或品牌文案作为 Ekagium 产品身份。直接复制或逐行翻译必须记录上游 URL、固定 commit、许可证和本地修改，并更新 `NOTICE.md`。Apple 平台继续 Swift-native 优先；非 Swift runtime 只能作为受控、可审计的 macOS 隔离组件评估，不得进入 iOS workspace Agent target。
+永久禁止使用泄露/私有源码或 prompt，也不复制第三方产品名称、Logo、图标、截图、UI 资产、商标性外观或品牌文案作为 Egakium 产品身份。直接复制或逐行翻译必须记录上游 URL、固定 commit、许可证和本地修改，并更新 `NOTICE.md`。Apple 平台继续 Swift-native 优先；非 Swift runtime 只能作为受控、可审计的 macOS 隔离组件评估，不得进入 iOS workspace Agent target。
 
-产品与协议继续使用 Intatis 自己的通用术语：
+产品与协议继续使用 Egakium 自己的通用术语：
 ```text
 local agent workspace
 native agent kernel

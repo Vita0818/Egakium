@@ -1,14 +1,14 @@
-# Intatis OKF-based RAG 知识库四组件设计分报告
+# Egakium OKF-based RAG 知识库四组件设计分报告
 
 日期：2026-08-09
 
 状态：`FOUR-COMPONENT LOCAL CORE IMPLEMENTED / PRODUCT SURFACE SUPERSEDED BY 2026-08-10 MAIN CONTRACT`
 
-面向读者：后续负责设计、实现、审查和验证 Intatis 知识库能力的 Codex / Intatis 维护者
+面向读者：后续负责设计、实现、审查和验证 Egakium 知识库能力的 Codex / Egakium 维护者
 
 报告性质：dated design + implementation evidence。当前产品事实仍以 `docs/`、源码、工程配置和测试为准；本报告不覆盖当前 active target。本文最初的 pre-implementation 审计结论保留为历史背景，2026-08-09 的实现状态以紧随其后的 ledger 和第 15 节为准。
 
-当前产品基线：Intatis `v0.40 (build 40)`
+当前产品基线：Egakium `v0.40 (build 40)`
 
 当前 active target：Developer ID 直接分发；与本报告中的 RAG 设计无关。
 
@@ -33,41 +33,41 @@
 | 组件 | 当前实现 | 边界 |
 | --- | --- | --- |
 | 固定标准 | `ThirdPartyStandards/OpenKnowledgeFormat/0.2/` byte-exact SPEC/LICENSE/UPSTREAM/SHA256SUMS；`NOTICE.md` 与 `ThirdPartyNotices/OpenKnowledgeFormat.md` 记录 Apache-2.0 provenance | 不包含上游 reference agent、Python package、prompt、viewer、sample bundle 或品牌资产 |
-| 薄 adapter | public non-iOS `IntatisKnowledge` target；9 份 strict schema；whole-tree OKF conformance + canonical v0.2 writer；`KnowledgeBundleBuildService`、deterministic chunker、完整 embedding/component/composite identity、immutable store | 原始连接器、PDF/Office/OCR、语义清洗和产品 UI 仍由其它工作流负责；build service 要求 exact resolved authorization，但不是 model-facing `build_knowledge` 工具，本轮也没有接 Agent producer 的 durable caller |
+| 薄 adapter | public non-iOS `EgakiumKnowledge` target；9 份 strict schema；whole-tree OKF conformance + canonical v0.2 writer；`KnowledgeBundleBuildService`、deterministic chunker、完整 embedding/component/composite identity、immutable store | 原始连接器、PDF/Office/OCR、语义清洗和产品 UI 仍由其它工作流负责；build service 要求 exact resolved authorization，但不是 model-facing `build_knowledge` 工具，本轮也没有接 Agent producer 的 durable caller |
 | deterministic Validator | bounded Yams AST、schema/identity/path/hash/checksum/content-seal/index/source-locator/secret validation、validation receipt | 机械一致性 validator，不声称证明外部事实、自然语言蕴含或人工审校质量 |
 | `search_knowledge` | opaque snapshot-bound mount、exact query embedding、profile-selected dense-only 或 BM25+RRF hybrid、exact optional/required reranker seam、ACL pre-filter、bounded evidence、current-turn final grounding revalidation | 只有 host 显式注入 optional augmenter 才向 Code/Cowork 暴露；Chat/iOS/UI/CLI mount command/MCP Server 均未接入 |
 
-主要实现文件位于 `Packages/IntatisKnowledge/Sources/`；generic host seam 位于
-`Packages/IntatisTools/Sources/HostToolRegistryAugmentation.swift`，Agent final-grounding seam 位于
-`Packages/IntatisAgentKernel/Sources/TurnGroundingEvidenceRegistry.swift` / `AgentLoop.swift`。Code 与
+主要实现文件位于 `Packages/EgakiumKnowledge/Sources/`；generic host seam 位于
+`Packages/EgakiumTools/Sources/HostToolRegistryAugmentation.swift`，Agent final-grounding seam 位于
+`Packages/EgakiumAgentKernel/Sources/TurnGroundingEvidenceRegistry.swift` / `AgentLoop.swift`。Code 与
 Cowork 只接收 optional augmenter，默认 `nil`。
 
 当前本地 route 固定为 Apple NaturalLanguage sentence embedding exact identity、L2/cosine
-`Float32` exact KNN，并按 profile 选择 dense-only 或 Intatis BM25 + deterministic RRF hybrid。仓内的
+`Float32` exact KNN，并按 profile 选择 dense-only 或 Egakium BM25 + deterministic RRF hybrid。仓内的
 `KnowledgeEmbeddingCosineRerankerProvider` 是最小 exact reranker seam，不是 cross-encoder。
 remote embedding/reranker 没有隐藏 fallback；host 若以后接入，必须把工具标为 network-backed 并
 经过既有网络权限链。
 
-最新 fresh full evidence：`IntatisKnowledgeTests` 106/106、
+最新 fresh full evidence：`EgakiumKnowledgeTests` 106/106、
 `TurnGroundingEvidenceRegistryTests` 6/6；真实 Cowork AgentLoop probe 证明 permission
 request/resolved → durable prepared → structured `tool_result` → settled → final citation revalidation →
 close/drain；snapshot-bound dynamic registration 的 local intent/preview 与 deterministic reviewer
-boundary 另有 direct + durable 回归。`IntatisMac` unsigned arm64 Debug 构建通过；`IntatisKnowledge` 与 `IntatisCLI` 的 arm64
+boundary 另有 direct + durable 回归。`EgakiumMac` unsigned arm64 Debug 构建通过；`EgakiumKnowledge` 与 `EgakiumCLI` 的 arm64
 及 x86_64 cross-build 通过。x86_64 结果只证明编译，Intel 真机 NLEmbedding availability/质量仍为
 `UNKNOWN`。
 
 ## 0. 本报告收敛结论（四组件边界已同用户确认）
 
-Intatis 的第一版传统 RAG 知识库候选方案收敛为且只收敛为四个产品组件：
+Egakium 的第一版传统 RAG 知识库候选方案收敛为且只收敛为四个产品组件：
 
 1. **固定并下载一份上游知识格式规范**：采用 Open Knowledge Format（OKF）v0.2 作为知识正文、目录、来源、信任和生命周期的开放基线。
-2. **一个很薄的 Intatis RAG Profile / adapter**：只补 OKF 故意没有规定的 chunk、embedding、派生索引、composite retrieval snapshot 和检索兼容信息。
+2. **一个很薄的 Egakium RAG Profile / adapter**：只补 OKF 故意没有规定的 chunk、embedding、派生索引、composite retrieval snapshot 和检索兼容信息。
 3. **一个小型、确定性、非 AI Validator**：机械验证格式、路径、来源映射、hash、模型/维度兼容、索引完整性和查询结果引用；不能假装证明现实世界真伪或语义蕴含。
 4. **一个模型可调用的 `search_knowledge` 工具**：内部完成 query embedding、候选召回、权限过滤、融合、rerank、证据复核和有界返回；LLM 不直接操作向量库，也不分别调用 embedding 或 reranker。
 
 一句话合同：
 
-> **OKF 规定知识怎么写；Intatis RAG Profile 补齐检索兼容信息；Validator 决定某一代知识库能不能安全使用；`search_knowledge` 决定怎么查并只返回可追溯证据。**
+> **OKF 规定知识怎么写；Egakium RAG Profile 补齐检索兼容信息；Validator 决定某一代知识库能不能安全使用；`search_knowledge` 决定怎么查并只返回可追溯证据。**
 
 构建知识库的 Agent **不是第五个产品组件**。它只是现有 Code/Cowork Agent 执行能力的一种生产者工作流：模型负责语义清洗、组织、摘要和切片建议；宿主负责 identity、hash、来源定位、写入事务和最终验证。
 
@@ -76,7 +76,7 @@ Intatis 的第一版传统 RAG 知识库候选方案收敛为且只收敛为四�
 ```text
 原始知识 / 外部解析结果
   -> 现有 Agent 工作流执行语义清洗、组织、来源标注和切片
-  -> staging OKF Bundle + Intatis RAG Profile + complete retrieval snapshot
+  -> staging OKF Bundle + Egakium RAG Profile + complete retrieval snapshot
   -> deterministic Validator
   -> validated immutable snapshot
   -> host 挂载并签发 opaque knowledge-base handle
@@ -141,11 +141,11 @@ exact `WorkspaceLease` 或独立 `KnowledgeLease` 将 path 转为 authority。
 ### 2.1 本报告范围
 
 - embedding identity 与派生向量索引的兼容合同；
-- OKF 知识 bundle 的 Intatis RAG Profile；
+- OKF 知识 bundle 的 Egakium RAG Profile；
 - deterministic validation / grounding contract；
 - Code/Cowork/macOS/CLI 将来可用的模型查询工具；
 - immutable snapshot、增量更新、删除、查询快照和失败语义；
-- 与 Intatis 现有 ToolRegistry、PermissionEngine、WorkspaceLease、EventLog 和 provider exact binding 的集成边界；
+- 与 Egakium 现有 ToolRegistry、PermissionEngine、WorkspaceLease、EventLog 和 provider exact binding 的集成边界；
 - 后续实现和测试顺序。
 
 ### 2.2 明确不在本报告范围
@@ -155,8 +155,8 @@ exact `WorkspaceLease` 或独立 `KnowledgeLease` 将 path 转为 authority。
 - 建库产品 UI、管理页、状态页或可视化；
 - Chat 模式接入；
 - iOS 接入；
-- Intatis MCP Server、server transport、server OAuth 或托管服务；
-- 把任意第三方 RAG 产品整体嵌入 Intatis；
+- Egakium MCP Server、server transport、server OAuth 或托管服务；
+- 把任意第三方 RAG 产品整体嵌入 Egakium；
 - 训练或微调 embedding/reranker 模型；
 - 自动证明任意自然语言答案在语义上被证据蕴含；
 - 当前 v0.40 Developer ID release target 的变更。
@@ -166,16 +166,16 @@ exact `WorkspaceLease` 或独立 `KnowledgeLease` 将 path 转为 authority。
 以下是本报告开始设计时的审计快照，不是 2026-08-09 实现后的 current state；当前事实见文首
 implementation ledger、`docs/CURRENT_STATE.md` 和源码：
 
-- Intatis 没有完整的 RAG/Knowledge 产品或 ingestion → chunk → embed → retrieve → rerank → citation 闭环；
+- Egakium 没有完整的 RAG/Knowledge 产品或 ingestion → chunk → embed → retrieve → rerank → citation 闭环；
 - provider `Capability.embedding` 只是能力枚举，不能当作 embedding endpoint/client/model/index 已实现；
 - 现有 BM25 用于 external MCP deferred `tool_search` 的**工具元数据目录**，不是用户知识库；
 - `read_pdf` / `read_document` 是对指定 workspace 文件的按需读取，不是知识库 ingestion；
 - EventLog、ArtifactStore、session projection 和 replacement-history compaction 是持久化/上下文基础设施，不是向量检索；
 - Chat hosted web search 是当前模型的厂商托管网页搜索，不是本地知识库 RAG；
-- Intatis 当前只实现 external MCP **client**，没有产品 MCP Server target。
+- Egakium 当前只实现 external MCP **client**，没有产品 MCP Server target。
 
 因此在初始审计时，本文所有 schema、目录、工具和错误码，除明确引用 OKF/MCP 官方字段外，均是
-**PROPOSED**。它们随后作为 `IntatisKnowledge` core contract 落地；用户可见 mount/management
+**PROPOSED**。它们随后作为 `EgakiumKnowledge` core contract 落地；用户可见 mount/management
 surface 仍未 shipped。
 
 ## 3. 标准选择结论
@@ -207,7 +207,7 @@ Open Knowledge Format v0.2 是当前最匹配用户设想的开放知识内容�
 - `index.md` 支持 progressive disclosure；
 - `sources`、`generated`、`verified`、`status`、`stale_after` 为 provenance/trust/freshness/lifecycle 提供共同词汇；
 - 逐 claim 来源可用 Markdown footnote label 与 `sources[].id` 关联；
-- 未知 `type` 和未知扩展字段必须被兼容，允许 Intatis 做薄 Profile；
+- 未知 `type` 和未知扩展字段必须被兼容，允许 Egakium 做薄 Profile；
 - 它明确不绑定某个 agent、模型厂商、数据库或 serving system。
 
 OKF v0.2 的最小 conformance 只有：
@@ -224,11 +224,11 @@ OKF v0.2 是 Google Cloud 团队刚公开的开放规范，不是 W3C、IETF、I
 
 正确表述：
 
-> Intatis 采用 OKF v0.2 作为上游开放知识内容规范，并定义一个可被普通 OKF consumer 忽略的薄 RAG Profile。
+> Egakium 采用 OKF v0.2 作为上游开放知识内容规范，并定义一个可被普通 OKF consumer 忽略的薄 RAG Profile。
 
 错误表述：
 
-> Intatis 完全采用了传统 RAG 的统一行业标准，因此任意向量数据库和 reranker 都能直接读取。
+> Egakium 完全采用了传统 RAG 的统一行业标准，因此任意向量数据库和 reranker 都能直接读取。
 
 ### 3.4 OKF 明确不负责的部分
 
@@ -245,7 +245,7 @@ OKF 官方 non-goals 明确列出的只有：
 和 attestation cache 则属于规范的 `Considered and deferred`，也不应与 non-goals
 混为一类。
 
-所以 Intatis Profile 是必要的，但必须保持“补空白”而不是重新发明 OKF。
+所以 Egakium Profile 是必要的，但必须保持“补空白”而不是重新发明 OKF。
 
 ### 3.5 其它标准/格式为什么不作为 P0 基线
 
@@ -298,16 +298,16 @@ not observed as of audit; do not use a floating or invented tag
 ```text
 SPEC.md
 LICENSE.md
-UPSTREAM.md          # Intatis 自写 provenance record
-SHA256SUMS           # Intatis 自写完整性清单
+UPSTREAM.md          # Egakium 自写 provenance record
+SHA256SUMS           # Egakium 自写完整性清单
 ```
 
-不要为了“采用规范”把 reference agent、visualizer、BigQuery/Gemini runtime、sample credentials 或整个上游仓库引入 Intatis 发行依赖。
+不要为了“采用规范”把 reference agent、visualizer、BigQuery/Gemini runtime、sample credentials 或整个上游仓库引入 Egakium 发行依赖。
 
 实际落点为 `ThirdPartyStandards/OpenKnowledgeFormat/0.2/`；`UPSTREAM.md`、
 `SHA256SUMS`、`NOTICE.md` 与 `ThirdPartyNotices/OpenKnowledgeFormat.md` 已同步记录
 provenance、许可证和完整性。上游 reference agent、visualizer、sample bundle 和
-Python/runtime 未进入 Intatis 依赖闭包。
+Python/runtime 未进入 Egakium 依赖闭包。
 
 ### 4.3 可复现下载步骤
 
@@ -329,18 +329,18 @@ git -C knowledge-catalog show HEAD:okf/LICENSE.md | shasum -a 256
 
 ### 4.4 OKF 基础兼容策略
 
-Intatis consumer 应：
+Egakium consumer 应：
 
 - 精确支持 `okf_version: "0.2"`；
 - 对 v0.1 可选兼容 `timestamp` 和正文 `# Citations` fallback；
 - 新写 bundle 只写 v0.2 canonical `generated.at` 和 `sources`；
 - 保留未知 frontmatter key；
 - 对未知 `type` 当普通 concept；
-- 将 OKF 基础 conformance 与 Intatis Profile conformance 分开报告；
+- 将 OKF 基础 conformance 与 Egakium Profile conformance 分开报告；
 - 不把 OKF trust tier 当作访问权限；
-- 不因 OKF 容忍断链，就允许 grounding 所依赖的 evidence/source 断链通过 Intatis strict validator。
+- 不因 OKF 容忍断链，就允许 grounding 所依赖的 evidence/source 断链通过 Egakium strict validator。
 
-## 5. 组件二：Intatis OKF RAG Profile 0.1
+## 5. 组件二：Egakium OKF RAG Profile 0.1
 
 ### 5.1 Profile 的唯一职责
 
@@ -366,13 +366,13 @@ Profile 不负责：
 
 ### 5.2 推荐目录结构
 
-以下结构属于 `Intatis OKF RAG Profile 0.1` 的 **PROPOSED** 设计：
+以下结构属于 `Egakium OKF RAG Profile 0.1` 的 **PROPOSED** 设计：
 
 ```text
 knowledge-store/                 # user supplies this stable path to the host
-  .intatis-rag-store.json        # atomically selected current snapshot; not an OKF file
-  .intatis-rag-host/             # owner-only cross-process coordination; not model-facing
-  .intatis-rag-snapshots/
+  .egakium-rag-store.json        # atomically selected current snapshot; not an OKF file
+  .egakium-rag-host/             # owner-only cross-process coordination; not model-facing
+  .egakium-rag-snapshots/
     snap_<opaque-id>/            # one complete immutable query snapshot
       index.md                   # OKF root index; okf_version: "0.2"
       log.md                     # optional OKF history captured at this revision
@@ -381,7 +381,7 @@ knowledge-store/                 # user supplies this stable path to the host
       references/
         ...                      # optional immutable source snapshots
 
-      .intatis-rag/
+      .egakium-rag/
         profile.json             # thin profile for this exact snapshot
         checksums.json           # leaf-file integrity inventory
         chunks.jsonl             # retrieval units + concept locators/provenance
@@ -390,14 +390,14 @@ knowledge-store/                 # user supplies this stable path to the host
         auxiliary/               # optional backend-private data
 ```
 
-08-10 shipping 实现把旧提案名 `snapshots/` 收窄为 `.intatis-rag-snapshots/`，使普通
+08-10 shipping 实现把旧提案名 `snapshots/` 收窄为 `.egakium-rag-snapshots/`，使普通
 file/patch/Git/managed-terminal 的强制 WorkspaceLease deny floor 可以机械保护整个发布区。已有
 `snapshots/` 只能由持有 read-write writer authority 的 build/update 在 store lock 内原子迁移；
 只读打开不得创建或迁移任何 store 基础设施。
 
 关键边界：
 
-- `knowledge-store/` 是 Intatis 多版本 wrapper，本身不是 OKF bundle；每个
+- `knowledge-store/` 是 Egakium 多版本 wrapper，本身不是 OKF bundle；每个
   `snap_*` 目录才是完整、可独立导出和由普通 OKF consumer 读取的 OKF bundle；
 - Host 也可直接挂载一个只读 `snap_*`/standalone OKF bundle，视作 single-snapshot store；
 - `concepts/` 和允许的 `references/` 内容是该 snapshot 的知识层；
@@ -409,14 +409,14 @@ file/patch/Git/managed-terminal 的强制 WorkspaceLease deny floor 可以机械
   query 的 composite identity；
 - `dense/`、`lexical/` 和 `auxiliary/` 是可删除、可重建的派生索引；
 - backend-private index 文件不进入通用文件格式承诺；
-- 普通 OKF consumer 进入某个 `snap_*` 并忽略 `.intatis-rag/` 后，仍能读取完整知识；
-- Intatis 查询工具只挂载已验证的完整 immutable snapshot；
+- 普通 OKF consumer 进入某个 `snap_*` 并忽略 `.egakium-rag/` 后，仍能读取完整知识；
+- Egakium 查询工具只挂载已验证的完整 immutable snapshot；
 - concepts、references、profile、chunks 和 index 必须一起版本化；不能只固定旧 index、
   却在旧查询运行时原地替换顶层 concept/chunk；
 - 不允许查询工具直接修改 mounted snapshot；更新始终创建新的 `snap_*`；
 - 实现可在 host-private content-addressed store 中去重相同文件，但不能改变上述
   snapshot 语义或让 reader 观察到跨版本拼接。
-- validation receipt 保存在 bundle 外的 Intatis host-owned registry/cache 中，以
+- validation receipt 保存在 bundle 外的 Egakium host-owned registry/cache 中，以
   store/root identity、snapshot revision 和 validator version 为 key；bundle
   内即使出现生产者自带 receipt，也只当不可信附件，不能据此跳过本机验证。
 
@@ -424,7 +424,7 @@ file/patch/Git/managed-terminal 的强制 WorkspaceLease deny floor 可以机械
 
 ```json
 {
-  "schema": "intatis-rag-store/1",
+  "schema": "egakium-rag-store/1",
   "store_id": "kb_<opaque-stable-id>",
   "revision": 7,
   "current_snapshot": "snap_<opaque-id>",
@@ -444,7 +444,7 @@ file/patch/Git/managed-terminal 的强制 WorkspaceLease deny floor 可以机械
 - index 可能依赖 CPU 架构、endianness、library version 或实现细节；
 - dense index 和 lexical index 的升级周期不同；
 - exact KNN、小型 HNSW 和远程 vector store 的最佳选择不同；
-- 主存储一旦被某个第三方 index 接管，就会与 Intatis 的可恢复/可审计原则冲突。
+- 主存储一旦被某个第三方 index 接管，就会与 Egakium 的可恢复/可审计原则冲突。
 
 因此 Profile 标准化的是 **index identity、输入 digest、兼容条件和 snapshot contract**，不是索引内部 bytes。Validator 只在对应 adapter 已注册时验证 backend-private 文件；未知 backend 明确 `KB_INDEX_BACKEND_UNSUPPORTED`，不能猜测打开。
 
@@ -454,8 +454,8 @@ file/patch/Git/managed-terminal 的强制 WorkspaceLease deny floor 可以机械
 
 ```json
 {
-  "schema": "intatis-okf-rag-profile/0.1",
-  "profile": "org.vita.intatis.okf-rag",
+  "schema": "egakium-okf-rag-profile/0.1",
+  "profile": "org.vita.egakium.okf-rag",
   "profile_version": "0.1",
   "okf": {
     "version": "0.2",
@@ -470,10 +470,10 @@ file/patch/Git/managed-terminal 的强制 WorkspaceLease deny floor 可以机械
     "text_encoding": "utf-8",
     "line_endings": "lf",
     "unicode": "nfc",
-    "version": "intatis-text-normalization/1"
+    "version": "egakium-text-normalization/1"
   },
   "chunking": {
-    "manifest": ".intatis-rag/chunks.jsonl",
+    "manifest": ".egakium-rag/chunks.jsonl",
     "algorithm": "<registered-chunker-id>",
     "version": "<immutable-version>",
     "parameters_digest": "sha256:<digest>"
@@ -543,7 +543,7 @@ file/patch/Git/managed-terminal 的强制 WorkspaceLease deny floor 可以机械
         "score_semantics": "<registered-score-semantics>"
       }
     },
-    "evidence_contract": "intatis-evidence/1"
+    "evidence_contract": "egakium-evidence/1"
   },
   "retrieval_snapshot": {
     "id": "snap_<opaque-id>",
@@ -563,13 +563,13 @@ file/patch/Git/managed-terminal 的强制 WorkspaceLease deny floor 可以机械
   },
   "integrity": {
     "algorithm": "sha256",
-    "inventory": ".intatis-rag/checksums.json"
+    "inventory": ".egakium-rag/checksums.json"
   }
 }
 ```
 
 真正的 Profile JSON Schema 文档应在自身的 `$schema` 中声明 JSON Schema
-2020-12；上面的 `profile.json` 是被验证的实例，因此只记录 Intatis schema
+2020-12；上面的 `profile.json` 是被验证的实例，因此只记录 Egakium schema
 identity，不能把 draft 2020-12 元模式 URI误写成该实例的业务 schema。
 
 ### 5.5 Profile 字段的强弱语义
@@ -610,7 +610,7 @@ identity，不能把 draft 2020-12 元模式 URI误写成该实例的业务 sche
 4. `retrieval_snapshot.revision`：覆盖 bundle/chunk revision、按顺序选择的 exact
    dense/lexical component revision、reranker binding 和 retrieval policy；
 5. `checksums.json` 是 leaf-file inventory，不能包含自身；validation receipt、
-   `.intatis-rag-store.json` active pointer 和 revision 字段自身都不进入其所声明的 digest。
+   `.egakium-rag-store.json` active pointer 和 revision 字段自身都不进入其所声明的 digest。
 
 每一层都必须固定 canonical projection/version。具体 byte canonicalization 仍是第 15
 节的 `UNKNOWN`，但“无直接或间接自引用、输入域明确、算法带版本”是硬约束。
@@ -652,7 +652,7 @@ snapshot S1 = bundle R + chunks C + dense D1 + lexical L1 + reranker/policy P1
 snapshot S2 = bundle R + chunks C + dense D2 + lexical L1 + reranker/policy P2
 ```
 
-默认 store handle 只允许 `.intatis-rag-store.json` 当前明确指向的 exact snapshot。
+默认 store handle 只允许 `.egakium-rag-store.json` 当前明确指向的 exact snapshot。
 Host 在该 snapshot 内检查 runtime compatibility；不兼容就返回 typed failure，绝不
 扫描 retained snapshots 寻找“还能跑”的旧版本。A/B 必须由 Host 显式 admission，
 为每个 exact snapshot 签发独立 handle（或显式、有限的 active-set handle）；模型不能
@@ -669,7 +669,7 @@ reranker 临时拼起来，也不得按相似模型名、相同维度或 endpoin
 
 ```json
 {
-  "schema": "intatis-chunk/1",
+  "schema": "egakium-chunk/1",
   "chunk_id": "chk_<stable-opaque-id>",
   "concept_id": "concepts/policies/refund",
   "concept_revision": "sha256:<concept-bytes-digest>",
@@ -751,7 +751,7 @@ reranker：每次成功 search 必须 `rerank_applied=true`；optional/disabled 
 
 ### 5.11 权限字段只可作为提示，不是 authority
 
-Bundle 可带 classification、owner、visibility hint，但不得让外部文件自授予访问权。真实 authorization 始终来自 Intatis host 的 CapabilityLease、WorkspaceLease、PermissionEngine 和当前调用 identity。
+Bundle 可带 classification、owner、visibility hint，但不得让外部文件自授予访问权。真实 authorization 始终来自 Egakium host 的 CapabilityLease、WorkspaceLease、PermissionEngine 和当前调用 identity。
 
 ## 6. 组件三：Deterministic Validator
 
@@ -806,15 +806,15 @@ Validator 是普通确定性程序：
 - v0.1 fallback 只读兼容；
 - 未知 field/type 保留并容忍。
 
-Safe-loader、tag/alias/资源上限属于 Intatis host/parser 的安全加严，不属于 OKF
+Safe-loader、tag/alias/资源上限属于 Egakium host/parser 的安全加严，不属于 OKF
 v0.2 基础 conformance；因这些策略拒绝的文件不得误报为“OKF 标准不合规”，应使用
 独立的 host safety/Profile diagnostic。
 
-#### C. Intatis Profile schema
+#### C. Egakium Profile schema
 
 - JSON Schema/shape/type/required/additionalProperties；
 - profile/OKF version 支持；
-- Intatis RAG Profile 要求根 `index.md` 存在并声明 exact `okf_version: "0.2"`；这是 Profile 加严，不是 OKF 基础要求；
+- Egakium RAG Profile 要求根 `index.md` 存在并声明 exact `okf_version: "0.2"`；这是 Profile 加严，不是 OKF 基础要求；
 - ID、字符串、数组、嵌套深度和 safe integer bounds；
 - 不允许 credential、Authorization、endpoint/header/query secret container；
 - backend/model/chunker/tokenizer 只能来自注册表 exact ID。
@@ -873,7 +873,7 @@ v0.2 基础 conformance；因这些策略拒绝的文件不得误报为“OKF �
 #### H. Lifecycle/trust/freshness
 
 - `draft`、`deprecated`、`stale_after` 可按 host policy filter/warn/deny；
-- 缺 `verified` 在 OKF 中仍 conformant，但 Intatis strict profile 可把它分类为 unverified；
+- 缺 `verified` 在 OKF 中仍 conformant，但 Egakium strict profile 可把它分类为 unverified；
 - trust tier 只是检索/显示 policy input，不是授权；
 - 当前日期和 source revision policy 必须明确。
 
@@ -916,7 +916,7 @@ v0.2 基础 conformance；因这些策略拒绝的文件不得误报为“OKF �
 
 ```json
 {
-  "schema": "intatis-rag-validation/1",
+  "schema": "egakium-rag-validation/1",
   "status": "valid",
   "bundle_id": "kb_<id>",
   "bundle_revision": "sha256:<digest>",
@@ -926,7 +926,7 @@ v0.2 基础 conformance；因这些策略拒绝的文件不得误报为“OKF �
   "okf_version": "0.2",
   "validated_at": "2026-08-09T00:00:00Z",
   "validator": {
-    "identity": "intatis-rag-validator",
+    "identity": "egakium-rag-validator",
     "version": "<build-version>"
   },
   "counts": {
@@ -947,7 +947,7 @@ v0.2 基础 conformance；因这些策略拒绝的文件不得误报为“OKF �
 Receipt 本身必须与 exact store/snapshot root identity、bundle revision 和 retrieval
 snapshot revision 绑定；复制一份旧 receipt 到新目录不能让新内容通过。
 
-Receipt 由 Intatis host 保存到 bundle 外的 owner-only registry/cache。它不是
+Receipt 由 Egakium host 保存到 bundle 外的 owner-only registry/cache。它不是
 canonical knowledge，也不进入 bundle/snapshot digest；查询时仍要复核 root
 identity、bundle/snapshot revision 和当前 validator/backend registry compatibility，
 不能把缓存命中当作永久授权或永久有效证明。
@@ -964,7 +964,7 @@ exclusive store writer lease
   -> write complete OKF + profile + chunks + dense/lexical indexes
   -> fsync/atomic completion boundary for the whole snapshot
   -> deterministic validation
-  -> atomic rename to immutable .intatis-rag-snapshots/snap_<id>
+  -> atomic rename to immutable .egakium-rag-snapshots/snap_<id>
   -> atomic current-snapshot pointer/host registry update
 ```
 
@@ -990,7 +990,7 @@ exclusive store writer lease
 
 ### 7.1 产品定位
 
-`search_knowledge` 是模型唯一需要认识的 RAG 查询入口。它是 Intatis-native ToolRegistry 工具；descriptor 和 result 可以采用 MCP-compatible JSON Schema/structured-content 形状，但本报告**不新增 Intatis MCP Server**。
+`search_knowledge` 是模型唯一需要认识的 RAG 查询入口。它是 Egakium-native ToolRegistry 工具；descriptor 和 result 可以采用 MCP-compatible JSON Schema/structured-content 形状，但本报告**不新增 Egakium MCP Server**。
 
 模型不应该分别看到：
 
@@ -1168,7 +1168,7 @@ snapshot-specific handle 必须撤销新 admission，只有更新前已经取得
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Intatis search_knowledge result v1",
+  "title": "Egakium search_knowledge result v1",
   "$defs": {
     "digest": {
       "type": "string",
@@ -1197,7 +1197,7 @@ snapshot-specific handle 必须撤销新 admission，只有更新前已经取得
         "value"
       ],
       "properties": {
-        "schema": { "const": "intatis-source-locator/1" },
+        "schema": { "const": "egakium-source-locator/1" },
         "source_id": { "type": "string", "minLength": 1, "maxLength": 256 },
         "source_revision": { "$ref": "#/$defs/digest" },
         "adapter_identity": { "type": "string", "minLength": 1, "maxLength": 256 },
@@ -1481,7 +1481,7 @@ backend response 等执行期 hard budget 在形成可信排序前耗尽，或�
 无法安全缩成单条上限，才返回 `SEARCH_BUDGET_EXCEEDED`。不得把普通 result
 packing overflow 误报为整次检索失败。
 
-`knowledge://` 只是本报告建议的 Intatis 内部、opaque evidence URI 形状，并非已经
+`knowledge://` 只是本报告建议的 Egakium 内部、opaque evidence URI 形状，并非已经
 注册的通用 URI scheme。若未来对外暴露 MCP resource，需另行冻结 URI scheme、
 escaping、authority、revision 与授权语义；第一版也可完全不把该 URI 暴露给外部。
 
@@ -1591,7 +1591,7 @@ AgentLoop。因此上段是未来实际 caller 的强制接线合同，不能从
 `structuredContent`，`isError` 省略或为 `false`；tool arguments invalid 与其它
 domain failure 返回 `status: "error"`、符合相同 outputSchema，并设 `isError: true`。
 只有前述 outer protocol/CallToolRequest 错误走 JSON-RPC protocol error（无效参数
-通常是 `-32602`）。Intatis 内部工具即使不经过 MCP，也应保留相同 typed outcome。
+通常是 `-32602`）。Egakium 内部工具即使不经过 MCP，也应保留相同 typed outcome。
 
 ### 7.10 MCP-compatible，但不是 MCP Server
 
@@ -1604,7 +1604,7 @@ MCP 2026-07-28 很适合借用为接口形状：
 - Resource link/embedded resource 可表示额外证据；
 - server 有 outputSchema 时必须返回符合 schema 的结构化结果，client 应复核；
 - stateless core 与安全指导适合显式 handle；MCP 将 handle 视为 name 而不是 capability，并建议逐次授权；
-- Intatis 自身合同把“每次调用重新授权”提升为硬要求，这不是声称 MCP 协议层替 Intatis 强制执行。
+- Egakium 自身合同把“每次调用重新授权”提升为硬要求，这不是声称 MCP 协议层替 Egakium 强制执行。
 
 未来 adapter 的 envelope 固定为：
 
@@ -1618,11 +1618,11 @@ CallToolResult
 
 `content` 与 `structuredContent` 不得表达互相矛盾的结果；若为旧 client 提供
 TextContent 兼容序列化，它与 structured payload 的重复 bytes 也计入 64 KiB 总预算，
-Intatis 注入模型上下文时必须去重。Required request `_meta` 由 MCP adapter envelope
+Egakium 注入模型上下文时必须去重。Required request `_meta` 由 MCP adapter envelope
 负责，不进入 `search_knowledge` 的业务 inputSchema。当前内部工具不依赖 MCP
 envelope；这只是未来映射必须满足的完整合同。
 
-但当前 Intatis 是 external MCP client-only。第一版 `search_knowledge` 应是内部 Intatis 工具，只保持 schema/result 易于未来映射。任何外部 MCP Server、hosting、server auth 和 resource service 都需要另行产品决策，不能由本报告隐式授权。
+但当前 Egakium 是 external MCP client-only。第一版 `search_knowledge` 应是内部 Egakium 工具，只保持 schema/result 易于未来映射。任何外部 MCP Server、hosting、server auth 和 resource service 都需要另行产品决策，不能由本报告隐式授权。
 
 ## 8. 建库 Agent 工作流合同
 
@@ -1788,7 +1788,7 @@ draft
 
 GC 必须持有 store writer lease，并确认 snapshot 没有 reader lease、不是 current、
 不被其它 content-addressed snapshot 引用。APFS/SSD、备份、日志和远端 provider 的
-物理擦除保证另有边界；若不能证明 secure erasure，产品只能声明“Intatis active
+物理擦除保证另有边界；若不能证明 secure erasure，产品只能声明“Egakium active
 store 与受控缓存已删除”，不得宣称底层介质字节不可恢复。
 
 现有 EventLog 是 append-only canonical truth，durable `tool_result` 可能保留曾返回给
@@ -1820,7 +1820,7 @@ search_knowledge Tool
 - Chat/iOS/UI；
 - 一组模型可见的底层 retrieval 工具。
 
-### 10.2 最大化复用现有 Intatis 边界
+### 10.2 最大化复用现有 Egakium 边界
 
 后续实现应复用：
 
@@ -1847,15 +1847,15 @@ search_knowledge Tool
 
 只作为后续 spike 方向：
 
-- [SwiftIndex](https://github.com/alexey1312/swift-index)：架构参考，尤其是 Swift-native protocol、SQLite/FTS、content hash、hybrid/RRF；项目仍年轻，不建议整包接管 Intatis state。
+- [SwiftIndex](https://github.com/alexey1312/swift-index)：架构参考，尤其是 Swift-native protocol、SQLite/FTS、content hash、hybrid/RRF；项目仍年轻，不建议整包接管 Egakium state。
 - [VecturaKit](https://github.com/rryam/VecturaKit)：模块化边界较干净，适合作为首个完整 RAG 集成试验候选；其 persistence 仍只能是可重建派生索引。
 - [Wax](https://github.com/christopherkarani/Wax)：功能完整但带自有 `.wax`/WAL/存储生命周期，适合 isolated performance/recovery 对照，不能成为 canonical knowledge truth。
-- [MLXEmbedders](https://github.com/ml-explore/mlx-swift-lm/tree/main/Libraries/MLXEmbedders)：Apple Silicon local embedding 候选；Intatis 同时发行 x86_64，在确定独立 Intel backend/route 前，不得成为 universal macOS 的唯一后端。
+- [MLXEmbedders](https://github.com/ml-explore/mlx-swift-lm/tree/main/Libraries/MLXEmbedders)：Apple Silicon local embedding 候选；Egakium 同时发行 x86_64，在确定独立 Intel backend/route 前，不得成为 universal macOS 的唯一后端。
 - 固定模型的 Core ML：正式发行候选，优点是模型/runtime 可控；但 tokenizer、pooling、模型转换来源和许可证必须另行固定与验证。
 - [swift-embeddings](https://github.com/jkrukowski/swift-embeddings)：可做早期 spike；项目仍早期，已知并发 forward 风险意味着至少需要 actor/single-flight 隔离和压力测试。
 - [llama.cpp](https://github.com/ggml-org/llama.cpp)：仅作为 GGUF、Intel macOS 或未来 Linux 兼容后端候选；大型 C/C++ runtime 必须 non-iOS、按平台隔离，macOS/CLI/Linux 分别固定并审计，不能隐式进入 iOS。
 - SQLite/FTS5 + [sqlite-vec](https://github.com/asg017/sqlite-vec)：中小知识库的最小 exact KNN 候选；实验性 ANN alpha 不应直接成为 P0 release dependency。
-- [USearch](https://github.com/unum-cloud/usearch)：更大规模 HNSW 候选；metadata、事务、证据仍须留在 Intatis/SQLite 侧。
+- [USearch](https://github.com/unum-cloud/usearch)：更大规模 HNSW 候选；metadata、事务、证据仍须留在 Egakium/SQLite 侧。
 
 任何采用都必须另做许可证、精确 commit、传递依赖、模型文件许可证、universal macOS、iOS linkage、NOTICE 和性能审查。
 
@@ -1902,7 +1902,7 @@ search_knowledge Tool
 - wrong size/hash；
 - oversized/deep/too-many-files；
 - validate-then-reopen race；
-- unsafe/escaping `.intatis-rag-store.json` pointer；
+- unsafe/escaping `.egakium-rag-store.json` pointer；
 - snapshot 中 concept/chunk/profile/index 任一部分被原地替换；
 - host-side receipt 复制、过期或 backend registry 改变；
 - partial snapshot；
@@ -2026,7 +2026,7 @@ search_knowledge Tool
 3. 完成许可证/NOTICE 决策；
 4. 冻结 stable store + complete immutable snapshot layout 和分层 digest projection；
 5. 冻结 P0 仅限现有 WorkspaceLease、reader/writer lease、atomic publish、retention/GC/urgent-purge 合同；
-6. 冻结 `Intatis OKF RAG Profile 0.1` JSON Schema；
+6. 冻结 `Egakium OKF RAG Profile 0.1` JSON Schema；
 7. 冻结 chunk/evidence/validation/tool schemas；
 8. 先建立最小真实中英文/代码 corpus、ground-truth queries 和 valid/invalid fixtures。
 
@@ -2101,7 +2101,7 @@ refresh。
 
 - 四组件边界，不新增第五个 RAG 产品组件；
 - OKF v0.2 是 canonical knowledge content baseline；
-- Intatis Profile 必须薄且可被普通 OKF consumer 忽略；
+- Egakium Profile 必须薄且可被普通 OKF consumer 忽略；
 - index 是派生、可删除、可重建，不是知识真值；
 - heavy preprocessing 在建库阶段；
 - query 阶段只做 query-specific retrieval/rerank/validation；
@@ -2123,10 +2123,10 @@ refresh。
 - `ThirdPartyStandards/OpenKnowledgeFormat/0.2/` 已成为固定目录，spec/license/provenance/hash 和
   NOTICE 同步落地；Profile/chunk/evidence/store/checksum/validation/source-locator/search input/output
   共 9 份 schema 已冻结。
-- digest 使用 Intatis canonical JSON/SHA-256 projection；bundle、chunk manifest、dense/lexical
+- digest 使用 Egakium canonical JSON/SHA-256 projection；bundle、chunk manifest、dense/lexical
   component、retrieval policy、reranker binding、composite snapshot 和 host content seal 分层绑定。
 - YAML 选择 Yams 6.2.2 exact dependency；JSON Schema evaluator 为仓内 bounded subset，未引入第二个
-  schema package。独立 public non-iOS `IntatisKnowledge` target 已落地，iOS 无 direct/transitive link。
+  schema package。独立 public non-iOS `EgakiumKnowledge` target 已落地，iOS 无 direct/transitive link。
 - P0 dense route 选择 Apple NaturalLanguage sentence embedding + Swift `Float32` exact KNN；lexical
   使用多语言/代码 tokenizer + BM25，fusion 使用 RRF。没有引入 sqlite-vec/USearch/MLX 或向量数据库。
 - reranker profile 支持 disabled/optional/required exact binding；当前随仓 local provider 是
@@ -2214,8 +2214,8 @@ current working tree；实现后的记录见第 18 节。
 ### PATH_CHECK_RESULT
 
 ```text
-pwd:      /Users/vita/Vitemis/Intatis
-Git root: /Users/vita/Vitemis/Intatis
+pwd:      /Users/vita/Vitemis/Egakium
+Git root: /Users/vita/Vitemis/Egakium
 Result:   MATCH
 ```
 
@@ -2284,7 +2284,7 @@ trailing whitespace / merge-marker scan
 同时观察到其它既有/并发改动：
 
 ```text
- M Apps/IntatisMac/Sources/ComposerAttachmentSurfaces.swift
+ M Apps/EgakiumMac/Sources/ComposerAttachmentSurfaces.swift
  M codex-report/08_09_26-12_08-single-document-tool-open-source-plan.md
  M docs/PROJECT_MAP.md
 ?? codex-report/08_09_26-13_42-durable-multimodal-context-handoff.md
@@ -2314,8 +2314,8 @@ meta-validator。JSON 语法检查与三路独立合同复核已通过。
 ### PATH_CHECK_RESULT
 
 ```text
-pwd:      /Users/vita/Vitemis/Intatis
-Git root: /Users/vita/Vitemis/Intatis
+pwd:      /Users/vita/Vitemis/Egakium
+Git root: /Users/vita/Vitemis/Egakium
 Result:   MATCH
 ```
 
@@ -2340,15 +2340,15 @@ Provider 7/7，并补齐 model-facing build/search、fresh-host 外部库恢复�
 `docs/TESTING.md` 和 08-10 主实施合同为准：
 
 ```text
-IntatisKnowledgeTests                        106 tests / 0 failures / 0 skips
+EgakiumKnowledgeTests                        106 tests / 0 failures / 0 skips
 TurnGroundingEvidenceRegistryTests             6 tests / 0 failures
 Cowork durable search_knowledge AgentLoop probe 1 test / 0 failures
 Cowork narrow-mailbox negative                  1 test / 0 failures
 Knowledge host authority/mount/drain             1 test / 0 failures
 final grounding + urgent purge                  1 test / 0 failures
-IntatisMac unsigned Debug                    BUILD SUCCEEDED (arm64)
-IntatisKnowledge / IntatisCLI arm64 build     PASS
-IntatisKnowledge / IntatisCLI x86_64 cross-build PASS
+EgakiumMac unsigned Debug                    BUILD SUCCEEDED (arm64)
+EgakiumKnowledge / EgakiumCLI arm64 build     PASS
+EgakiumKnowledge / EgakiumCLI x86_64 cross-build PASS
 ```
 
 冻结 retrieval corpus 当前 Apple NaturalLanguage 结果：Recall@5 `0.882`、MRR `0.681`、
@@ -2359,7 +2359,7 @@ Intel、最低支持 macOS、大库、Linux local runtime 或真实 remote route
 
 ### FILES_AND_DOCS
 
-实现新增/修改集中在 `Packages/IntatisKnowledge/`、generic host/grounding seam、Code/Cowork optional
+实现新增/修改集中在 `Packages/EgakiumKnowledge/`、generic host/grounding seam、Code/Cowork optional
 injection，以及 `Package.swift`/`project.yml` 已声明的 non-iOS linkage。当前权威说明同步回写
 `docs/ARCHITECTURE.md`、`CURRENT_STATE.md`、`PROJECT_MAP.md`、`DO_NOT_BREAK.md`、
 `OPEN_SOURCE_REUSE.md` 和 `TESTING.md`。工作树另有并发多模态/文档工具改动；本报告不归属、回退或

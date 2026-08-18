@@ -7,7 +7,7 @@
 
 ## 1. 结论
 
-事故的第一次失败是 provider TLS validation failure；第二次失败来自 Intatis 自己：旧 WorkTask 被绑定在旧 Run，新的 Run 无权继续它，而委派又在完整预检前先写入了 agent-to-agent message。宿主随后把这次内部半提交升级成整轮终止错误，导致当前 Turn 和新 Run 再次失败。
+事故的第一次失败是 provider TLS validation failure；第二次失败来自 Egakium 自己：旧 WorkTask 被绑定在旧 Run，新的 Run 无权继续它，而委派又在完整预检前先写入了 agent-to-agent message。宿主随后把这次内部半提交升级成整轮终止错误，导致当前 Turn 和新 Run 再次失败。
 
 本次最终落地六项修正：
 
@@ -230,16 +230,16 @@ Orchestrator 先在 admission lock 外完成可能异步等待、但不写内部
 本轮最终代码已通过：
 
 - SwiftPM 全部相关 test products 编译。
-- `IntatisProtocolTests`：107/107。
-- `IntatisAgentKernelTests`：220/220。
-- `IntatisCoworkTests`：364/364。
+- `EgakiumProtocolTests`：107/107。
+- `EgakiumAgentKernelTests`：220/220。
+- `EgakiumCoworkTests`：364/364。
 - `ToolExecutionProtocolTests`：5/5。
 - `SpawnAgentPermissionTests`：11/11。
 - `AgentLoopPolicyTests`：37/37。
 - `CapabilityLeaseTests`：7/7。
 - `MessageDelegationSplitTests`：9/9。
 - `OrchestrationReliabilityTests`：44/44。
-- `IntatisMac` Debug、`CODE_SIGNING_ALLOWED=NO` 构建通过；只有仓库既有 warnings。
+- `EgakiumMac` Debug、`CODE_SIGNING_ALLOWED=NO` 构建通过；只有仓库既有 warnings。
 
 未把整仓 `swift test` 记为本轮通过；未运行真实 provider、credential/network、GUI 交互或 iOS App smoke。
 
@@ -247,26 +247,26 @@ Orchestrator 先在 admission lock 外完成可能异步等待、但不写内部
 
 主要实现位置：
 
-- `Packages/IntatisProtocol/Sources/WorkTask.swift`
-- `Packages/IntatisProtocol/Sources/ContinuationRun.swift`
-- `Packages/IntatisProtocol/Sources/Event.swift`
-- `Packages/IntatisProtocol/Sources/Envelope.swift`
-- `Packages/IntatisProtocol/Sources/ToolExecution.swift`
-- `Packages/IntatisProtocol/Sources/Leases.swift`
-- `Packages/IntatisProtocol/Sources/TaskGoalEvents.swift`
-- `Packages/IntatisConversation/Sources/*Projection.swift`
-- `Packages/IntatisAgentKernel/Sources/AgentLoop.swift`
-- `Packages/IntatisAgentKernel/Sources/ContextBuilder.swift`
-- `Packages/IntatisCowork/Sources/Orchestrator.swift`
-- `Packages/IntatisCowork/Sources/MessageBus.swift`
-- `Packages/IntatisCowork/Sources/CommunicationDelegationTools.swift`
-- `Packages/IntatisCowork/Sources/CoordinatorTools.swift`
-- `Packages/IntatisCowork/Sources/WorkTaskTools.swift`
-- `Packages/IntatisCowork/Sources/GoalRuntimeController.swift`
-- `Packages/IntatisCowork/Sources/GoalVerifierControlPlane.swift`
-- `Packages/IntatisTools/Sources/TaskGoalManagement.swift`
-- `Apps/IntatisMac/Sources/CoworkViewModel.swift`
-- `Packages/IntatisSharedUI/Sources/CoworkViews.swift`
+- `Packages/EgakiumProtocol/Sources/WorkTask.swift`
+- `Packages/EgakiumProtocol/Sources/ContinuationRun.swift`
+- `Packages/EgakiumProtocol/Sources/Event.swift`
+- `Packages/EgakiumProtocol/Sources/Envelope.swift`
+- `Packages/EgakiumProtocol/Sources/ToolExecution.swift`
+- `Packages/EgakiumProtocol/Sources/Leases.swift`
+- `Packages/EgakiumProtocol/Sources/TaskGoalEvents.swift`
+- `Packages/EgakiumConversation/Sources/*Projection.swift`
+- `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift`
+- `Packages/EgakiumAgentKernel/Sources/ContextBuilder.swift`
+- `Packages/EgakiumCowork/Sources/Orchestrator.swift`
+- `Packages/EgakiumCowork/Sources/MessageBus.swift`
+- `Packages/EgakiumCowork/Sources/CommunicationDelegationTools.swift`
+- `Packages/EgakiumCowork/Sources/CoordinatorTools.swift`
+- `Packages/EgakiumCowork/Sources/WorkTaskTools.swift`
+- `Packages/EgakiumCowork/Sources/GoalRuntimeController.swift`
+- `Packages/EgakiumCowork/Sources/GoalVerifierControlPlane.swift`
+- `Packages/EgakiumTools/Sources/TaskGoalManagement.swift`
+- `Apps/EgakiumMac/Sources/CoworkViewModel.swift`
+- `Packages/EgakiumSharedUI/Sources/CoworkViews.swift`
 - 对应 Protocol、Conversation、Cowork 测试
 
 本轮开始时工作树为空；本轮没有暂存或提交文件。
@@ -279,8 +279,8 @@ Orchestrator 先在 admission lock 外完成可能异步等待、但不写内部
 
 ### PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 路径匹配。
 
 ### VALIDATION_RESULT

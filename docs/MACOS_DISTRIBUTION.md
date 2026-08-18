@@ -2,18 +2,18 @@
 
 文档状态：当前发行合同
 生效日期：2026-07-28
-最近核对：2026-08-16
-产品基线：v0.2（build 49）
+最近核对：2026-08-18
+产品基线：v0.4（build 50）
 
 ## 产品决策
 
-Ekagium 的 macOS 产品继续使用内部 `IntatisMac` shipping target，只通过 Developer ID 签名、
+Egakium 的 macOS 产品继续使用内部 `EgakiumMac` shipping target，只通过 Developer ID 签名、
 公证和直接下载分发。项目不再
 规划、发布或验收 Mac App Store 版本，也不再把 Mac App Store 的 App Sandbox
 限制作为产品设计、功能裁剪、依赖选择或测试矩阵的约束。
 
-当前源码中的 `IntatisMacAppStore` target、`.macAppStore` profile 和
-`IntatisMac.AppStore.entitlements` 是此前方案留下的兼容/历史实现，不是当前
+当前源码中的 `EgakiumMacAppStore` target、`.macAppStore` profile 和
+`EgakiumMac.AppStore.entitlements` 是此前方案留下的兼容/历史实现，不是当前
 发行产品面、未来版本承诺或默认验收门。没有用户对业务源码清理的明确授权时，
 只如实标注其遗留状态，不自动删除 target、profile、entitlements 或历史测试
 记录；任何专门恢复、扩展或验证该 target 的工作也必须由用户另行明确要求。
@@ -21,15 +21,29 @@ Ekagium 的 macOS 产品继续使用内部 `IntatisMac` shipping target，只通
 规划文字，均被本文件和 `docs/CURRENT_STATE.md` 的新决策取代，只能作为历史
 背景读取。
 
+## 外部 runtime 直接集成与 no-fallback
+
+- 本节继承 `/Users/vita/Vitemis/docs/DEPENDENCY_POLICY.md` 与 `docs/OPEN_SOURCE_REUSE.md`。
+- shipping capability 若由用户指定或已准入的外部 Framework/runtime 提供，release target 必须真实
+  链接、打包、签名并执行该依赖；不得用仓内自研 adapter、preview backend 或系统组件兜底后仍声称
+  dependency 已接入。
+- 对 Canvas，官方 CEF 是唯一接受 renderer。当前 `EgakiumMac.app` 已自包含 pinned ARM64 CEF
+  Framework、Resources、五个 standard sandbox Helper apps 与 LICENSE/CREDITS；Canvas 源码不再包含
+  WKWebView/WebKit renderer，也不得在 CEF 缺失、初始化失败、Helper 失败或签名失败时 fallback。
+- CEF 依赖闭包不完整时构建/release gate 必须失败；运行期不可恢复的 CEF 启动失败必须明确显示
+  Canvas unavailable 并保留右侧 Cowork 安全状态，不能静默切换 renderer。
+- 本地原生代码只允许实现 CEF 官方 API 所需最薄生命周期、AppKit child browser、scheme、权限、bundle 与
+  Helper 接线，不得自建同能力浏览器 runtime 或双 renderer 发布矩阵。
+
 ## 当前 macOS 产品面
 
-- 唯一发行 App target：`IntatisMac`。
+- 唯一发行 App target：`EgakiumMac`。
 - 分发方式：Developer ID 签名、公证、直接下载或用户自建。
 - 产品能力：完整 Chat / Code / Cowork、workspace 与 global Skills、managed
   terminal、本地 Git、浏览器/文档 helper，以及 stdio + HTTP MCP。
-- 默认 macOS 验收：SwiftPM/CLI、`IntatisMac` Developer ID 产品图，以及与改动
+- 默认 macOS 验收：SwiftPM/CLI、`EgakiumMac` Developer ID 产品图，以及与改动
   相关的签名、公证、Hardened Runtime、entitlements 和 bundle/link inventory。
-- `IntatisMacAppStore` 不进入日常构建、回归、release gate 或架构权衡。
+- `EgakiumMacAppStore` 不进入日常构建、回归、release gate 或架构权衡。
 
 iOS 当前仍是独立的 chat 子集。本决策不自动删除或扩大 iOS 产品面，也不改变
 iOS 自身的系统 sandbox 与 target-linkage 限制。
@@ -37,13 +51,15 @@ iOS 自身的系统 sandbox 与 target-linkage 限制。
 ## 直分发打包入口
 
 仓库唯一正式打包入口是 `scripts/package-macos-release.sh`。它只构建
-`IntatisMac`，并且在以下所有条件成立后才把产物写入 `dist/`：
+`EgakiumMac`，并且在以下所有条件成立后才把产物写入 `dist/`：
 
 1. 当前 Keychain 存在有效的 `Developer ID Application` identity；
-2. `INTATIS_NOTARY_PROFILE` 指向用户已通过 `notarytool store-credentials`
+2. `EGAKIUM_NOTARY_PROFILE` 指向用户已通过 `notarytool store-credentials`
    保存的 Keychain profile；
-3. universal Release build 同时包含 `arm64` 与 `x86_64`；
-4. 使用 Developer ID entitlements、secure timestamp 与 Hardened Runtime 完成签名；
+3. CEF-enabled Release build、CEF Framework 与全部 Helpers 都精确为 `arm64`；当前 pinned CEF
+   distribution 不提供 x86_64 slice，脚本不得伪称 universal；
+4. 先由内向外签名 CEF dylibs、Framework 与五个 Helpers，再使用 Developer ID entitlements、secure
+   timestamp 与 Hardened Runtime 签名主 App；generic/GPU/Renderer Helper 必须带 `allow-jit` entitlement；
 5. App 公证状态为 `Accepted`，staple/validate、严格 codesign 与 Gatekeeper assessment
    全部通过；
 6. DMG 包含 `/Applications` 拖放入口，以 Developer ID 单独签名，再次公证并完成
@@ -52,7 +68,7 @@ iOS 自身的系统 sandbox 与 target-linkage 限制。
 使用方式：
 
 ```sh
-INTATIS_NOTARY_PROFILE=<本机 profile 名称> \
+EGAKIUM_NOTARY_PROFILE=<本机 profile 名称> \
   scripts/package-macos-release.sh
 ```
 
@@ -60,8 +76,8 @@ INTATIS_NOTARY_PROFILE=<本机 profile 名称> \
 notarization，使用交互式两阶段模式：
 
 ```sh
-INTATIS_PAUSE_BEFORE_NOTARIZATION=1 \
-INTATIS_NOTARY_PROFILE=<本机 profile 名称> \
+EGAKIUM_PAUSE_BEFORE_NOTARIZATION=1 \
+EGAKIUM_NOTARY_PROFILE=<本机 profile 名称> \
   scripts/package-macos-release.sh
 ```
 
@@ -73,26 +89,26 @@ Git 的 GitHub 专用 proxy 配置；该配置在暂停点之后不再参与后�
 
 上传使用 `notarytool submit --no-wait --progress`，终端持续显示上传进度并在上传结束后记录
 submission ID。随后 `notarytool wait` 默认最多等待 30 分钟；可通过
-`INTATIS_NOTARY_TIMEOUT=2h` 等正时长显式调整。超时不代表失败，Apple 会继续处理；若状态
+`EGAKIUM_NOTARY_TIMEOUT=2h` 等正时长显式调整。超时不代表失败，Apple 会继续处理；若状态
 仍是 `In Progress`，脚本以非零状态安全退出并把签名 App、上传日志、submission ID 和后续
-DMG 状态保存在 owner-only 的 `.intatis/release-recovery/<run>/`。不得因此重复上传。按脚本
+DMG 状态保存在 owner-only 的 `.egakium/release-recovery/<run>/`。不得因此重复上传。按脚本
 打印的精确命令恢复同一提交，例如：
 
 ```sh
-INTATIS_NOTARY_PROFILE=<本机 profile 名称> \
-INTATIS_RESUME_RELEASE_DIR=<脚本打印的绝对 recovery 路径> \
+EGAKIUM_NOTARY_PROFILE=<本机 profile 名称> \
+EGAKIUM_RESUME_RELEASE_DIR=<脚本打印的绝对 recovery 路径> \
   scripts/package-macos-release.sh
 ```
 
-恢复模式重新核对版本、universal 架构、Developer ID、Hardened Runtime 和 entitlements，
+恢复模式重新核对版本、ARM64 CEF closure、Developer ID、Hardened Runtime 和 entitlements，
 然后复用已记录的 App/DMG submission ID；不会重新构建或重新上传。签名完成后的 Control-C、
 TERM、网络错误、Apple 长时间处理或 Invalid 也保留 recovery 目录，成功输出最终产物后才自动
-清理。`INTATIS_RESUME_RELEASE_DIR` 只接受仓库 `.intatis/release-recovery/` 下当前用户拥有、
+清理。`EGAKIUM_RESUME_RELEASE_DIR` 只接受仓库 `.egakium/release-recovery/` 下当前用户拥有、
 模式为 `0700` 且 state/App 均非 symlink 的绝对路径。
 
 如果 Keychain 中存在多个 Developer ID Application identity，额外设置
-`INTATIS_DEVELOPER_IDENTITY` 为目标证书的完整 common name。可用
-`INTATIS_OUTPUT_DIR` 改变输出目录。证书、私钥、Apple 账号/App Store Connect
+`EGAKIUM_DEVELOPER_IDENTITY` 为目标证书的完整 common name。可用
+`EGAKIUM_OUTPUT_DIR` 改变输出目录。证书、私钥、Apple 账号/App Store Connect
 凭据和 profile 内容都不得进入仓库；脚本只接收 identity/profile 名称。
 
 输出包括 stapled App 的 ZIP、已单独公证并 stapled 的 DMG，以及两者的 SHA-256
@@ -106,11 +122,11 @@ TERM、网络错误、Apple 长时间处理或 Invalid 也保留 recovery 目录
   MCP、global Skill roots 或其他直接分发版能力；
 - 新增进程内 Git/MCP/脚本替代实现；
 - 把 Code/Cowork 降级成 chat-only 或 HTTP-only；
-- 要求业务实现、开源依赖或测试同时满足 `IntatisMacAppStore`；
+- 要求业务实现、开源依赖或测试同时满足 `EgakiumMacAppStore`；
 - 将 App Store entitlement/linkage/build 结果列为发布阻塞项。
 
 这项决策只移除 **Mac App Store 分发所强加的 App Sandbox 产品约束**，不移除
-Intatis 自己的安全边界。以下要求继续有效：
+Egakium 自己的安全边界。以下要求继续有效：
 
 - `DeterministicPolicyGate` / `ModelPermissionReviewer` /
   `PermissionEngine` 三层权限门；
@@ -135,10 +151,10 @@ runtime sandbox`、测试宿主 sandbox、Linux bwrap 和权限/工作区围栏�
 1. 与改动相称的 SwiftPM focused/full tests；
 2. `swift build` 与受影响的 CLI product；
 3. `xcodegen generate`；
-4. `IntatisMac` macOS build；
+4. `EgakiumMac` macOS build；
 5. 触及实际发行时的 Developer ID 签名、公证、Hardened Runtime、
    entitlements 和 bundle/link inventory；
-6. 触及 iOS 子集时才追加 `IntatisiOS` build/test。
+6. 触及 iOS 子集时才追加 `EgakiumiOS` build/test。
 
 除非用户明确点名遗留 target，否则不要构建、修复、测试或报告
-`IntatisMacAppStore`，也不要因它失败而修改当前发行产品。
+`EgakiumMacAppStore`，也不要因它失败而修改当前发行产品。

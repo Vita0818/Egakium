@@ -1,4 +1,4 @@
-# Intatis 单美元符号 LaTeX 数学渲染实施计划
+# Egakium 单美元符号 LaTeX 数学渲染实施计划
 
 > 日期：2026-07-23
 >
@@ -16,8 +16,8 @@
 
 ## PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 两者一致，符合项目要求。
 - 计划创建前工作树已有大量 UI、本地化、会话排序、停止动作、thinking 时间、projection、Goal / Cowork 和文档改动。本计划不覆盖、回退、整理、暂存或提交这些既有改动。
 
@@ -43,11 +43,11 @@
 
 ```text
 EventLog / projection raw String
-  -> IntatisMessageContentView
+  -> EgakiumMessageContentView
      -> plainSafe
         -> exact raw SwiftUI Text
      -> microsoft
-        -> Intatis latest-only admission / scheduler
+        -> Egakium latest-only admission / scheduler
         -> vendored Microsoft parser
            -> ordinary Markdown nodes
            -> code nodes（不识别数学）
@@ -65,7 +65,7 @@ EventLog / projection raw String
 
 在本计划形成时，富文本路径本身正常工作：
 
-- assistant / agent 消息进入 `IntatisMessageContentView(.richText)`；
+- assistant / agent 消息进入 `EgakiumMessageContentView(.richText)`；
 - `MarkdownDocumentParser` 能解析并显示标题、列表、表格、引用和普通代码块；
 - 当时 production configuration 明确关闭数学；
 - 当时根依赖图没有 iosMath，app bundle 也不应含数学字体。
@@ -83,7 +83,7 @@ EventLog / projection raw String
 - 因而代码字面量中的 TeX delimiter 可能被改写；
 - 它也不支持本阶段要求的正常单 `$...$`。
 
-本计划只在 vendored Microsoft renderer 内恢复经重新设计的数学扩展点，并把修改永久记录到 `INTATIS_PATCH_LEDGER.md`。
+本计划只在 vendored Microsoft renderer 内恢复经重新设计的数学扩展点，并把修改永久记录到 `EGAKIUM_PATCH_LEDGER.md`。
 
 ### 1.3 当前性能事实不能被数学功能覆盖
 
@@ -193,13 +193,13 @@ Vendor/SwiftStreamingMarkdown/Sources/MarkdownText/**
 不得放入：
 
 ```text
-IntatisMessageContentView
+EgakiumMessageContentView
 ChatViewModel / CodeViewModel / CoworkViewModel
 ConversationProjection / CodeProjection
 EventLog / provider / AgentLoop
 ```
 
-Intatis SharedUI 只决定生产 configuration 是否启用 `.singleDollarInline`，不遍历 Markdown AST，不重写 code fence，也不拥有 TeX parser。
+Egakium SharedUI 只决定生产 configuration 是否启用 `.singleDollarInline`，不遍历 Markdown AST，不重写 code fence，也不拥有 TeX parser。
 
 ### 3.2 两阶段、按需解析
 
@@ -276,7 +276,7 @@ iosMath 只负责：
 - line / glyph layout；
 - CoreText / AppKit / UIKit 绘制。
 
-Intatis / Microsoft derivative 不实现 TeX parser、命令表、atom tree、字体度量或数学排版。
+Egakium / Microsoft derivative 不实现 TeX parser、命令表、atom tree、字体度量或数学排版。
 
 ### 4.2 许可证批准门
 
@@ -312,7 +312,7 @@ iosMath 2.5.0 的 package resource bundle 不只有 MIT engine，还包含多套
 accepted formula 转换为专用 `NSTextAttachment`：
 
 - attachment 内容只携带 bounded formula source、原始 literal、字体尺寸和动态颜色语义；
-- 使用 Intatis 专用 file type / UTI，不注册到宽泛的 `UTType.data`，避免与 citation 或未来 attachment provider 冲突；
+- 使用 Egakium 专用 file type / UTI，不注册到宽泛的 `UTType.data`，避免与 citation 或未来 attachment provider 冲突；
 - AppKit / UIKit 分别注册对应 `NSTextAttachmentViewProvider`；
 - provider 创建 `MTMathUILabel`，使用 `.text` 数学模式；
 - foreground color 取当前动态 paragraph color，不写死白色 / 黑色 / RGB；
@@ -321,7 +321,7 @@ accepted formula 转换为专用 `NSTextAttachment`：
 - attachment 和 label 不进入 completed-document cache 或 native-view cache；
 - view 离开可见树后不得由全局 provider / catalog 持有。
 
-普通 UI 字体仍由 Intatis 当前主题决定；math font 只用于数学 glyph 和 TeX metrics。
+普通 UI 字体仍由 Egakium 当前主题决定；math font 只用于数学 glyph 和 TeX metrics。
 
 ### 4.5 复制与无障碍
 
@@ -349,7 +349,7 @@ MathRenderConfig.singleDollarInline(...)
 要求：
 
 - package 默认保持 `.disabled`；
-- Intatis production `firstReleaseParseConfiguration()` 只有在依赖、许可证和测试门关闭后才启用 `.singleDollarInline`；
+- Egakium production `firstReleaseParseConfiguration()` 只有在依赖、许可证和测试门关闭后才启用 `.singleDollarInline`；
 - images、citations、animation、syntax highlighting 继续关闭；
 - math attachment 不复用 Markdown image network path；
 - `plainSafe` 继续完全绕过 Markdown 与 math；
@@ -359,7 +359,7 @@ MathRenderConfig.singleDollarInline(...)
 
 启用数学会改变显示配置，因此必须：
 
-- 提升 `IntatisMarkdownRendererLimits.configurationRevision`；
+- 提升 `EgakiumMarkdownRendererLimits.configurationRevision`；
 - math mode / appearance / font-size semantics 进入 request revision；
 - old no-math document 不得在新配置下发布；
 - streaming correction、truncation、completion 与 mode 切换继续触发当前 generation 校验；
@@ -374,7 +374,7 @@ MathRenderConfig.singleDollarInline(...)
 ```text
 Vendor/SwiftStreamingMarkdown/Package.swift
 Vendor/SwiftStreamingMarkdown/Package.resolved
-Vendor/SwiftStreamingMarkdown/INTATIS_PATCH_LEDGER.md
+Vendor/SwiftStreamingMarkdown/EGAKIUM_PATCH_LEDGER.md
 Vendor/SwiftStreamingMarkdown/Sources/MarkdownText/Parser/**
 Vendor/SwiftStreamingMarkdown/Sources/MarkdownText/Inline/**
 Vendor/SwiftStreamingMarkdown/Sources/MarkdownText/Models/**
@@ -392,19 +392,19 @@ Models/MathAttachmentData.swift
 UI/Paragraph/MathAttachmentViewProvider.swift
 ```
 
-实际命名可按现有 package 结构微调，但不能把全部逻辑堆回 Intatis facade。
+实际命名可按现有 package 结构微调，但不能把全部逻辑堆回 Egakium facade。
 
-### 6.2 Intatis thin integration
+### 6.2 Egakium thin integration
 
 ```text
-Packages/IntatisSharedUI/Sources/MessageRendering/
-  IntatisMicrosoftMarkdownPipeline.swift
+Packages/EgakiumSharedUI/Sources/MessageRendering/
+  EgakiumMicrosoftMarkdownPipeline.swift
 
-Packages/IntatisSharedUI/Tests/
+Packages/EgakiumSharedUI/Tests/
   MessageRenderingTests.swift
 ```
 
-`IntatisMessageContentView.swift` 原则上不需要新增公式 scanner；如需变更，只允许 configuration / accessibility / lifecycle integration，不得解析 delimiter。
+`EgakiumMessageContentView.swift` 原则上不需要新增公式 scanner；如需变更，只允许 configuration / accessibility / lifecycle integration，不得解析 delimiter。
 
 ### 6.3 Dependency、NOTICE 与文档
 
@@ -754,7 +754,7 @@ production MathRenderConfig.singleDollarInline
 9. 受控 GUI 未出现 hang、失控 CPU / memory 或残留实例；
 10. selection / copy / accessibility 有实际验证；
 11. vendor patch ledger 和项目权威文档已更新；
-12. 最终报告明确区分：Microsoft-derived code、iosMath dependency、Intatis-owned thin admission / lifecycle integration。
+12. 最终报告明确区分：Microsoft-derived code、iosMath dependency、Egakium-owned thin admission / lifecycle integration。
 
 在第 9 项关闭前，最多只能描述为“源码与 headless 验证完成”，不得标记为 release-ready。
 
@@ -779,7 +779,7 @@ production MathRenderConfig.singleDollarInline
 - `docs/TESTING.md`
 - `NOTICE.md`
 - `ThirdPartyNotices/MathRendering.md`
-- `Vendor/SwiftStreamingMarkdown/INTATIS_PATCH_LEDGER.md`
+- `Vendor/SwiftStreamingMarkdown/EGAKIUM_PATCH_LEDGER.md`
 
 ## 14. 2026-07-24 实施结果
 
@@ -788,7 +788,7 @@ production MathRenderConfig.singleDollarInline
 用户已明确批准 iosMath 2.5.0 exact revision 及随包分发的 GUST / LPPL / OFL 字体与许可证文本。实施保持了本计划的三层边界：
 
 - 普通 Markdown 与代码仍由仓内 Microsoft SwiftStreamingMarkdown 派生版及原生 TextKit/CodeBlock 路径处理；
-- Intatis-owned scanner 只接受受保护上下文之外的正常单美元 `$...$`，每条消息最多 32 个公式、每个公式最多 8 KiB，任一上限失败时整条消息的候选全部保持 literal；
+- Egakium-owned scanner 只接受受保护上下文之外的正常单美元 `$...$`，每条消息最多 32 个公式、每个公式最多 8 KiB，任一上限失败时整条消息的候选全部保持 literal；
 - fenced/inline code、currency、escaped dollar、`$$`、`\(...\)`、`\[...\]`、未闭合和不合法候选保持原文；
 - accepted math 通过 iosMath live `MTMathUILabel` + TextKit 2 attachment 显示，不生成或缓存 production raster；
 - raw EventLog / projection / provider wire 没有改写，formula attachment 持有 exact 原始 `$...$` 供失败回退、copy projection 与 accessibility；
@@ -801,7 +801,7 @@ AppKit 最终可见性问题的源码根因在 paragraph attachment lifecycle：
 - Vendor：75 XCTest + 7 Swift Testing = **82/82**；strict Release `-warnings-as-errors` 通过。
 - SharedUI：`MessageRenderingTests` **25/25**。
 - 根工程：fresh `swift test --skip-build --disable-sandbox` 为 **938 tests / 14 skipped / 0 failures**。此前一次 full rerun 进入 XCTest 等待态后被有界中止并确认无残留，不能隐去；随后新进程 17.061 秒完整通过。
-- Products：XcodeGen、IntatisMac Debug/Release、IntatisiOS generic Simulator Debug/Release 均成功。
+- Products：XcodeGen、EgakiumMac Debug/Release、EgakiumiOS generic Simulator Debug/Release 均成功。
 - Supply chain：两份 lockfile 固定 iosMath 2.5.0 / `838cddc01fdd67efd530f8bb67959ad2715f9b06`；macOS/iOS Release bundle 各含 8 OTF 和完整 26-file `fonts/` payload；仓内和双端 app `NOTICE.md` SHA-256 均为 `02778763b3743e591b3ccb30537f853d2d5a791b1002e032ff65ed5821c7b5b8`。
 - Hash-pinned validation executable `ec56cec173c13e41edb4f53e3ff5fcb1ac3d35079d40f140c4503a4d99dde55f` 完成同 renderer math-disabled/enabled A/B，以及 `math-one`、`math-thirty-two`、`math-history`、`math-stream` 短时隔离阶段；全部 exit 0、无 TERM/KILL、二次清理成功且无残留。
 - Light/Dark Computer Use `math-structure` 各约 47.47 秒。稳定画面显示 heading、paragraph、unordered/ordered list、blockquote、table 内的 live math glyph；`$not_math$` 与 `$table_code$` 保持 literal；AX tree 描述原始 TeX。Light/Dark peak RSS 分别为 136,691,712 / 135,036,928 bytes，footprint 为 48,710,520 / 48,087,904 bytes，rolling CPU 为 11.5379% / 11.2088%。这些是单次 containment observation，不是性能阈值或提升结论。

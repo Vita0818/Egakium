@@ -1,4 +1,4 @@
-# Intatis 采用 OpenAI Codex 作为会话存储、权限与多 Agent 推理配置模板的源码审计报告
+# Egakium 采用 OpenAI Codex 作为会话存储、权限与多 Agent 推理配置模板的源码审计报告
 
 原始日期：2026-07-19；讨论与实施状态最后更新：2026-07-20
 
@@ -14,15 +14,15 @@ Task/tool outcome 补充审计基线：OpenCode [`a19b52e85bf2630b86157030e2cf7c
 
 ## PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 结论：当前目录与预期仓库根目录一致。
 
 ## FILES_WRITTEN
 
 - 本报告：`codex-report/07_19_26-14_16-codex-permission-session-lifecycle-audit.md`
 - 同步更新项目常驻文档：`AGENTS.md`、`docs/CURRENT_STATE.md`、`PROJECT_MAP.md`、`ARCHITECTURE.md`、`DO_NOT_BREAK.md`、`TESTING.md`、`NEXT_TARGET.md` 与 `COWORK_PRINCIPLES.md`。
-- Phase S 修改了 IntatisProtocol、IntatisConversation、IntatisCore、IntatisCowork、macOS App 与 CLI 的相关业务源码。
+- Phase S 修改了 EgakiumProtocol、EgakiumConversation、EgakiumCore、EgakiumCowork、macOS App 与 CLI 的相关业务源码。
 - Phase A 继续修改了提交协议、EventLog/投影、Cowork runtime、macOS composer/附件入口与相应测试，并新增 owner-only submitted-intent outbox。
 - Phase B 修改了 permission reviewer 控制面、生产 provider resolution、CLI 状态文案、provider stream 契约与相应的并发/集成/legacy-decode 测试；完整文件清单以本轮 Git diff 和项目最终报告为准。
 - Phase T 修改了 tool execution settlement 协议与投影、AgentLoop no-effect error path、`task_update` stale conversion、Orchestrator legacy reconciliation、Goal startup 的最小 task scope，以及相应协议/AgentKernel/Conversation/Cowork 测试。
@@ -31,9 +31,9 @@ Task/tool outcome 补充审计基线：OpenCode [`a19b52e85bf2630b86157030e2cf7c
 
 ## SUMMARY
 
-本轮调研的核心结论是：**Intatis 应把 OpenAI Codex 当作全局配置与 session 存储分层、输入提交、权限审批、工具调用和取消语义的公开源码模板，但不应整体移植其 Rust runtime，也不应丢弃 Intatis 已经更强的 EventLog、durable tool execution 与 per-agent inference profile 设计。**
+本轮调研的核心结论是：**Egakium 应把 OpenAI Codex 当作全局配置与 session 存储分层、输入提交、权限审批、工具调用和取消语义的公开源码模板，但不应整体移植其 Rust runtime，也不应丢弃 Egakium 已经更强的 EventLog、durable tool execution 与 per-agent inference profile 设计。**
 
-截至本报告本次更新，**Phase S、Phase A、Phase B、Phase T、Phase C 与 Phase L 均已完成各自当前范围的源码实施**。Phase S 解决“同一 session 的设置、Agent 登记、workspace access 与运行历史分散、无法由 session 目录可靠重建”；Phase A 解决“本地编辑/发送被 reviewer、Goal、主 Agent 和运行状态错误锁住，以及提交失败后内容可能没有明确 durable 身份”；Phase B 解决“一次 permission-review provider timeout/cancel 会把后续审批隔离到进程重启”；Phase T 解决“`task_update` 已知 stale/no-effect 失败被错误当成未知写入，留下永不 settled 的 ticket，并由 Goal startup 再升级成 session 级停摆”；Phase C 解决“Decline/Cancel 混成一个布尔值、permission duplicate/terminal 缺少 durable CAS、turn/tool failure 依赖文本推断、取消可能早于 cleanup 返回，以及 sandbox denial 被误当普通 runtime 或自动重试”；Phase L 解决“窗口/session 切换隐式停止 runtime、Command-Q 缺少全局有界关停、冷启动 active Goal 自动续跑，以及 crash/reopen 没有统一 reconcile-only 语义”。这些都不是把产品改成 Codex runtime 的外壳：Intatis 仍拥有 Swift UI、EventLog、Agent runtime、三层权限门、sandbox、lease 与工具执行。实现依据是公开行为契约和 Intatis 现有架构；没有复制 OpenCode/Codex 源文件、测试、prompt、UI 或品牌资产，也没有引入新的第三方依赖。
+截至本报告本次更新，**Phase S、Phase A、Phase B、Phase T、Phase C 与 Phase L 均已完成各自当前范围的源码实施**。Phase S 解决“同一 session 的设置、Agent 登记、workspace access 与运行历史分散、无法由 session 目录可靠重建”；Phase A 解决“本地编辑/发送被 reviewer、Goal、主 Agent 和运行状态错误锁住，以及提交失败后内容可能没有明确 durable 身份”；Phase B 解决“一次 permission-review provider timeout/cancel 会把后续审批隔离到进程重启”；Phase T 解决“`task_update` 已知 stale/no-effect 失败被错误当成未知写入，留下永不 settled 的 ticket，并由 Goal startup 再升级成 session 级停摆”；Phase C 解决“Decline/Cancel 混成一个布尔值、permission duplicate/terminal 缺少 durable CAS、turn/tool failure 依赖文本推断、取消可能早于 cleanup 返回，以及 sandbox denial 被误当普通 runtime 或自动重试”；Phase L 解决“窗口/session 切换隐式停止 runtime、Command-Q 缺少全局有界关停、冷启动 active Goal 自动续跑，以及 crash/reopen 没有统一 reconcile-only 语义”。这些都不是把产品改成 Codex runtime 的外壳：Egakium 仍拥有 Swift UI、EventLog、Agent runtime、三层权限门、sandbox、lease 与工具执行。实现依据是公开行为契约和 Egakium 现有架构；没有复制 OpenCode/Codex 源文件、测试、prompt、UI 或品牌资产，也没有引入新的第三方依赖。
 
 Phase C 完成后的权限与 turn 关系为：每个新 Chat/Code/Cowork turn 使用稳定 `TurnID` 并写入 typed terminal `turn_outcome`；permission request 携带 approval mode、turn/tool-call/request/authorization correlation。`EventLog.registerPermissionRequest` 对 RequestID first-write-wins，`settlePermissionRequest` 在 complete-known history 与跨进程锁内执行 first-terminal CAS；exact duplicate/reconnect 幂等复用首记录，冲突 payload、identity、action/decision 或 terminal fail closed。人工 `Approve Call` 允许当前 call，`Decline Call` 只写 typed denied tool result 并让模型继续，`Cancel Turn` 则 durable settle 后中断整个 turn，不制造“用户拒绝”的假 tool result。automatic request 从通用 request 投影开始即不可人工操作。user/policy/reviewer/sandbox/runtime/cancel 具有机器可读来源；只有可信 wrapper 证明目标未开始的 sandbox startup denial 才结算 `sandbox_denied/not_started`，当前不自动 retry 或移除 sandbox。provider/tool child 必须在 task/turn terminal 和 caller return 前完成 cancel/drain。
 
@@ -65,13 +65,13 @@ Phase S 完成后的权威关系为：
 
 针对最初“历史 session 无法编辑、权限全部失败、应用表现为卡住”的问题，审计确认了两个可能参与事故的高风险路径，但尚未证明事故发生时具体是哪一个 predicate 或 request 首先生效。这里必须按阶段读：第 1 条是 **Phase A 修改前**的输入链路，现已移除；第 2 条是 **Phase B 修改前**的 reviewer 隔离路径，也已替换：
 
-1. Phase A 前，Intatis 的本地文本编辑受自动权限 reviewer、Goal recovery、主 Agent inference、live pending permission 和工作状态共同 gating；这些条件中的某些状态会直接禁用 `TextField`。Phase A 后，共享 Cowork composer 固定保持可编辑，这条不再是当前行为。
+1. Phase A 前，Egakium 的本地文本编辑受自动权限 reviewer、Goal recovery、主 Agent inference、live pending permission 和工作状态共同 gating；这些条件中的某些状态会直接禁用 `TextField`。Phase A 后，共享 Cowork composer 固定保持可编辑，这条不再是当前行为。
 2. Phase B 前，自动 reviewer 在已经取得 `providerActivity` 后，如果底层 provider call timeout 或 cancel，会保留同一 session 的 activity 标记并隔离到进程重启；后续 review 返回 `previousCallStillStopping`。Phase B 已移除这条进程级 registry/runtime 路径，改为 generation retirement、fresh provider resolution 和 late-result guard。
 
 后续讨论又确认了三个与故障修复相关、但根因不同的边界：
 
 3. “登记 Agent”只是把身份、工作目录、精确模型 binding、工具与权限范围写入本地 session；它不是启动远端 Agent，也不应产生模型 API 请求。主 Agent 与权限审查者可以在新 session 创建时同时登记，初始使用相同的精确模型配置，但 reviewer 仍保持无工具、只读和独立安全身份。
-4. Intatis 当前把全局 provider 配置、UI selection、compiled inference catalog、Cowork session settings、workspace bookmark、EventLog 与 session metadata 分散在 JSON/JSONC、UserDefaults 和 session 目录。Codex 的成熟做法是把全局配置/秘密、每个 session 的 canonical JSONL、可重建 SQLite 投影严格分层；Intatis 应采用这一职责划分，同时保留已有 JSON/JSONC、EventLog Envelope、`seq` 和“一 session 一目录”的 Apple-first 结构。
+4. Egakium 当前把全局 provider 配置、UI selection、compiled inference catalog、Cowork session settings、workspace bookmark、EventLog 与 session metadata 分散在 JSON/JSONC、UserDefaults 和 session 目录。Codex 的成熟做法是把全局配置/秘密、每个 session 的 canonical JSONL、可重建 SQLite 投影严格分层；Egakium 应采用这一职责划分，同时保留已有 JSON/JSONC、EventLog Envelope、`seq` 和“一 session 一目录”的 Apple-first 结构。
 5. 审计时切换 Cowork session 会停止原 view model 和 runtime，但产品预期是应用仍在运行时只切换页面/session 不停止后台任务；Command-Q 才统一停止，正常重开应只对账而不自动继续。Phase L 已以应用级 runtime ownership 独立实施该语义，没有混入输入、权限或存储阶段；历史 active Goal 的启动自动续跑也已改为 durable pause + 显式 Resume。
 
 但需要严格区分：
@@ -90,7 +90,7 @@ Codex 的关键边界则非常清楚：
 
 本报告在讨论后进一步收紧了输入边界：**不仅编辑不等待 reviewer，用户点击 Send 也不应以 reviewer、Goal、主 Agent、provider 预热或网络 readiness 为 UI 前置条件。**点击 Send 表示先冻结文本/附件并接受本地提交意图；随后才做本地 EventLog 验证、session 状态重建、exact inference resolution 与 API dispatch。若执行条件不满足，提交内容必须保留为明确的待执行/失败状态并允许重试，不能静默丢失，也不能要求用户重新输入。
 
-在原始目标——同一 session 内不同 Agent 使用不同模型、思考强度、上游和未来不同 endpoint——上，当前 Codex 已经提供了重要的参考实现：child 可指定 model、reasoning effort、service tier；named role 可以覆盖完整 provider 配置，包括不同 provider/base URL/wire API。与此同时，Intatis 现有的 immutable `AgentInferenceBinding`、connection/profile revision、secret-free EventLog identity，以及 strict production runtime 的 reviewer 独立 binding，比 Codex 更适合该目标，应保留并继续完善，而不是退回到 Codex 的 parent-provider 继承模型。
+在原始目标——同一 session 内不同 Agent 使用不同模型、思考强度、上游和未来不同 endpoint——上，当前 Codex 已经提供了重要的参考实现：child 可指定 model、reasoning effort、service tier；named role 可以覆盖完整 provider 配置，包括不同 provider/base URL/wire API。与此同时，Egakium 现有的 immutable `AgentInferenceBinding`、connection/profile revision、secret-free EventLog identity，以及 strict production runtime 的 reviewer 独立 binding，比 Codex 更适合该目标，应保留并继续完善，而不是退回到 Codex 的 parent-provider 继承模型。
 
 ## 0. 讨论后重新划分的问题：相关，但不是同一件事
 
@@ -117,8 +117,8 @@ Codex 的关键边界则非常清楚：
 1. Codex 如何划分 session、turn、composer、reviewer 和 tool execution 的生命周期。
 2. Codex 如何处理 permission approval、sandbox escalation、decline、cancel、timeout、重连和迟到响应。
 3. Codex 如何在同一父 session 下为不同 child Agent 选择不同 model、reasoning、service tier、provider 与 endpoint。
-4. Codex 如何分离全局配置、凭据、session canonical JSONL 与可重建 SQLite state，Intatis 当前存储分散在哪里。
-5. Intatis 当前实现与这些成熟契约的差异，以及最小风险的修正顺序。
+4. Codex 如何分离全局配置、凭据、session canonical JSONL 与可重建 SQLite state，Egakium 当前存储分散在哪里。
+5. Egakium 当前实现与这些成熟契约的差异，以及最小风险的修正顺序。
 6. Phase S 已经实施的 session 存储、迁移、历史恢复边界与验证结果。
 7. Phase A 已经实施的 Cowork 草稿编辑、submitted-intent admission、附件保存、FIFO 执行、历史 interrupted 展示与显式 retry 边界。
 8. Phase B 已经实施的 permission-review request generation、provider producer ownership、timeout/cancel retirement、late-result rejection、fresh retry 与 durable authorization delivery 边界。
@@ -131,18 +131,18 @@ Codex 的关键边界则非常清楚：
 
 | 标签 | 含义 |
 |---|---|
-| 已证实 | 当前固定 commit 或 Intatis 当前工作树中存在明确源码/测试证据 |
+| 已证实 | 当前固定 commit 或 Egakium 当前工作树中存在明确源码/测试证据 |
 | 已实现 | Phase S / Phase A / Phase B / Phase T / Phase C / Phase L 当前工作树中已有实现，并由各阶段记录的测试、构建或 Computer Use 结果验证 |
 | 推断 | 由已证实代码路径推导，但尚未由本次事故日志还原具体触发序列 |
-| 建议 | 面向 Intatis 的目标设计，不代表已经实现 |
+| 建议 | 面向 Egakium 的目标设计，不代表已经实现 |
 
 ### 1.3 方法限制
 
 - 本轮没有编译或运行 OpenAI Codex；上游内容只用于公开行为契约审计。
 - Phase S、Phase A、Phase C 与 Phase L 均有各自的测试、构建和 Computer Use 记录，具体见 `VALIDATION_RESULT`；Phase B/T 的证据边界也分别记录。没有运行真实 provider 请求。Phase S UI 轮使用测试 session/workspace；Phase A UI 轮有意在历史验证 session `cowork_1p6ky6ga` 追加一条本地测试提交及其 queued/failed 状态；Phase L 只使用 `/private/tmp` synthetic ledger，不读取或改写生产 session。
 - 原 session/reviewer 审计中的 Codex 链接固定到 commit `0fb559f0f6e231a88ac02ea002d3ecd248e2b515`；Phase T 的 Codex task/outcome 链接另固定到 commit `bf3c1972b7d045c0a3a48dff91f381070f8f69e1`。二者不能混称为同一审计基线，后续上游行为也可能变化。
-- Phase T 的 task/tool outcome 链接另固定到 OpenCode `a19b52e85bf2630b86157030e2cf7c9fc20ce552` 与 Codex `bf3c1972b7d045c0a3a48dff91f381070f8f69e1`；两份 checkout 只用于读取/对照，没有参与 Intatis 构建。Claude Code 部分没有把公开 repository 外壳或文档冒充核心实现源码。
-- Intatis 文件行号以 2026-07-20 当前工作树为准；各 Phase 实现状态以本报告更新时的当前工作树和分阶段验证记录为准。Phase T 自身最终 hardening 执行六个相关 suite 共 128 tests / 0 failures，随后 `swift build --disable-sandbox` 成功；Phase L 后续又完成独立 full SwiftPM、macOS/iOS build 与 Computer Use，但仍没有运行真实 provider 或真实 legacy session mutation 演练。
+- Phase T 的 task/tool outcome 链接另固定到 OpenCode `a19b52e85bf2630b86157030e2cf7c9fc20ce552` 与 Codex `bf3c1972b7d045c0a3a48dff91f381070f8f69e1`；两份 checkout 只用于读取/对照，没有参与 Egakium 构建。Claude Code 部分没有把公开 repository 外壳或文档冒充核心实现源码。
+- Egakium 文件行号以 2026-07-20 当前工作树为准；各 Phase 实现状态以本报告更新时的当前工作树和分阶段验证记录为准。Phase T 自身最终 hardening 执行六个相关 suite 共 128 tests / 0 failures，随后 `swift build --disable-sandbox` 成功；Phase L 后续又完成独立 full SwiftPM、macOS/iOS build 与 Computer Use，但仍没有运行真实 provider 或真实 legacy session mutation 演练。
 - 本轮根据后续讨论补充读取了当前 Codex 官方手册的 config/state 章节，并以固定 commit 源码核对实际落盘实现；没有继续扩展到 Gemini CLI。
 - 多 session 后台常驻、页面切换、关闭窗口、正常 Command-Q 与 crash/force-quit 的应用生命周期一直作为相关但独立的 Phase L 授权实施；它没有被混写成 Phase A 的提交级围栏。Phase L 当前源码和离线验收已完成，真实 provider/server cancellation 与生产数据 process-kill 边界仍单独标为未验证。
 
@@ -174,12 +174,12 @@ local draft editing
 - 一次工具审批失败不应把整个会话永久变成不可用。
 - permission outcome、tool execution outcome 与 turn cancellation 是不同事件，不能压成同一个布尔值。
 
-Intatis 不适合整体搬运 Codex runtime，原因包括：
+Egakium 不适合整体搬运 Codex runtime，原因包括：
 
-- Intatis 是 Apple-first、Swift-native 多 target 工程。
-- Intatis 已经有 append-only EventLog、durable permission requested/settled、durable tool prepare/settle、CapabilityLease、WorkspaceLease、PathConfinement、SecretScanner 和 Mediator 等更严格边界。
-- Codex 的部分 approval 协调使用进程内 map/oneshot；这可以参考相关性和清理顺序，但不能替代 Intatis 的持久化语义。
-- Intatis 的 per-agent inference identity 已经按 immutable revision 设计，适合本地重建、审计和未来多 endpoint；直接换成 Codex 当前的 live config overlay 会倒退。
+- Egakium 是 Apple-first、Swift-native 多 target 工程。
+- Egakium 已经有 append-only EventLog、durable permission requested/settled、durable tool prepare/settle、CapabilityLease、WorkspaceLease、PathConfinement、SecretScanner 和 Mediator 等更严格边界。
+- Codex 的部分 approval 协调使用进程内 map/oneshot；这可以参考相关性和清理顺序，但不能替代 Egakium 的持久化语义。
+- Egakium 的 per-agent inference identity 已经按 immutable revision 设计，适合本地重建、审计和未来多 endpoint；直接换成 Codex 当前的 live config overlay 会倒退。
 
 ## 3. Codex 的 session、turn 与 reviewer 边界
 
@@ -225,7 +225,7 @@ Guardian 仅在 approval policy 为 `OnRequest` 或 `Granular`，且 `approvals_
 
 Guardian 自身被显著降权：read-only permission profile、approval policy `never`，禁用 MCP、动态 skills/plugin 注入、memories、apps/plugins、collaboration 和 web search，并限制 provider retry。这里“禁用动态 skills”不代表完全不继承父指令：Guardian 会复制父 session 的 `LoadedUserInstructions`。在存在 environment 时，其固定工具白名单是 `exec_command`、`write_stdin` 和 `view_image`；父 exec-policy 不继承，而 managed-network approved hosts 会同步。
 
-Intatis 初期不应照搬 tool-enabled Guardian。当前 no-tools reviewer 与“不允许 reviewer 嵌套 AgentLoop”分别是工具面和执行模型的两个独立安全约束，二者都应保留，不能把其中一个当作另一个的替代。
+Egakium 初期不应照搬 tool-enabled Guardian。当前 no-tools reviewer 与“不允许 reviewer 嵌套 AgentLoop”分别是工具面和执行模型的两个独立安全约束，二者都应保留，不能把其中一个当作另一个的替代。
 
 证据：
 
@@ -257,7 +257,7 @@ Codex 另有 per-turn circuit breaker：模型明确返回 `deny` 连续三次�
 
 ### 3.5 Guardian 输出契约并非严格 schema
 
-Codex 为 Guardian 提供 Responses JSON schema，但 `strict` 明确为 `false`。解析器可以从外围 prose 中提取 JSON，只有 `outcome` 必填；bare `allow` 会默认 low risk/unknown authorization，宿主也没有再次校验 risk 与 outcome 是否一致。这是 Intatis 不应照搬的宽松点：reviewer 输出应保持严格 schema、有限枚举、缺字段 fail closed，并对 allow 进行 authorization snapshot revalidation。
+Codex 为 Guardian 提供 Responses JSON schema，但 `strict` 明确为 `false`。解析器可以从外围 prose 中提取 JSON，只有 `outcome` 必填；bare `allow` 会默认 low risk/unknown authorization，宿主也没有再次校验 risk 与 outcome 是否一致。这是 Egakium 不应照搬的宽松点：reviewer 输出应保持严格 schema、有限枚举、缺字段 fail closed，并对 allow 进行 authorization snapshot revalidation。
 
 证据：
 
@@ -289,7 +289,7 @@ approval requirement
 - 只有被 executor 明确报告、或由 stderr/stdout 关键字启发式分类为 `SandboxErr::Denied` 的失败，才可能进入第二次尝试，且最多一次；这不是完全精确的分类器。
 - retry 仍受 policy 约束，但不保证每次重新审批：非 strict 模式下，一个已经批准的调用可以走 `bypass_retry_approval`；strict auto-review 与 network retry 等路径才要求重新 review。
 
-Intatis 应保留当前三层权限门和 durable prepare/settle；应借鉴的是状态顺序、失败作用域和 retry 上限。如果 Intatis 决定所有 retry 都重新跑 reviewer，那是比 Codex 更严格的新契约，必须在测试和用户延迟预期中明确，而不能描述成 Codex 当前行为。
+Egakium 应保留当前三层权限门和 durable prepare/settle；应借鉴的是状态顺序、失败作用域和 retry 上限。如果 Egakium 决定所有 retry 都重新跑 reviewer，那是比 Codex 更严格的新契约，必须在测试和用户延迟预期中明确，而不能描述成 Codex 当前行为。
 
 相关证据：
 
@@ -313,7 +313,7 @@ Codex 只缓存 `ApprovedForSession`；一次性 approve、deny、timeout 和 ca
 
 ## 5. `Decline` 与 `Cancel` 是两个不同的协议动作
 
-这是 Intatis 后续修正中必须建立的显式契约。
+这是 Egakium 后续修正中必须建立的显式契约。
 
 | 用户/系统结果 | Codex core 结果 | 作用域 | 后续行为 |
 |---|---|---|---|
@@ -335,9 +335,9 @@ Codex 只缓存 `ApprovedForSession`；一次性 approve、deny、timeout 和 ca
 
 这里的 Cancel 是 approval decision 到 `ReviewDecision::Abort` 的映射。单独的 `turn/interrupt` RPC 还存在终态竞态：请求提交时 turn 可能已经自然完成，因此 pending interrupt 既可能在 `TurnAborted` 上应答，也可能在 `TurnComplete` 上收口；“interrupt 请求被接受”不等于最终状态无条件为 `Interrupted`。证据：[`turn_processor.rs#L1413-L1475`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/app-server/src/request_processors/turn_processor.rs#L1413-L1475)、[`bespoke_event_handling.rs#L184-L199`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/app-server/src/bespoke_event_handling.rs#L184-L199)。
 
-另一个需要显式建模的边界是：Codex unified-exec 会主动保存 live process，使 turn interrupt 不会因最后一个 `Arc` 被释放而自动终止 background terminal process。Intatis 不能把“turn cancelled”误当作“所有外部进程已经停止”，必须依赖 durable execution ticket、明确的 process cancellation/cleanup 与 settled 事件。证据：[`process_manager.rs#L452-L470`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/core/src/unified_exec/process_manager.rs#L452-L470)。
+另一个需要显式建模的边界是：Codex unified-exec 会主动保存 live process，使 turn interrupt 不会因最后一个 `Arc` 被释放而自动终止 background terminal process。Egakium 不能把“turn cancelled”误当作“所有外部进程已经停止”，必须依赖 durable execution ticket、明确的 process cancellation/cleanup 与 settled 事件。证据：[`process_manager.rs#L452-L470`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/core/src/unified_exec/process_manager.rs#L452-L470)。
 
-Intatis 当前并非只有一个模糊状态：`PermissionApprovalSource`、`PermissionApprovalFailureKind`、`PermissionReviewStatus` 和 `ToolExecutionOutcome` 已经区分 reviewer timeout/cancel/provider failure、持久化失败，以及 execution failed/cancelled/denied；`providerStillStopping` 只为旧 EventLog 兼容解码保留，不再是 permission reviewer live failure。真实缺口主要是 user decline 与 turn cancel 的协议拆分，以及 sandbox denial 与普通 runtime/setup failure 的进一步细分。
+Egakium 当前并非只有一个模糊状态：`PermissionApprovalSource`、`PermissionApprovalFailureKind`、`PermissionReviewStatus` 和 `ToolExecutionOutcome` 已经区分 reviewer timeout/cancel/provider failure、持久化失败，以及 execution failed/cancelled/denied；`providerStillStopping` 只为旧 EventLog 兼容解码保留，不再是 permission reviewer live failure。真实缺口主要是 user decline 与 turn cancel 的协议拆分，以及 sandbox denial 与普通 runtime/setup failure 的进一步细分。
 
 建议把现有类型映射到至少以下对外语义，而不是另起一套不兼容枚举：
 
@@ -352,7 +352,7 @@ sandboxDenied
 runtimeFailed
 ```
 
-其中 `userDenied`、`policyDenied`、`reviewerTimedOut`、`reviewerFailed`、`sandboxDenied` 和 `runtimeFailed` 默认都是 call-scoped；`userCancelled` 或 `turnCancelled` 才是 turn-scoped。现有类型证据：`Packages/IntatisProtocol/Sources/ToolAuthorization.swift:424-450`、`Packages/IntatisProtocol/Sources/PermissionReview.swift:280-288`、`Packages/IntatisProtocol/Sources/ToolExecution.swift:33-38`。
+其中 `userDenied`、`policyDenied`、`reviewerTimedOut`、`reviewerFailed`、`sandboxDenied` 和 `runtimeFailed` 默认都是 call-scoped；`userCancelled` 或 `turnCancelled` 才是 turn-scoped。现有类型证据：`Packages/EgakiumProtocol/Sources/ToolAuthorization.swift:424-450`、`Packages/EgakiumProtocol/Sources/PermissionReview.swift:280-288`、`Packages/EgakiumProtocol/Sources/ToolExecution.swift:33-38`。
 
 ## 6. pending approval、断线重连与清理顺序
 
@@ -374,7 +374,7 @@ Codex 并不使用一个 `threadId + turnId + itemId + approvalId + environment`
 - pending approval interrupt 测试：[`turn_interrupt.rs#L223-L349`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/app-server/tests/suite/v2/turn_interrupt.rs#L223-L349)
 - 同进程 reconnect/replay 测试：[`thread_resume.rs#L3537-L3680`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/app-server/tests/suite/v2/thread_resume.rs#L3537-L3680)
 
-Intatis 应把同样的相关性和幂等约束落在 durable EventLog 上，至少携带 `sessionID + turnID + callID + reviewID/generation`，而不是照搬进程内 map。
+Egakium 应把同样的相关性和幂等约束落在 durable EventLog 上，至少携带 `sessionID + turnID + callID + reviewID/generation`，而不是照搬进程内 map。
 
 ## 7. composer 的正确边界
 
@@ -388,7 +388,7 @@ Codex TUI 中 composer 对象一直存在；approval modal 只是临时替代底
 - approval enqueue：[`bottom_pane/mod.rs#L1375-L1411`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/tui/src/bottom_pane/mod.rs#L1375-L1411)
 - 交互测试：[`bottom_pane/mod.rs#L2100-L2259`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/tui/src/bottom_pane/mod.rs#L2100-L2259)
 
-Codex 自身也有一个不应复制的小问题：delayed promotion 明确保持 FIFO，但已经显示的 overlay 对后续请求使用 `Vec::push` + `pop`，实际可能表现为 LIFO。Intatis 应统一 FIFO。
+Codex 自身也有一个不应复制的小问题：delayed promotion 明确保持 FIFO，但已经显示的 overlay 对后续请求使用 `Vec::push` + `pop`，实际可能表现为 LIFO。Egakium 应统一 FIFO。
 
 ## 8. 同一 session 内不同 Agent 的 inference 配置
 
@@ -432,7 +432,7 @@ Codex 的 `agent_type` 会加载完整 role `ConfigToml` 作为高优先级配�
 - [`model-provider-info/src/lib.rs#L86-L141`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/model-provider-info/src/lib.rs#L86-L141)
 - role 切换到 `ollama` 的测试：[`multi_agents_tests.rs#L919-L975`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/core/src/tools/handlers/multi_agents_tests.rs#L919-L975)
 
-这支持 Intatis 已选择的安全接口：模型可请求宿主预先批准、不可变的 `inference_profile_id`，但不应在 spawn 参数中直接接受任意 base URL、header 或 credential。
+这支持 Egakium 已选择的安全接口：模型可请求宿主预先批准、不可变的 `inference_profile_id`，但不应在 spawn 参数中直接接受任意 base URL、header 或 credential。
 
 ### 8.3 对旧报告的纠正
 
@@ -457,7 +457,7 @@ Codex 的 `[auto_review]` 配置目前只有 policy，没有独立 Guardian prov
 - [`guardian/review.rs#L683-L769`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/core/src/guardian/review.rs#L683-L769)
 - Bedrock provider 继承测试：[`guardian/tests.rs#L3111-L3141`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/core/src/guardian/tests.rs#L3111-L3141)
 
-所以 Codex 支持 reviewer 使用不同 model/reasoning，但当前没有独立 Guardian provider/endpoint 配置。Intatis strict production runtime 中 reviewer 的精确 `AgentInferenceBinding` 更一般，应保留。
+所以 Codex 支持 reviewer 使用不同 model/reasoning，但当前没有独立 Guardian provider/endpoint 配置。Egakium strict production runtime 中 reviewer 的精确 `AgentInferenceBinding` 更一般，应保留。
 
 ## 9. Codex 的全局配置、session JSONL 与派生状态分层
 
@@ -499,7 +499,7 @@ Codex 的 `SessionMeta` 记录 session 级元数据，例如 session/thread ID�
 - [`protocol.rs#L3070-L3197`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/protocol/src/protocol.rs#L3070-L3197)
 - [`protocol.rs#L3276-L3399`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/protocol/src/protocol.rs#L3276-L3399)
 
-Intatis 应复用的是这套**职责分层与重建原则**，不是逐字复制 Codex 的 TOML、目录名、Rust enum 或 rollout schema。
+Egakium 应复用的是这套**职责分层与重建原则**，不是逐字复制 Codex 的 TOML、目录名、Rust enum 或 rollout schema。
 
 ### 9.3 Phase S 前的持久化责任确实过于分散
 
@@ -513,11 +513,11 @@ Phase S 实施前的源码显示：
 
 ### 9.4 Phase S 已实现的落盘结构与作用范围
 
-Phase S 保留 Intatis 现有兼容路径，没有为了模仿 Codex 改成 TOML、日期目录或 SQLite 权威源：
+Phase S 保留 Egakium 现有兼容路径，没有为了模仿 Codex 改成 TOML、日期目录或 SQLite 权威源：
 
 ```text
 全局
-  ~/.config/intatis/intatis.json 或 intatis.jsonc
+  ~/.config/egakium/egakium.json 或 egakium.jsonc
     provider/model/endpoint catalog、全局默认选择、非秘密 options
   Keychain / auth.json / env / credential file
     API credential 与 secret
@@ -525,7 +525,7 @@ Phase S 保留 Intatis 现有兼容路径，没有为了模仿 Codex 改成 TOML
     纯 UI 偏好、当前 selection mirror、一次性 legacy migration 输入
 
 每个 session
-  ~/Library/Application Support/Intatis/<sessionID>/
+  ~/Library/Application Support/Egakium/<sessionID>/
     events.jsonl              # canonical truth
     session.json              # schema 2、secret-free、可重建投影
     workspace-access.plist    # schema 1、binary plist、owner-only 0600
@@ -584,17 +584,17 @@ legacy migration 采用可追溯、可重试、fail-closed 的顺序：
 5. 一旦 EventLog 已有 migration marker，后续恢复不得再次回退到全局 legacy map；即使用户删除 session plist，也必须明确要求重新授权，不能让旧全局数据“复活”已删除的能力材料。
 6. migration marker 和 settings revision 使重试幂等；secret 始终只保留全局 reference，不复制明文。
 
-## 10. Intatis 当前已经做对的部分
+## 10. Egakium 当前已经做对的部分
 
 ### 10.1 per-agent inference identity
 
-Intatis 已有的设计比 Codex live config overlay 更适合持久化与审计：
+Egakium 已有的设计比 Codex live config overlay 更适合持久化与审计：
 
-- `Packages/IntatisProtocol/Sources/InferenceProfile.swift:4-54`：`AgentInferenceBinding` 是 durable、secret-free 的精确 identity，包含 profile/connection revision、model、variant、安全 route metadata 和 immutable fingerprint。
-- `Packages/IntatisProviders/Sources/InferenceCatalog.swift:6-120`：connection 与 profile 都按 immutable revision 建模，endpoint、wire adapter、credential reference、trust 和 arbitrary request options 都能进入精确解析。
-- `Packages/IntatisAgentKernel/Sources/Agent.swift:9-38`：每个 Agent 持有自己的 binding。
-- `Packages/IntatisProtocol/Sources/Task.swift:82-135`：task contract 在 admission 时冻结 binding，避免执行途中静默切换上游。
-- `Packages/IntatisCowork/Sources/Orchestrator.swift:5723-5743`：运行时核对 task binding 与 live agent binding，按 Agent 解析 provider，并保持 capability/workspace lease 与 inference profile 独立。
+- `Packages/EgakiumProtocol/Sources/InferenceProfile.swift:4-54`：`AgentInferenceBinding` 是 durable、secret-free 的精确 identity，包含 profile/connection revision、model、variant、安全 route metadata 和 immutable fingerprint。
+- `Packages/EgakiumProviders/Sources/InferenceCatalog.swift:6-120`：connection 与 profile 都按 immutable revision 建模，endpoint、wire adapter、credential reference、trust 和 arbitrary request options 都能进入精确解析。
+- `Packages/EgakiumAgentKernel/Sources/Agent.swift:9-38`：每个 Agent 持有自己的 binding。
+- `Packages/EgakiumProtocol/Sources/Task.swift:82-135`：task contract 在 admission 时冻结 binding，避免执行途中静默切换上游。
+- `Packages/EgakiumCowork/Sources/Orchestrator.swift:5723-5743`：运行时核对 task binding 与 live agent binding，按 Agent 解析 provider，并保持 capability/workspace lease 与 inference profile 独立。
 
 这套结构已经能表达：
 
@@ -606,13 +606,13 @@ Intatis 已有的设计比 Codex live config overlay 更适合持久化与审计
 
 ### 10.2 reviewer 的独立安全身份
 
-`Packages/IntatisCowork/Sources/Orchestrator.swift:1430-1491` 在 strict bootstrap 中强制精确 inference binding，并为保留 reviewer 设置 read-only workspace、空 tool/communication/delegation lease。兼容/测试构造仍允许 `nil`，因此“精确 binding”是 strict production runtime 的保证，而不是所有 initializer 的静态不变量。这仍比让 reviewer 隐式继承普通 coordinator 能力安全，也比 Codex 当前“父 provider + review model override”更灵活。
+`Packages/EgakiumCowork/Sources/Orchestrator.swift:1430-1491` 在 strict bootstrap 中强制精确 inference binding，并为保留 reviewer 设置 read-only workspace、空 tool/communication/delegation lease。兼容/测试构造仍允许 `nil`，因此“精确 binding”是 strict production runtime 的保证，而不是所有 initializer 的静态不变量。这仍比让 reviewer 隐式继承普通 coordinator 能力安全，也比 Codex 当前“父 provider + review model override”更灵活。
 
 ### 10.3 durable permission/tool/turn lifecycle
 
-Intatis 的 permission request/review/settlement、tool execution prepare/settle、typed `turn_outcome` 和 EventLog replay 是需要保留的产品资产。Phase C 又把 RequestID first-write/first-terminal、exact duplicate idempotence、conflict fail-closed 与 turn/tool correlation 收进同一 durable 边界。Codex 的内存 waiter/map 只应提供状态机参考，不应替代这些 durable 契约。
+Egakium 的 permission request/review/settlement、tool execution prepare/settle、typed `turn_outcome` 和 EventLog replay 是需要保留的产品资产。Phase C 又把 RequestID first-write/first-terminal、exact duplicate idempotence、conflict fail-closed 与 turn/tool correlation 收进同一 durable 边界。Codex 的内存 waiter/map 只应提供状态机参考，不应替代这些 durable 契约。
 
-## 11. Intatis 当前故障的结构性原因
+## 11. Egakium 当前故障的结构性原因
 
 ### 11.1 Phase A 前：本地编辑与提交被错误绑定到远端/控制面 readiness
 
@@ -668,7 +668,7 @@ Phase B 已删除 permission reviewer 的 `providerActivity` 与跨 control-plan
 
 ### 11.4 相关但独立：审计时 session 切换会停止工作（Phase L 已修复）
 
-审计时 `Apps/IntatisMac/Sources/IntatisMacRootView.swift` 在选择/重开另一 Cowork session 时会停止原 `CoworkViewModel`；`CoworkViewModel.stop()` 又会取消 runtime/全部工作。因此，当时源码行为与已经确认的产品预期不同：**只切换页面、模式或 session，不应终止仍在运行的任务。**
+审计时 `Apps/EgakiumMac/Sources/EgakiumMacRootView.swift` 在选择/重开另一 Cowork session 时会停止原 `CoworkViewModel`；`CoworkViewModel.stop()` 又会取消 runtime/全部工作。因此，当时源码行为与已经确认的产品预期不同：**只切换页面、模式或 session，不应终止仍在运行的任务。**
 
 同时已经确认以下目标语义：
 
@@ -685,11 +685,11 @@ Phase L 已把 runtime ownership 从 view 生命周期提升到进程级 `AppSes
 
 三家实现给出的可复用共识不是“删掉审计票据”，而是把 terminality、状态条件与作用域拆开：
 
-- OpenCode 把每次 tool call 的 `running → completed/error` 作为明确终态，失败也会 settle 当前调用；foreground `task` 路径等待 child，child 出错时该 task tool 以 error 失败并把 model-visible tool error 交回父会话，显式 `task_id` 才表示复用同一个 child session。它的 todo 更新是整表 transaction，没有 revision/CAS，因此不能直接复制为 Intatis WorkTask 语义。源码证据：[`session/processor.ts#L165-L204`](https://github.com/anomalyco/opencode/blob/a19b52e85bf2630b86157030e2cf7c9fc20ce552/packages/opencode/src/session/processor.ts#L165-L204)、[`tool/task.ts#L136-L165`](https://github.com/anomalyco/opencode/blob/a19b52e85bf2630b86157030e2cf7c9fc20ce552/packages/opencode/src/tool/task.ts#L136-L165)、[`tool/task.ts#L317-L347`](https://github.com/anomalyco/opencode/blob/a19b52e85bf2630b86157030e2cf7c9fc20ce552/packages/opencode/src/tool/task.ts#L317-L347)、[`session/todo.ts#L29-L50`](https://github.com/anomalyco/opencode/blob/a19b52e85bf2630b86157030e2cf7c9fc20ce552/packages/opencode/src/session/todo.ts#L29-L50)。
-- Codex 的 `update_plan` 解析/模式错误使用 `RespondToModel` 回到当前模型，而不是把 thread 永久置坏；新的 Agent Job state 用 SQL 条件更新，只接受 still-running 且属于 exact reporting thread 的结果。更新未命中时，`report_agent_job_result` 把 `accepted: false` 作为 model-visible JSON 返回，因此迟到/重复结果被局部拒绝，而不是升级为 thread 级故障。源码证据：[`tools/handlers/plan.rs#L68-L105`](https://github.com/openai/codex/blob/bf3c1972b7d045c0a3a48dff91f381070f8f69e1/codex-rs/core/src/tools/handlers/plan.rs#L68-L105)、[`state/runtime/agent_jobs.rs#L430-L529`](https://github.com/openai/codex/blob/bf3c1972b7d045c0a3a48dff91f381070f8f69e1/codex-rs/state/src/runtime/agent_jobs.rs#L430-L529)、[`report_agent_job_result.rs#L58-L97`](https://github.com/openai/codex/blob/bf3c1972b7d045c0a3a48dff91f381070f8f69e1/codex-rs/core/src/tools/handlers/agent_jobs/report_agent_job_result.rs#L58-L97)。Codex 没有与 Intatis 一样的通用 durable prepared/unsettled side-effect ledger，所以只能借鉴 conditional acceptance 和 item scope，不能照搬持久化格式。
+- OpenCode 把每次 tool call 的 `running → completed/error` 作为明确终态，失败也会 settle 当前调用；foreground `task` 路径等待 child，child 出错时该 task tool 以 error 失败并把 model-visible tool error 交回父会话，显式 `task_id` 才表示复用同一个 child session。它的 todo 更新是整表 transaction，没有 revision/CAS，因此不能直接复制为 Egakium WorkTask 语义。源码证据：[`session/processor.ts#L165-L204`](https://github.com/anomalyco/opencode/blob/a19b52e85bf2630b86157030e2cf7c9fc20ce552/packages/opencode/src/session/processor.ts#L165-L204)、[`tool/task.ts#L136-L165`](https://github.com/anomalyco/opencode/blob/a19b52e85bf2630b86157030e2cf7c9fc20ce552/packages/opencode/src/tool/task.ts#L136-L165)、[`tool/task.ts#L317-L347`](https://github.com/anomalyco/opencode/blob/a19b52e85bf2630b86157030e2cf7c9fc20ce552/packages/opencode/src/tool/task.ts#L317-L347)、[`session/todo.ts#L29-L50`](https://github.com/anomalyco/opencode/blob/a19b52e85bf2630b86157030e2cf7c9fc20ce552/packages/opencode/src/session/todo.ts#L29-L50)。
+- Codex 的 `update_plan` 解析/模式错误使用 `RespondToModel` 回到当前模型，而不是把 thread 永久置坏；新的 Agent Job state 用 SQL 条件更新，只接受 still-running 且属于 exact reporting thread 的结果。更新未命中时，`report_agent_job_result` 把 `accepted: false` 作为 model-visible JSON 返回，因此迟到/重复结果被局部拒绝，而不是升级为 thread 级故障。源码证据：[`tools/handlers/plan.rs#L68-L105`](https://github.com/openai/codex/blob/bf3c1972b7d045c0a3a48dff91f381070f8f69e1/codex-rs/core/src/tools/handlers/plan.rs#L68-L105)、[`state/runtime/agent_jobs.rs#L430-L529`](https://github.com/openai/codex/blob/bf3c1972b7d045c0a3a48dff91f381070f8f69e1/codex-rs/state/src/runtime/agent_jobs.rs#L430-L529)、[`report_agent_job_result.rs#L58-L97`](https://github.com/openai/codex/blob/bf3c1972b7d045c0a3a48dff91f381070f8f69e1/codex-rs/core/src/tools/handlers/agent_jobs/report_agent_job_result.rs#L58-L97)。Codex 没有与 Egakium 一样的通用 durable prepared/unsettled side-effect ledger，所以只能借鉴 conditional acceptance 和 item scope，不能照搬持久化格式。
 - Claude Code 的核心 runtime 没有可审计的完整开源实现；官方公开行为中，Agent Teams 的 teammate 是独立 Claude Code instance/session，而 subagent 使用独立上下文并在完成后把结果返回父会话。PreToolUse hook 在工具执行前运行，deny reason 可反馈给模型，`defer` 保留待处理调用。这里只采用这些行为边界，不声称知道其内部 crash ledger。参考：[Agent Teams](https://code.claude.com/docs/en/agent-teams)、[Subagents](https://code.claude.com/docs/en/sub-agents)、[Hooks](https://code.claude.com/docs/en/hooks)。
 
-Intatis 最终没有复制/翻译上述源码，而是保留自身更严格的 EventLog ticket，并独立实现其交集：
+Egakium 最终没有复制/翻译上述源码，而是保留自身更严格的 EventLog ticket，并独立实现其交集：
 
 1. `ToolExecutionSettledPayload` 新增 optional `effectDisposition`；旧 JSONL 缺字段时解码为 `nil`。新的成功执行显式写 `.committed`；legacy `succeeded + nil` 只为兼容而解释成已完成效果，仍阻止 whole-task replay。`succeeded + .notStarted` 自相矛盾，不是 no-effect 证明而是 invalid/uncertain。
 2. Cowork projection 为每个 `executionID` 永久保留第一张 prepare；第二张 prepare 即使 payload 完全相同也把该 ID 标为 ambiguous，因为第一轮 executor 可能已经运行。第一条 settlement 同样保留：完全相同的 duplicate settlement 视为幂等，任何冲突 terminal 把历史永久标为 ambiguous。ambiguous history、settlement 与首张 prepare 不匹配或 `seq` 早于 prepare 时，`validatedSettlement` 一律为空，不能放松 recovery/retry gate。
@@ -709,25 +709,25 @@ Intatis 最终没有复制/翻译上述源码，而是保留自身更严格的 E
 | reviewer lazy API / optional prewarm | 采用 | reviewer 可与主 Agent 一起本地登记；API 只在真实 permission ask 时需要 |
 | reviewer failure call-scoped | 已采用（Phase B 已实施） | 单次 timeout/failure 只 fail closed 当前 call；retire exact generation，下一次 review fresh resolve；terminal-claim 后取消可保留唯一 verdict，但 authorization delivery deny；model deny 达 breaker 阈值时才中断当前 turn |
 | Decline 与 Cancel 分离 | 已采用（Phase C 已实施） | 分别对应 call continuation 与 turn interruption；Cancel 不制造 denied tool result |
-| approval correlation、首响应获胜、迟到忽略 | 已采用（Phase C 已实施） | 落在 Intatis EventLog RequestID first-write / first-terminal CAS 与 FIFO projection 上 |
+| approval correlation、首响应获胜、迟到忽略 | 已采用（Phase C 已实施） | 落在 Egakium EventLog RequestID first-write / first-terminal CAS 与 FIFO projection 上 |
 | composer 草稿独立 | 采用 | reviewer/pending permission/`isWorking` 不能禁用本地输入 |
 | 全局配置、session JSONL、派生索引分层 | 采用 | 复用责任边界，不照抄 Codex 路径与 schema |
-| `events.jsonl` canonical、`session.json` 投影 | 采用并强化 Intatis | 保留 Envelope、单调 `seq` 与旧数据兼容 |
-| sandbox denial 精确分类 | 只采用分类边界，不采用自动 retry | Intatis 保留自己的三层权限门与 sandbox backend；可信 startup denial 写 typed denied/not-started，当前不扩大权限、不移除 sandbox、不 retry |
-| immutable per-agent inference binding | 保留 Intatis | 比 Codex live config overlay 更适合本地重建与多 endpoint |
-| reviewer 独立 inference binding | 保留 Intatis strict runtime | 初始可与主 Agent 相同，但 identity 与 lease 仍独立 |
-| durable request/settled 与 prepare/settle | 保留 Intatis | 不换成进程内 oneshot/map |
-| shared Cowork EventLog | 保留 Intatis | 不改成 Codex child thread tree |
-| Codex `config.toml` 和日期目录 | 不复制 | Intatis 保留 JSON/JSONC 和一 session 一目录的兼容路径 |
+| `events.jsonl` canonical、`session.json` 投影 | 采用并强化 Egakium | 保留 Envelope、单调 `seq` 与旧数据兼容 |
+| sandbox denial 精确分类 | 只采用分类边界，不采用自动 retry | Egakium 保留自己的三层权限门与 sandbox backend；可信 startup denial 写 typed denied/not-started，当前不扩大权限、不移除 sandbox、不 retry |
+| immutable per-agent inference binding | 保留 Egakium | 比 Codex live config overlay 更适合本地重建与多 endpoint |
+| reviewer 独立 inference binding | 保留 Egakium strict runtime | 初始可与主 Agent 相同，但 identity 与 lease 仍独立 |
+| durable request/settled 与 prepare/settle | 保留 Egakium | 不换成进程内 oneshot/map |
+| shared Cowork EventLog | 保留 Egakium | 不改成 Codex child thread tree |
+| Codex `config.toml` 和日期目录 | 不复制 | Egakium 保留 JSON/JSONC 和一 session 一目录的兼容路径 |
 | Codex SQLite 作为新权威 | 不复制 | 若引入只能是可重建投影 |
 | tool-enabled Guardian | 暂不复制 | 当前 no-tools reviewer 更符合项目安全原则 |
-| `ToolError::Rejected` 混合分类 | 不复制 | Codex 源码已有 TODO；Intatis 应从一开始拆分原因 |
-| TUI overlay LIFO 不一致 | 不复制 | Intatis 保持全链路 FIFO |
-| reviewer 只能继承父 provider | 不复制 | 会削弱 Intatis 的独立控制面路由能力 |
+| `ToolError::Rejected` 混合分类 | 不复制 | Codex 源码已有 TODO；Egakium 应从一开始拆分原因 |
+| TUI overlay LIFO 不一致 | 不复制 | Egakium 保持全链路 FIFO |
+| reviewer 只能继承父 provider | 不复制 | 会削弱 Egakium 的独立控制面路由能力 |
 | role/profile 携带 capability/permission | 禁止 | inference 与 security lease 必须正交 |
-| Codex runtime/app-server 整体套壳 | 不采用 | 选择性翻译公开状态机、测试和数据职责；Apple 产品面仍由 Intatis 掌控 |
+| Codex runtime/app-server 整体套壳 | 不采用 | 选择性翻译公开状态机、测试和数据职责；Apple 产品面仍由 Egakium 掌控 |
 
-Codex 当前把用户 decline 与部分 runtime/setup rejection 都汇入 `ToolError::Rejected`，可能导致 UI 把非用户故障显示成 `Declined`；源码已有拆分 TODO。Intatis 已有较细的 reviewer/execution failure 类型，应保留这些区分，并继续补齐 user decline、turn cancel、sandbox 与 runtime/setup failure，而不是重新压平。
+Codex 当前把用户 decline 与部分 runtime/setup rejection 都汇入 `ToolError::Rejected`，可能导致 UI 把非用户故障显示成 `Declined`；源码已有拆分 TODO。Egakium 已有较细的 reviewer/execution failure 类型，应保留这些区分，并继续补齐 user decline、turn cancel、sandbox 与 runtime/setup failure，而不是重新压平。
 
 证据：[`tools/events.rs#L405-L430`](https://github.com/openai/codex/blob/0fb559f0f6e231a88ac02ea002d3ecd248e2b515/codex-rs/core/src/tools/events.rs#L405-L430)
 
@@ -898,7 +898,7 @@ timeout 或 failure 的默认动作：
 
 ### Phase D：per-agent inference 的剩余跨上游验证（基础已实现，完整 E2E 未完成）
 
-Intatis 当前已经有 secret-free、不可变的 `AgentInferenceBinding`、版本化 connection/profile/catalog resolution、Agent 级 binding 与显式 rebind；main 与 reviewer 也可登记为安全身份独立、初始 inference 配置相同的两个 Agent。因此“每个 Agent 能保存并解析精确 inference 身份”不再是未实现项。Phase D 剩余的是把这套基础扩展并验证到真实多上游、非 OpenAI wire API 与 full-history fork，而不是重新发明 binding：
+Egakium 当前已经有 secret-free、不可变的 `AgentInferenceBinding`、版本化 connection/profile/catalog resolution、Agent 级 binding 与显式 rebind；main 与 reviewer 也可登记为安全身份独立、初始 inference 配置相同的两个 Agent。因此“每个 Agent 能保存并解析精确 inference 身份”不再是未实现项。Phase D 剩余的是把这套基础扩展并验证到真实多上游、非 OpenAI wire API 与 full-history fork，而不是重新发明 binding：
 
 1. 验证同一 session 下相同 model、不同 reasoning effort。
 2. 验证不同 Agent 使用不同 provider/base URL/chat endpoint。
@@ -913,7 +913,7 @@ Intatis 当前已经有 secret-free、不可变的 `AgentInferenceBinding`、版
 3. Chat/Code/Cowork shutdown 均为 idempotent admission fence：先拒绝新工作，再取消并等待已登记的 send/provider/tool/direct-operation task，随后解决 permission waiter、关闭 EventLog subscription、释放 workspace security scope。Cowork 的 settings/workspace/agent/Goal/permission 等公开 mutation 统一登记，quiesce 后不能产生遗漏写入。
 4. Command-Q 使用 AppKit terminate-later；manager 先 quiesce，再同时广播所有 runtime stop，并用 `BoundedSessionRuntimeShutdown` 的单调 bounded deadline 收集 settled/timedOut。超时后允许进程退出，但不能把仍 stopping 的 runtime 伪造为 settled；termination reply 只发送一次。
 5. 冷启动 `GoalRuntimeController.start()` 是 reconcile-only：strict replay/recovery/checkpoint/audit 后将 active Goal durable pause，预算耗尽时保持 budget-limited；失败则 fail closed。历史 queued/running root submission 仍 interrupted/显式 Retry；crash 时的 running/stopping 由恢复投影显示 interrupted。只有显式 Send、Retry、Resume 或 CLI data-plane command 才继续。
-6. `Apps/intatis-cli/Sources/Interactive.swift` 不再在启动时无条件 resume；普通消息只打开新任务边界，`/auto|/default` 和 `/goal resume` 是历史数据面显式恢复动作。
+6. `Apps/egakium-cli/Sources/Interactive.swift` 不再在启动时无条件 resume；普通消息只打开新任务边界，`/auto|/default` 和 `/goal resume` 是历史数据面显式恢复动作。
 7. 建立独立测试与 Computer Use 矩阵，覆盖窗口关闭、多 session 并行、正常退出/重开、精确进程强杀、单 session 显式 Resume 和不合作 runtime 的 deadline。
 
 Phase L 仍保持与 Phase S/A/B/C 分离；它触及相同 session/runtime 数据，但没有重解释 EventLog、submitted intent、permission 或 tool settlement 合同。
@@ -1026,18 +1026,18 @@ Computer Use 分两轮验证。第一轮是 **Phase S 实施验证轮，发生�
 
 - 八个 focused suite 合并执行 **126 tests / 0 failures**：`TurnOutcomeProtocolTests`、`PermissionSettlementTransactionTests`、`PermissionProjectionTests`、`AgentLoopOutcomeTests`、`SandboxDenialOutcomeTests`、`WorkspaceSandboxDenialTests`、`PermissionReviewControlPlaneTests` 与 `OrchestrationReliabilityTests`。
 - 覆盖 additive/legacy decode、manual/automatic mode、approve/decline/cancel-turn、RequestID first-write 与 first-terminal CAS、exact duplicate/reconnect、conflicting duplicate fail-closed、FIFO middle settlement、Decline 后 provider 继续、Cancel 无伪 tool result、provider self-cancellation 归 runtime failure、可信 sandbox startup denial/no retry、owner/duplicate waiter cancellation，以及 provider/tool cleanup 先于 task terminal/caller return。
-- 独立 scratch 的完整 `swift test --disable-sandbox --scratch-path /private/tmp/intatis-phase-c-full` 执行 **895 tests / 14 skipped / 0 failures**。首次在 managed sandbox 内启动时因 Swift/Clang module cache 不可写而失败；按环境规则允许 SwiftPM 使用其模块缓存后完整复跑通过，因此不会把首次环境失败写成源码失败。
-- `xcodegen generate`、IntatisMac macOS Debug 与 IntatisiOS Simulator Debug build 均成功。
-- Computer Use 使用独立 bundle ID 的 DEBUG-only `-IntatisPhaseCPermissionFixture`。Manual 模式真实点击生产 `PermissionCard` 的 `Approve Call`、`Decline Call`、`Cancel Turn`，分别得到 `write_file approved`、`write_file call declined`、`Turn cancelled`；Automatic 模式显示 reserved reviewer 与 `Automatic review in progress…`，三个 manual action 不存在。fixture 声明且源码保证不创建 provider、EventLog、credential resolver、responder 或 executor，所以这只验收 UI 语义与 automatic non-actionability，不冒充端到端审批执行。
+- 独立 scratch 的完整 `swift test --disable-sandbox --scratch-path /private/tmp/egakium-phase-c-full` 执行 **895 tests / 14 skipped / 0 failures**。首次在 managed sandbox 内启动时因 Swift/Clang module cache 不可写而失败；按环境规则允许 SwiftPM 使用其模块缓存后完整复跑通过，因此不会把首次环境失败写成源码失败。
+- `xcodegen generate`、EgakiumMac macOS Debug 与 EgakiumiOS Simulator Debug build 均成功。
+- Computer Use 使用独立 bundle ID 的 DEBUG-only `-EgakiumPhaseCPermissionFixture`。Manual 模式真实点击生产 `PermissionCard` 的 `Approve Call`、`Decline Call`、`Cancel Turn`，分别得到 `write_file approved`、`write_file call declined`、`Turn cancelled`；Automatic 模式显示 reserved reviewer 与 `Automatic review in progress…`，三个 manual action 不存在。fixture 声明且源码保证不创建 provider、EventLog、credential resolver、responder 或 executor，所以这只验收 UI 语义与 automatic non-actionability，不冒充端到端审批执行。
 - 首次以 LaunchServices app-path 重新定位 validation bundle 时没有保留 fixture 参数，显示了普通产品根界面；未点击、未发送、未修改设置即退出。正式验收使用 exact executable args 启动并以独立 bundle ID 读取/操作；结束后进程正常退出。
 
 ### 15.10 Phase L runtime ownership、退出与冷恢复验证
 
 - `GoalRuntimeControllerTests` **34/34**：覆盖冷启动 active Goal 完成对账后 durable paused、预算耗尽时 budget-limited、pause append 失败 fail closed、不调用 provider，以及用户显式 Resume 后才创建 continuation。
 - `BoundedSessionRuntimeShutdownTests` **5/5**：覆盖 exact `{SessionKind, SessionID}` first-wins、并发 stop 广播、单调 deadline、不合作 child 不阻塞返回、settled/timedOut 报告与 concurrent caller single-flight。
-- 独立 scratch 完整 SwiftPM 命令为 `env CLANG_MODULE_CACHE_PATH=/private/tmp/intatis-phase-l-full-validation-clang SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/intatis-phase-l-full-validation-swiftpm swift test --disable-sandbox --scratch-path .build/phase-l-full-validation`，结果 **903 tests / 14 skipped / 0 failures**；构建 49.88 秒，测试 18.514 秒。
-- IntatisMac macOS Debug 与 IntatisiOS generic Simulator Debug（`CODE_SIGNING_ALLOWED=NO`，独立 DerivedData）均构建成功。最终 Cowork app-only quiesce/admission hardening 后又单独重建 macOS Debug 成功；最后修改没有触及 iOS/package 源码。
-- Computer Use 使用独立 bundle ID `com.vita.IntatisPhaseLDirectValidation` 与 DEBUG-only `-IntatisPhaseLLifecycleFixture`。fixture 仅在显式 `/private/tmp` root 写 synthetic ledger，使用 fake A/B runtime；不创建生产 `AppEnvironment`、EventLog、provider、credential、workspace、PermissionEngine 或工具 executor。
+- 独立 scratch 完整 SwiftPM 命令为 `env CLANG_MODULE_CACHE_PATH=/private/tmp/egakium-phase-l-full-validation-clang SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/egakium-phase-l-full-validation-swiftpm swift test --disable-sandbox --scratch-path .build/phase-l-full-validation`，结果 **903 tests / 14 skipped / 0 failures**；构建 49.88 秒，测试 18.514 秒。
+- EgakiumMac macOS Debug 与 EgakiumiOS generic Simulator Debug（`CODE_SIGNING_ALLOWED=NO`，独立 DerivedData）均构建成功。最终 Cowork app-only quiesce/admission hardening 后又单独重建 macOS Debug 成功；最后修改没有触及 iOS/package 源码。
+- Computer Use 使用独立 bundle ID `com.vita.EgakiumPhaseLDirectValidation` 与 DEBUG-only `-EgakiumPhaseLLifecycleFixture`。fixture 仅在显式 `/private/tmp` root 写 synthetic ledger，使用 fake A/B runtime；不创建生产 `AppEnvironment`、EventLog、provider、credential、workspace、PermissionEngine 或工具 executor。
 - UI 矩阵通过：A 运行时切换 B 和 History，A ticks 继续且 stop count 不变；A/B 可同时运行；Command-W 后进程存活且两者 ticks 继续；Command-N 后 starts 仍为 1，证明新窗口复用 manager runtime；Command-Q 后 A/B 各 stop/settle 一次并退出；正常重开 ticks 冻结，只有 Explicit Resume A 使 A 单独继续。
 - crash 矩阵通过：按 exact executable path、命令行和 launch time 确认 PID 后发送 `SIGKILL`；ledger 保留 A=`running`，重开后显示 A=`interrupted`、B=`settled` 且 ticks 不增长，Explicit Resume A 才继续。
 - deadline 矩阵通过：B 使用 actor-owned continuation barrier 模拟不合作 shutdown，Command-Q 配置 700 ms deadline并在 3 秒内退出；A=`settled`，B 保留 `stopping`，没有伪造 settlement；重开把 B 对账为 `interrupted`。最终 exact process check 确认 validation executable 无残留。
@@ -1089,16 +1089,16 @@ Computer Use 分两轮验证。第一轮是 **Phase S 实施验证轮，发生�
 - 第一次 Phase A full run 在既有 Tools process 段长时间无新输出且尚无失败时被有界中止；相邻两个 process runner 测试随后分别 1/1 通过，最终完整复跑得到上述 824/14/0，故不把中止轮冒充失败或通过。
 - `swift build --disable-sandbox`：通过。
 - `xcodegen generate`：通过。
-- macOS `IntatisMac` Debug build：通过。
-- iOS `IntatisiOS` simulator build：通过。
+- macOS `EgakiumMac` Debug build：通过。
+- iOS `EgakiumiOS` simulator build：通过。
 - Computer Use：通过。Phase S 实施轮覆盖新建、恢复、缺 bookmark fail-closed、错误目录拒绝、精确目录重新授权和 primary 删除防线；Phase A 最新轮覆盖 reviewer failed 时 composer 仍可编辑、文本 Send durable accept、route failure 状态卡、Retry、继续编辑，以及附件的 durable ArtifactStore import/attachment-only Send eligibility。附件草稿未点击 Send；EventLog 的 `user_message → queued → failed` 只来自前一条文本 submission，outbox 已 reconciliation，没有 task/permission/model 输出。
 - Phase C focused：八个 outcome/permission/projection/sandbox/reviewer/orchestration suite 合并 **126 tests / 0 failures**。
 - Phase C 阶段完整 SwiftPM：独立 scratch 执行 **895 tests / 14 skipped / 0 failures**。首次 managed-sandbox module-cache 权限失败已按环境规则复跑，不计为源码失败。
-- Phase C 当前构建：`xcodegen generate`、IntatisMac macOS Debug、IntatisiOS Simulator Debug 均成功。
+- Phase C 当前构建：`xcodegen generate`、EgakiumMac macOS Debug、EgakiumiOS Simulator Debug 均成功。
 - Phase C Computer Use：独立 validation bundle/离线 fixture 的 Approve Call、Decline Call、Cancel Turn 与 automatic non-actionable 均通过；fixture 无 provider/EventLog/credential resolver/responder/executor，未发送模型请求。首次 LaunchServices 重新定位未保留 fixture 参数时只显示普通根界面，未进行点击/发送/设置修改即关闭。
 - Phase L focused：`GoalRuntimeControllerTests` **34/34**，`BoundedSessionRuntimeShutdownTests` **5/5**。
 - Phase L 当前完整 SwiftPM：独立 scratch 执行 **903 tests / 14 skipped / 0 failures**。
-- Phase L 当前构建：IntatisMac macOS Debug 与 IntatisiOS generic Simulator Debug 均成功；最终 app-only hardening 后 macOS Debug 再次成功。
+- Phase L 当前构建：EgakiumMac macOS Debug 与 EgakiumiOS generic Simulator Debug 均成功；最终 app-only hardening 后 macOS Debug 再次成功。
 - Phase L Computer Use：独立 bundle/离线 fixture 的双 session 后台运行、session/History 切换、Command-W、Command-N 复用、正常 Command-Q/reopen、exact PID `SIGKILL`/interrupted reconcile、显式单 session Resume 与 700 ms uncooperative-runtime deadline 均通过；最终无验证进程残留。fixture 不创建真实 provider/EventLog/credential/workspace/tool executor，未发送模型请求。
 - `git diff --check`：通过，无 whitespace error。
 
@@ -1106,15 +1106,15 @@ Phase B 本轮新增验证：
 
 - 八个权限/编排 suite 合并执行 **164 tests / 0 failures**：`ToolRegistryLeaseTests` 13、`PermissionReviewProtocolTests` 10、`PermissionReviewControlPlaneTests` 29、`AutomaticPermissionReviewTests` 30、`AgentLoopPolicyTests` 27、`AgentInvocationNonRecursiveTests` 11、`SpawnAgentPermissionTests` 10、`OrchestrationReliabilityTests` 34。
 - 确定性覆盖 timeout/cancel 后 fresh generation、旧代 late allow 无效、replacement 不继承旧隔离、provider factory 单次失败恢复、真实工具第一次 timeout 不执行/第二次 fresh allow 只执行一次、terminal claim 后 cancellation、pre-submit caller cancel 不误报 shutdown、caller-cancelled attach 不登记 Agent、post-review inference resolution 暂停期间取消不能提交 attach，以及 disable-quiesce/detach-failure/resume 竞态；late-producer 检查均等待显式 finished ack，不依赖固定 sleep。
-- `swift build --disable-sandbox`、`xcodegen generate`、IntatisMac macOS Debug 与 IntatisiOS Simulator Debug build 均成功。
-- 本轮完整 SwiftPM 先在外层沙箱内遇到既有 Tools nested Seatbelt/loopback 限制；允许脱离外层沙箱后这些 process 测试已经开始通过，但完整 run 在既有 `IntatisToolsTests` structured-process 段再次长时间无输出，被有界中止，因此不能写成 full pass 或 Phase B 源码失败。卡点附近 `testStructuredProcessShellRunnerStillSupportsToolBackendCommands` 单独 1/1 通过。
+- `swift build --disable-sandbox`、`xcodegen generate`、EgakiumMac macOS Debug 与 EgakiumiOS Simulator Debug build 均成功。
+- 本轮完整 SwiftPM 先在外层沙箱内遇到既有 Tools nested Seatbelt/loopback 限制；允许脱离外层沙箱后这些 process 测试已经开始通过，但完整 run 在既有 `EgakiumToolsTests` structured-process 段再次长时间无输出，被有界中止，因此不能写成 full pass 或 Phase B 源码失败。卡点附近 `testStructuredProcessShellRunnerStillSupportsToolBackendCommands` 单独 1/1 通过。
 - Computer Use 启动本轮最新 macOS Debug app，恢复 reviewer failed/disabled 历史 Cowork session，确认 banner 明确显示“input remains available; ask-class tools fail closed”；空 composer 时 Send disabled，写入未发送本地草稿后 Send enabled，清空后再次 disabled。没有点击 Send、Retry、Reauthorize 或 provider 调用。
 
 Phase T 本轮新增验证：
 
 - 合并执行 `ToolExecutionProtocolTests`、`ToolExecutionProjectionTests`、`AgentLoopPolicyTests`、`WorkTaskRuntimeTests`、`GoalRuntimeControllerTests` 与 `OrchestrationReliabilityTests`，共 **128 tests / 0 failures**。
 - 其中各 suite 总数分别为 5、8、29、13、31、42；覆盖 legacy optional-field decode、新成功显式 committed、`succeeded + not_started` invalid/uncertain、duplicate prepare 永久 ambiguous、duplicate identical settlement 幂等、conflicting terminal ambiguous、typed no-effect/model continuation、pre-executor settlement + turn cancellation、executor-entered cancellation、production adapter stale conversion、任意 manager 不得伪造 no-effect、zero-settlement/non-ambiguous legacy repair，以及 restore/Goal startup/进程内 launch/whole-task retry 对 unknown future event、seq gap 与 incomplete order proof 的 fail-closed。
-- 执行命令：`SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/intatis-phase-t-swiftpm-cache CLANG_MODULE_CACHE_PATH=/private/tmp/intatis-phase-t-clang-cache swift test --disable-sandbox --filter 'ToolExecutionProtocolTests|ToolExecutionProjectionTests|AgentLoopPolicyTests|WorkTaskRuntimeTests|GoalRuntimeControllerTests|OrchestrationReliabilityTests'`。
+- 执行命令：`SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/egakium-phase-t-swiftpm-cache CLANG_MODULE_CACHE_PATH=/private/tmp/egakium-phase-t-clang-cache swift test --disable-sandbox --filter 'ToolExecutionProtocolTests|ToolExecutionProjectionTests|AgentLoopPolicyTests|WorkTaskRuntimeTests|GoalRuntimeControllerTests|OrchestrationReliabilityTests'`。
 - 最终源码后执行 `swift build --disable-sandbox`，构建成功。Phase T 未运行 full SwiftPM、Xcode/UI、真实 provider 请求或真实 legacy session restore 演练；不能把其他阶段的这些验证记录归到 Phase T。
 
 没有运行真实 provider 请求，也没有迁移用户的真实 legacy session。Phase A UI 验证曾有意向上述历史验证 session 追加三条测试提交事件；Phase B UI 验证只改写并清空本地草稿，没有提交事件；Phase L 只写 `/private/tmp` synthetic fixture ledger。“登记/冷恢复不发模型请求”由 provider-counting 自动化测试、Goal controller tests 和 fixture 边界共同覆盖。

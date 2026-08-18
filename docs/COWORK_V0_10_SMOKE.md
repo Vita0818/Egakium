@@ -1,4 +1,4 @@
-# Intatis Cowork v0.10 Smoke Checklist
+# Egakium Cowork v0.10 Smoke Checklist
 
 > **历史文档：冻结于 v0.10 迁移阶段。** 本文只保留设计/迁移 provenance，不是当前
 > 状态、测试或实现事实源。产品基线与当前规则见 `docs/VERSIONING.md`、
@@ -12,7 +12,7 @@ Run from the repository root:
 
 ```bash
 swift test
-swift run intatis --help
+swift run egakium --help
 ```
 
 If XcodeGen is available:
@@ -24,18 +24,18 @@ xcodegen generate
 Optional macOS app build:
 
 ```bash
-xcodebuild -scheme IntatisMac build
+xcodebuild -scheme EgakiumMac build
 ```
 
 Run the Xcode build only when validating the app target. The SwiftPM tests are the primary automated validation for the Cowork invocation model.
 
 ## 2. Manual CLI Cowork Smoke
 
-1. Enter the Intatis repository.
+1. Enter the Egakium repository.
 2. Run:
 
    ```bash
-   swift run intatis
+   swift run egakium
    ```
 
 3. Switch to Cowork:
@@ -48,7 +48,7 @@ Run the Xcode build only when validating the app target. The SwiftPM tests are t
 5. Send:
 
    ```text
-   拉起两个子 Agent，分别对 Apps/IntatisMac 和 Apps/IntatisiOS 下的 Swift 文件计数。
+   拉起两个子 Agent，分别对 Apps/EgakiumMac 和 Apps/EgakiumiOS 下的 Swift 文件计数。
    ```
 
 6. Observe the session:

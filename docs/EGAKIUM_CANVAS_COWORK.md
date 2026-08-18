@@ -1,13 +1,13 @@
 # EGAKIUM_CANVAS_COWORK
 
-文档状态：用户已确认的 Ekagium 产品合同；方案一、可复用 CanvasHost 与原样左右拼接已实现，CEF/元素 schema 待实现
-确认日期：2026-08-16
-当前业务基线：Ekagium v0.2（build 49；源码与技术 identity 仍来自 Intatis SwiftPM/XcodeGen 基线）
-适用范围：macOS Ekagium 主产品面、Cowork UI 组合、Canvas/Element 模型与 Agent 协作边界
+文档状态：用户已确认的 Egakium 产品合同；CEF-only renderer 已接入，WKWebView 替代路线已删除
+确认日期：2026-08-18
+当前业务基线：Egakium v0.4（build 50；源码与技术 identity 使用 Egakium SwiftPM/XcodeGen 基线）
+适用范围：macOS Egakium 主产品面、Cowork UI 组合、Canvas/Element 模型与 Agent 协作边界
 
 ## 一句话结论
 
-Ekagium 是一个 **Cowork-first、Canvas-first** 的多 Agent 空间工作台：中央是每个
+Egakium 是一个 **Cowork-first、Canvas-first** 的多 Agent 空间工作台：中央是每个
 Cowork Session 独立初始化的 HTML/DOM 画布，右侧直接复用现有 Cowork harness。宿主只负责从
 固定模板首次创建 Session `index.html`，exact `@main` 可以通过既有 workspace 工具直接编辑整份
 HTML/CSS/JavaScript、组织嵌套元素并承担全局协调和空间布局。ordinary sub-agent 默认在一次任务中
@@ -16,51 +16,87 @@ HTML/CSS/JavaScript、组织嵌套元素并承担全局协调和空间布局。o
 这项“一个 sub-agent 负责一个元素”的关系是动态 TaskContract / prompt 约定，不是新的永久
 Agent 类型、硬编码递归层级、Element ownership、CapabilityLease 或权限模型。
 
+## Dependency-first / no-fallback 最终决定
+
+2026-08-18 用户最终明确：已有同能力且可采用的外部依赖时，必须直接集成，不允许自研 adapter、
+shim、parallel/preview backend 或临时兜底。接入受阻应明确停止并报告 blocker，不能以“先做原型、
+以后替换”推导替代实现权限。项目级权威合同见 `docs/OPEN_SOURCE_REUSE.md`。
+
+对本合同，官方 CEF 是唯一接受的 Canvas 网页 renderer。当前 product target 已直接接入 pinned
+official CEF ARM64 Framework、官方 wrapper/external pump、五个 sandbox Helpers、AppKit child browser、
+Session-rooted scheme 与 init/shutdown lifecycle。WKWebView、WKContentWorld、WKNavigationDelegate、
+WebKit file loader、DOM injection、metadata monitor 与 fallback 已删除。CEF 不可用时构建失败或 Canvas
+明确 unavailable/fail closed；不得重新增加另一 renderer、adapter 或切换层。
+
 ## 当前事实与目标状态
 
 ### 当前已经存在
 
-- 从 Intatis 导入的 macOS Chat / Code / Cowork、SwiftUI harness、`CoworkViewModel`、
+- 当前 macOS Chat / Code / Cowork、SwiftUI harness、`CoworkViewModel`、
   `Orchestrator`、FIFO scheduler、AgentKernel、MessageBus/Mediator、Goal/WorkTask、
   PermissionEngine、EventLog、ArtifactStore 与 session lifecycle；
-- 用户可见 macOS/iOS GUI 品牌 `Ekagium`；内部 target、bundle identity、配置与数据路径仍以
-  `Intatis` 为主；
-- 迁移前 Ekagium 的 Chromium/CEF 本地资产，以及只读的 CEF 白画布历史文档快照。
-- 方案一最小原型：Cowork Session 启动在 fresh 七事件 bootstrap 后创建
+- macOS/iOS GUI、内部 target、bundle identity、配置与数据路径统一使用 `Egakium`；
+- 业务基线导入前已有的 Chromium/CEF 本地资产，以及只读的 CEF 白画布历史文档快照。
+- renderer-independent 基础：Cowork Session 启动在 fresh 七事件 bootstrap 后创建
   `.egakium/canvas/<SessionID>/index.html`；exact `@main` root prompt 获得该精确相对路径并可用现有
   file/patch + permission 链直接编辑；
 - 主 Cowork detail 已使用原生 `HSplitView` 原样左右拼接：左侧可复用 `CoworkCanvasHost` 直接读取同一
   `CoworkViewModel.canvasDocument`，右侧为参数和业务行为未改的现有 `CoworkShell`。两侧共用同一个
   exact Session、VM、runtime、EventLog 和权限控制面；
-- 当前产品只有这一处 Canvas presentation：内嵌 host 使用无持久 Web 数据且阻断网络请求的薄
-  `WKWebView` 预览，并轮询文件变化自动刷新。2026-08-16 用户在实际打开后明确纠正此前双窗口路线，
+- 当前源码只有这一处 Canvas presentation，内嵌 host 只使用 `EgakiumCEFView`；2026-08-16 用户在
+  实际打开后明确纠正此前双窗口路线，
   独立 Canvas scene、`Open Canvas` 动作、窗口 value/resolver/model/view wrapper 均已移除；打开或恢复
   Cowork 时必须同时看到左 Canvas 与右 harness；
+- 2026-08-17 曾把实施顺序调整为先改造 WK 主画布、再继续 CEF；该实现已删除。
+  `SessionCanvasRuntime` 曾建立
+  provisional DOM contract v1：`#canvas` 的每个 direct `.egakium-element` 使用 stable-safe
+  `data-element-id`、title、x/y/width/height 和同 Session 目录的相对 iframe 表示一张子 HTML 卡片；
+  WebKit content world 曾提供 drag/resize/keyboard/sessionStorage 与 metadata refresh；这些源码和
+  测试已移除。当前只保留 source `#canvas`/card/relative iframe shape，模板 CSS 由 CEF 直接渲染，
+  宿主不注入交互 runtime；
+- CEF closure 已实现：exact official
+  `151.3.17+gf059e67+chromium-151.0.7922.138_macosarm64` pin、archive hash gate、official wrapper/
+  external pump、five sandbox Helpers、versioned Framework/Resources/notices、per-view memory-only request
+  context、strict `egakium://canvas` Session resource factory、network/popup deny 与 orderly shutdown；
+- 同日用户决定所有子元素共用一份固定模板。`SessionCanvasElementTemplate` v1 是唯一
+  host-authored child-document seed；不含 AgentID、ElementID、SessionID、路径或 outer-card layout，
+  成功的 ordinary `spawn_agent` 会在 child exact workspace root 下获得一个 host-chosen
+  `CanvasElementID` 与 fresh no-overwrite real file；同一 descriptor 进入 durable spawn events、
+  ToolResult、`list_agents` 和 child trusted prompt。manual/legacy attach worker 才在 prompt 中获得
+  identity-free fallback copy；`@main` 不重复注入完整 HTML，也不预造 ID/path。host provisioning 不
+  授予 agent write authority，后续编辑仍由 WorkspaceLease/CapabilityLease 决定；
 - macOS 主 sidebar 当前只展示 Cowork，初始 selection 也是 Cowork。Chat/Code 的 enum case、detail
   branch、View/ViewModel、runtime、session/history 与配置继续编译和保留，只隐藏可见入口。
 
 ### 用户已经确认、仍待实现
 
-- 正式 CEF BrowserView、Helper、内部 scheme/origin/bridge、sandbox、签名和公证闭环；
-- 稳定 ElementID、layout/revision/event/projection schema，以及按元素独立 HTML 小网页的完整宿主闭环；
+- Developer ID nested signing、公证、staple/Gatekeeper 的真实发行执行（build 脚本已接线，尚未提交）；
+- durable CanvasID/ElementID、layout/revision/event/projection schema，以及按元素独立 HTML 小网页的
+  持久化/恢复闭环；当前 `data-element-id` 只是 provisional DOM identity；
 - `@main` 决定元素创建、位置、大小、层级、空间关系与 sub-agent 委派；
 - sub-agent 按本次任务提示编辑指定元素网页，不并发修改一份共享巨型 HTML；
 - Canvas 与 Cowork harness 只通过窄、结构化的选择、定位、刷新、布局和上下文事件连接。
 
 ### 不得提前宣称
 
-当前源码已经接入 Session Canvas 初始化、`@main` 直编路径提示、可复用 `CoworkCanvasHost`、主界面
-左右拼接和定向测试；但该 host 仍只封装 `WKWebView` 调试适配层，不是正式 CEF
-BrowserView/Helper。源码仍没有正式 CEF 接线、ElementID/layout/event schema 或 native bridge。
-迁移前 CEF 原型和保留的 `.deps/` / `build/` 也不能作为这些待实现能力已经存在的证据。
+当前源码已经接入 Session Canvas 初始化、`@main` 直编路径提示、单窗口左右拼接、renderer-independent
+Element/Agent 文件合同和正式 CEF-only renderer。不得宣称已经有 durable ElementID/layout/event
+projection、native bridge、用户 drag/resize persistence 或 provider-driven 多元素 App E2E；Debug CEF
+证据也不等于 Developer ID 公证发行完成。
+“新 sub-agent 获得模板”当前确实表示 successful ordinary `spawn_agent` 已创建一个 workspace-local
+generic element file 和 provisional `CanvasElementID`，并持久记录 spawn-scoped descriptor；但它不会
+自动创建/修改主 Canvas Card，不是 durable layout/bridge schema，也不建立永久 Agent↔Element
+mapping。read-only child 仍不能编辑，agent recycle 也不会删除这份可重新委派的文件。
+迁移前 CEF 原型和保留的 `.deps/` / `build/` 不能直接证明当前 target 已接线，但它们是正式 CEF
+任务必须优先核对的官方依赖/provenance 资产；不得绕开后另写 renderer。
 
 ## 产品布局合同
 
-macOS Ekagium 的目标主视图为：
+macOS Egakium 的目标主视图为：
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
-│                       Ekagium Cowork Session                  │
+│                       Egakium Cowork Session                  │
 ├───────────────────────────────────────┬──────────────────────┤
 │                                       │                      │
 │                                       │  现有 Cowork harness │
@@ -78,7 +114,7 @@ macOS Ekagium 的目标主视图为：
 - Canvas 是主要工作成果与空间组织表面；
 - 右侧 harness 是用户向 `@main` 下达意图、查看执行状态和处理权限的控制面；
 - 对话记录不替代 Canvas，Canvas 也不重新实现 Cowork 的消息、任务或权限系统；
-- Chat/Code 继续作为导入基线中的既有能力，但 macOS 主 sidebar 当前隐藏其入口；Ekagium 可见的
+- Chat/Code 继续作为导入基线中的既有能力，但 macOS 主 sidebar 当前隐藏其入口；Egakium 可见的
   新主工作流只展示 Cowork + Canvas，恢复入口时不得重建或迁移底层实现；
 - iOS 继续保持 Chat-only 结构性子集，当前目标不把 CEF、Canvas 或本地 Cowork 引入 iOS。
 
@@ -88,7 +124,7 @@ macOS Ekagium 的目标主视图为：
 纠正：只保留一个 Cowork 窗口，不保留独立 Canvas 调试/备用入口。实际拓扑为：
 
 ```text
-同一个 Ekagium macOS 进程
+同一个 Egakium macOS 进程
 └── exact Cowork Session / single session-scoped runtime authority
     └── Main Cowork detail / native HSplitView
         ├── CoworkCanvasHost / Session index.html
@@ -161,7 +197,7 @@ HSplitView {
   -> 现有 Cowork settings-first 七事件 bootstrap 成功
   -> 宿主执行独立、幂等、无模型请求的 Canvas 初始化
   -> 从固定版本模板创建空白 Session Canvas
-  -> 当前 CoworkCanvasHost / WKWebView 调试预览加载该 Canvas
+  -> CoworkCanvasHost / 正式 CEF AppKit child browser 加载该 Canvas
   -> 主 Cowork detail 左侧显示 CanvasHost，右侧显示现有 CoworkShell
   -> 用户首次 Send 后才允许发生正常 provider 工作
 ```
@@ -190,13 +226,22 @@ HSplitView {
 
 方案一中，主画布是“宿主初始化、exact `@main` 直接编辑”的 Session 页面。宿主负责首次创建有效
 HTML 模板和渲染安全边界；`@main` 负责后续完整 HTML/CSS/JavaScript、嵌套元素和空间布局。当前
-模板提供空白 `#canvas`、`.egakium-element` 与本地 iframe 基础样式。
+模板提供 `#canvas` element-container、空态、provisional `.egakium-element` markup 示例与本地
+iframe 基础样式；CEF 直接渲染 source HTML/CSS，宿主不注入 DOM runtime。
 
-未来主画布可逐步承担：
+当前 provisional DOM v1 已承担：
 
-- 空白空间、viewport、平移和缩放；
-- 元素容器、选择、高亮、拖动、resize、层级与分组；
-- 加载独立元素网页；
+- 浏览器原生滚动的网格空间与 source-owned direct element container；
+- 通过同 Session 目录相对 iframe 加载独立元素网页；
+- source `data-x/y/width/height` 的 CEF/CSS card placement；
+- `sandbox="allow-scripts"` 的 child document boundary。
+
+当前没有 host-owned selection/bring-to-front/drag/resize/keyboard、layout override 或 automatic file
+monitor。未来增加这些能力不得重建自研 adapter。
+
+未来 durable 层仍需承担：
+
+- Canvas-native viewport 平移/缩放和 group/relation；
 - 把窄、类型化的 Canvas 事件交给原生宿主；
 - 在 Session 恢复后重建当前元素与布局投影。
 
@@ -210,8 +255,6 @@ HTML 模板和渲染安全边界；`@main` 负责后续完整 HTML/CSS/JavaScrip
 ```text
 <primary-workspace>/.egakium/canvas/<SessionID>/
 ├── index.html                  # host-created once; exact @main directly editable
-├── canvas-runtime.js           # optional/future supporting file
-├── canvas.css                  # optional/future supporting file
 ├── layout.json                 # conceptual future projection; exact schema 待冻结
 └── elements/
     ├── element-001/
@@ -225,10 +268,32 @@ HTML 模板和渲染安全边界；`@main` 负责后续完整 HTML/CSS/JavaScrip
         └── ...
 ```
 
-其中 `index.html` 路径已经由当前原型实现；其余文件和目录只是产品边界示意，不是已经存在的
-schema。方案一允许 `@main` 先直接把多个语义元素嵌套在 `index.html` 中，也允许它引用同一 Session
-目录下的独立本地 iframe document。独立元素文件仍是多人协作时的推荐隔离方式，不是 v0 原型的
-硬件级限制。
+其中 `index.html` 由宿主初始化；successful ordinary spawn 会由宿主为该 admission 创建一个 fresh
+`elements/<ElementID>/index.html`，其他子文件仍可由 `@main`/ordinary sub-agent 通过既有 workspace
+工具创建。`layout.json` 仍只是未来 projection 示意。card CSS 在 host-created source template 中，
+由 CEF 直接解释；没有 injected host JavaScript。方案一仍允许 `@main` 直接把简单语义内容放入
+`index.html`；多人协作时优先引用独立本地 iframe document。
+
+provisional DOM v1 的 source shape 为：
+
+```html
+<article class="egakium-element"
+         data-element-id="element-001"
+         data-element-title="Element title"
+         data-x="64" data-y="64"
+         data-width="420" data-height="300">
+  <iframe src="elements/element-001/index.html"
+          title="Element title"
+          sandbox="allow-scripts"></iframe>
+</article>
+```
+
+- card 必须是 `#canvas` 的 direct child；
+- `data-element-id` 当前只接受 1–128 个 ASCII 字母、数字、`_`、`-`，同一页面重复 ID 会被禁用；
+- x/y/width/height 是 `index.html` 中的 source layout；z 可用 `data-z` 可选声明；
+- 没有 host-generated chrome/content/resize DOM 或用户 override；source markup 是当前页面 authority；
+- child iframe 当前收窄到 `sandbox="allow-scripts"`，父页面/child assets 由同一 strict
+  `egakium://canvas` Session origin 提供；当前没有 native bridge。
 
 元素可以承载文本、报告、卡片、表格、图表、看板、幻灯片、交互控件或其他 HTML/CSS/JS
 表达。正式 Element/layout schema 落地后，元素内容与空间布局应保持分离：
@@ -246,38 +311,47 @@ Element layout:   x / y / width / height / z-index / group / relation
 
 ### 渲染组合
 
-当前原型在单一 `WKWebView` 中加载 Session 本地 `index.html`，read-access root 只给该 Session
-Canvas 目录，并用 WebKit content rule 阻断 `http/https/ws/wss/ftp` 请求；默认模板另带 CSP。该层是
-可替换的调试预览，不是最终 CEF 发行证明。
-
-正式方向是在一个主 CEF BrowserView 中渲染 Session Canvas，并让每个元素容器加载一份
+当前源码在一个官方 CEF AppKit child browser 中渲染 Session Canvas，并让每个元素容器加载一份
 独立 document，优先使用受控 `iframe`/独立内部 URL，而不是每个元素启动一个 CEF Browser 或
 Chromium 进程：
 
 ```html
 <div class="egakium-element" data-element-id="element-001">
-  <iframe src="egakium://session/.../elements/element-001/index.html"></iframe>
+  <iframe src="egakium://canvas/elements/element-001/index.html"
+          sandbox="allow-scripts"></iframe>
 </div>
 ```
 
-最终内部 scheme、origin、iframe sandbox flags、CSP 与资源映射必须在实现前冻结；上例不是已经
-注册的 URL 协议。元素外框拥有布局与选择交互，iframe/document 内部拥有元素自己的内容和行为。
+`egakium://canvas` 已注册为 standard/secure/display-isolated custom scheme；每个 view 的 factory 只
+读取 exact Session root 内 non-symlink regular files，且 request context 不持久化。CSP/iframe sandbox
+仍由 source document 限制。元素外框拥有 source layout，iframe/document 拥有元素内部内容和行为；
+当前没有宿主 selection/drag/resize 或 bridge。
 
 ## `@main` 空间协调者合同
 
 exact `@main` 仍是现有 Cowork stable root identity，不新增永久 `CanvasCoordinator` Agent 类型。
-其 model-facing coordinator prompt 在 Ekagium Canvas 可用时追加空间合同：
+其 model-facing coordinator prompt 在 Egakium Canvas 可用时追加空间合同：
 
 - 你是当前 Session 的总体协调者；
 - 你的精确 workspace-relative 画布入口是
   `.egakium/canvas/<SessionID>/index.html`，宿主已经创建基础文件；
 - Canvas 相关请求应先读取该文件，再通过 authoritative workspace file/patch 工具和正常权限链直接
   编辑完整 HTML/CSS/JavaScript；
+- 每份 child HTML 默认使用上面的 direct card + source-layout attributes + relative sandboxed iframe
+  shape；不要在页面里再实现与 host 冲突的第二套 drag/resize runtime，也不要把 Web storage 或
+  runtime DOM mutation 写成 durable layout；
 - 用户通过右侧 Cowork harness 向你说明目标；
 - 你必须检查当前 Canvas、元素目录、选择和任务状态；
 - 你决定需要创建哪些元素以及它们的位置、大小、层级和空间关系；
 - 当工作量、并行性或专业能力确实有收益时，你把元素内部内容作为明确任务委派给合适的 ordinary
   sub-agent；
+- 为新元素创建 ordinary sub-agent 时，不要预造 ElementID/path；宿主会在 spawn commit 时选择并
+  no-overwrite 创建。只有 worker 需要修改文件时才为 `spawn_agent` 明确请求 `read_write`。必须等待
+  成功 ToolResult 返回 `canvas_element_id` / `canvas_element_path` / `canvas_template_version`，再在下一
+  tool-call round 通过 TaskContract/`delegate_task` 交付该 exact path 和结果要求；
+- 新 worker 的 actual invocation 会自动收到自己的真实 element descriptor；不要把模板全文复制进
+  TaskContract，也不要把 spawn-time association 写成 Element owner。read-only spawn 也有文件但无
+  修改权限；
 - 可以直接实现简单嵌套元素；需要并行或专长时，把 ordinary sub-agent 分配到互不重叠的辅助/元素
   文件，等待成功 ToolResult 后由你在共享 `index.html` 中集成或引用；
 - 创建 Agent、创建任务、委派任务等因果依赖必须遵循现有 ToolResult round 边界；
@@ -294,7 +368,42 @@ CapabilityLease、PermissionEngine、durable tool execution 和 EventLog 约束�
 ## sub-agent 元素编辑合同
 
 ordinary sub-agent 继续使用现有 Agent identity、TaskContract、workspace/capability lease、scheduler
-和 mailbox。一次元素任务的 scoped prompt/context 至少包含：
+和 mailbox。successful ordinary spawn 先在其 exact workspace root 建立以下
+`SessionCanvasElementTemplate.html` 的 fresh real copy，并在 trusted system prompt 中提供 validated
+ElementID/path/version；manual/legacy attach invocation 才直接嵌入同一 identity-free template fallback：
+
+```html
+<html data-egakium-element-template="1">
+  ...
+  <main id="element" data-egakium-element-document="1">
+    ...
+    <section id="content">...</section>
+  </main>
+</html>
+```
+
+该模板是 content-only child page：
+
+- outer Canvas 继续拥有 card chrome、ElementID、x/y/width/height、selection、drag/resize；
+- child template 只拥有自己的内部 HTML/CSS/JavaScript/local assets，并以 `#element` / `#content`
+  作为稳定集成边界；
+- 模板 CSP 默认 `connect-src 'none'`、`frame-src 'none'`、无 remote resource；
+- spawned worker 的文件是真实 workspace resource，但 host creation 不授予 agent write capability；
+  manual/legacy prompt fallback 仍不是文件或权限；
+- spawned worker 使用 host-returned exact path，不得自己选择共享入口或另造 sibling path；
+- descriptor path 始终相对 child 的 exact WorkspaceLease root。child 与主 Canvas 同根时，`@main` 可在
+  成功 ToolResult 后转换为同 Session `elements/...` iframe；若 child 是 distinct workspace，spawn 不
+  会偷偷授予第二个 root 或让 `@main` 跨 lease 读取，必须走后续明确授权/媒介/集成路径；
+- exact destination 已存在时必须先读并保留，绝不能用“fresh template”覆盖已有工作；
+- spawn admission 在 EventLog batch 前发布文件；append failure 必须先用 complete-known replay 判断
+  exact batch 是否已因 WAL/lost-ack durable。已提交则恢复成功；只有证明 descriptor fact 未提交时才
+  compensation 删除仍为 exact 原始 template 的目录，无法证明时保留并 fail closed。成功后
+  recycle/detach 不删除文件。
+- 该顺序优先保证“durable spawned agent 一定已有文件”，但进程若恰好在 file publish 与 EventLog
+  append 之间崩溃，仍可能留下无 descriptor 引用的 generic orphan directory。当前没有安全的自动 GC；
+  restore 不得仅凭目录扫描删除它，后续需要 versioned orphan/recovery policy 才能清理。
+
+一次元素任务的 scoped prompt/context 至少包含：
 
 ```text
 当前 Session / Canvas 的安全摘要
@@ -350,6 +459,10 @@ host/@main -> Canvas
 上述名称是语义示意，不是已冻结协议。正式 schema 必须使用稳定 SessionID/CanvasID/ElementID、
 版本、来源与必要 correlation，不能从显示标题或 HTML 内容反推 identity。
 
+旧 WK provisional runtime 曾在 DOM 内 dispatch `egakium:canvas-selection-change` /
+`egakium:canvas-layout-change` 并暴露 `EgakiumCanvas` helper；该 runtime 与这些 API 已删除。当前没有
+Canvas↔harness native bridge 或 EventLog writer，上述语义示意不得被当成已冻结协议。
+
 ## 持久化与恢复方向
 
 当前 EventLog 继续是 Session runtime canonical truth，`session.json` 继续只是可重建 projection，
@@ -370,22 +483,29 @@ workspace 工具链编辑；该 HTML 不是 EventLog canonical Session truth。�
 不得把“最后一份 HTML 文件”单独当作整个 Cowork Session 的唯一事实源；也不得在没有 schema、
 版本和迁移合同前随意扩充现有 EventLog Envelope。
 
+当前没有宿主提供的 drag/resize layout override；source `index.html` 的 x/y/width/height 是页面
+authority。未来用户 layout 必须先冻结 durable layout/revision/event 合同，不能借用 CEF profile、
+Web storage 或注入 DOM 状态冒充 crash recovery/跨窗口同步。
+
 ## CEF、Web 与原生安全边界
 
 - `Chromium/` 继续只是历史验证/排障资产，不得恢复 `Chromium.app --app=<URL>` 产品链；
-- `.deps/` 中的官方 CEF 资产可在独立集成任务中重新核对版本、校验值、provenance 与 bundle 规则后
-  复用；不得直接修改其发行文件，也不得把旧 `build/` 生成物当作产品源码或唯一可重现依赖；
-- 正式方向使用 Ekagium 自有 macOS app 生命周期内嵌 CEF，不魔改 Chrome UI、不使用
+- `.deps/cef` 中 exact pinned official distribution 已由 `config/cef.cmake` 和 build scripts 正式消费；
+  不得直接修改发行文件、绕过 hash gate 或把旧 `build/xcode` 生成物当作 canonical dependency；
+- 当前实现使用 Egakium 自有 macOS app 生命周期内嵌 CEF，不魔改 Chrome UI、不使用
   `content_shell`、不自建 Chromium fork；
-- 当前 `WKWebView` 仅用于最小调试闭环：non-persistent website data store、Session 目录 read access、
-  top-level scheme allowlist 和 content-rule network deny。它不能冒充 CEF sandbox/Helper/签名证据；
+- WKWebView/WebKit Canvas、content world/navigation/lifecycle 和 fallback 已删除，不得恢复；
+- CEF 缺失、版本/hash 不匹配、Helper/resource/bundle 不完整或初始化失败时必须 fail closed/明确
+  Canvas unavailable，不得改用 WKWebView、截图渲染或外部 Chromium 窗口；
 - 页面、元素和 Agent 生成的 JavaScript 不得直接获得任意文件、进程、Shell、credential 或 native
   bridge 权限；
-- bridge 必须异步、白名单化、可版本化，并验证 origin、SessionID、ElementID、参数和权限；
-- 内部资源需要稳定 origin、CSP、路径校验和 element document 隔离；
+- 当前没有 native bridge；未来 bridge 必须异步、白名单化、可版本化，并验证 origin、SessionID、
+  ElementID、参数和权限；
+- 内部资源现使用 stable `egakium://canvas` origin、CSP、canonical root/path/symlink/regular-file 校验与
+  element document 隔离；
 - CEF sandbox/进程隔离、Helper、Hardened Runtime、nested code signing 与公证必须按直接分发合同
   重新验证；旧 `USE_SANDBOX=OFF` ad-hoc 原型不能成为发行证据；
-- 不做 Mac App Store 不代表可以取消 CEF/Web 隔离或当前 Intatis 权限/lease/Seatbelt 安全链。
+- 不做 Mac App Store 不代表可以取消 CEF/Web 隔离或当前 Egakium 权限/lease/Seatbelt 安全链。
 
 ## 明确非目标
 
@@ -400,28 +520,33 @@ workspace 工具链编辑；该 HTML 不是 EventLog canonical Session truth。�
 - 不让 `@main` 同步递归调用 sub-agent AgentLoop；
 - 不让 Canvas/CEF 绕过 ToolRegistry、PermissionEngine、WorkspaceLease 或 SecretScanner；
 - 不恢复完整 Chromium、`chrome --app`、Content embedder 或旧 CEF 独立 App 作为当前产品壳；
-- 不在本目标中批量重命名 Intatis target/module/bundle/config/data/protocol identity；
+- 不重新分裂已经统一的 Egakium target/module/bundle/config/data/protocol identity；
 - 不把 Canvas/Cowork 引入 iOS；
-- 不自动执行旧 `docs/NEXT_TARGET.md` 中的 Intatis v0.48 公证发布任务。
+- 不自动执行旧 `docs/NEXT_TARGET.md` 中的 Egakium v0.48 公证发布任务。
 
-## 推荐实现顺序
+## 实现顺序与当前停点
 
-除非用户另行调整，后续代码工作按最小可验证纵向切片推进：
+前四步已完成；后续步骤只是已知缺口，不是自动获准的下一任务：
 
-1. **已完成原型**：建立一个 Session 一份确定性 `index.html` 的宿主初始化、旧 Session additive
+1. **已完成 renderer-independent 基础**：建立一个 Session 一份确定性 `index.html` 的宿主初始化、旧 Session additive
    初始化、no-overwrite 恢复和 exact `@main` 直编提示；
 2. **已完成 UI 组合与入口纠正**：抽取可复用 `CoworkCanvasHost`，在 `CoworkSessionView` 中用原生
    水平 split 原样拼接左 Canvas 与右现有 `CoworkShell`；移除独立 Canvas scene/window/header action，
    保证用户打开的唯一 Cowork surface 同时包含两边；
-3. 用正式单一主 CEF BrowserView 替换当前 WKWebView 调试适配层，并完成内部资源、生命周期和空白
-   画布验证；
-4. 冻结 ElementID、独立元素网页、layout projection 与 iframe/document 隔离；
-5. 先完成宿主创建、移动、resize、选择、刷新单个元素的无模型闭环；
-6. 扩充当前 `@main` 精确入口路径 prompt/context；只有真实需要时再增加专用 Canvas tools；
-7. 用现有 spawn/delegate/task flow 把单个 ElementID + 页面范围交给 ordinary sub-agent；
-8. 完成多元素并行、冲突、恢复、安全、性能、签名和公证验证。
+3. **已完成 renderer-independent Element/Agent 合同**：固定唯一 generic child-document template，把 successful ordinary
+   spawn 的 fresh file/ID、additive descriptor events、ToolResult/`list_agents`/prompt/replay、dispatch
+   validation、lost-ack recovery 与 replay-proven compensation 接通；
+4. **已完成 CEF-only cutover**：直接接入单一主 CEF child browser/Helpers，删除 WKWebView 与全部
+   WebKit-specific fallback，并完成 pin/hash、资源 scheme、lifecycle、sandbox 与 ARM64 bundle 接线；
+5. 冻结 durable CanvasID/ElementID、layout projection、origin/iframe document 隔离与 native bridge；
+6. 让宿主的 create/move/resize/select/refresh 从 provisional DOM 行为升级为可恢复的单元素闭环；
+7. 只有真实需要时再增加经现有权限/durable execution 链的专用 Canvas tools；
+8. 用现有 spawn/delegate/task flow 把单个 ElementID + 页面范围交给 ordinary sub-agent；
+9. 完成多元素并行、冲突、恢复、安全、性能、签名和公证验证。
 
 每一步都必须保留前述七事件 bootstrap、EventLog、权限、lifecycle、iOS 与 direct-distribution 边界。
+开始第 5 步或以后任一步前，必须先由用户确定 exact 范围和所采用的外部依赖；不得自行补回 DOM
+adapter 或“临时交互层”。
 
 ## 首批验收方向
 
@@ -449,8 +574,11 @@ workspace 工具链编辑；该 HTML 不是 EventLog canonical Session truth。�
 
 - Canvas durable schema、Element revision 与 ArtifactStore/workspace 的精确所有权；
 - CEF 在 SwiftPM/XcodeGen 中的 target、wrapper、bundle resource 和 Helper 接线；
-- 主画布内部 scheme、origin、CSP、iframe sandbox 与 bridge schema；
-- Canvas viewport、选中、拖拽、resize、z-order、group 的第一版交互范围；
+- 主画布正式内部 scheme、origin、CSP、iframe sandbox 与 bridge schema；当前
+  `sandbox="allow-scripts"` 只是 WK 原型的 provisional 最小值；
+- durable Canvas viewport/selection/drag/resize/z-order/group 范围；当前 provisional v1 只包含
+  scrollable grid、direct cards、selection/bring-to-front、drag、resize、keyboard move/resize，
+  不包含 Canvas-native pan/zoom/group/relation 或跨重启布局；
 - Canvas selection 如何以有界、非伪 authority 的方式进入 `@main` context；
 - Canvas mutation 哪些是 host-local UI 操作，哪些是 model-facing tool call；
 - generated HTML/JS 的资源预算、隔离、错误恢复和性能上限；

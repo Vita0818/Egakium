@@ -2,7 +2,7 @@
 set -eu
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
-project_dir="$repo_root/Intatis.xcodeproj"
+project_dir="$repo_root/Egakium.xcodeproj"
 user_name="${USER:-$(id -un)}"
 scheme_dir="$project_dir/xcuserdata/$user_name.xcuserdatad/xcschemes"
 plist="$scheme_dir/xcschememanagement.plist"
@@ -16,28 +16,28 @@ cat > "$plist" <<'PLIST_HEADER'
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
-		<key>IntatisMac.xcscheme_^#shared#^_</key>
+		<key>EgakiumMac.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>isShown</key>
 			<true/>
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
-		<key>IntatisiOS.xcscheme_^#shared#^_</key>
+		<key>EgakiumiOS.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>isShown</key>
 			<true/>
 			<key>orderHint</key>
 			<integer>1</integer>
 		</dict>
-		<key>intatis.xcscheme</key>
+		<key>egakium.xcscheme</key>
 		<dict>
 			<key>isShown</key>
 			<true/>
 			<key>orderHint</key>
 			<integer>2</integer>
 		</dict>
-		<key>intatis.xcscheme_^#shared#^_</key>
+		<key>egakium.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>isShown</key>
 			<true/>
@@ -47,17 +47,17 @@ cat > "$plist" <<'PLIST_HEADER'
 PLIST_HEADER
 
 for scheme in \
-	IntatisCore \
-	IntatisProtocol \
-	IntatisProviders \
-	IntatisConversation \
-	IntatisArtifacts \
-	IntatisMultimodal \
-	IntatisSharedUI \
-	IntatisTools \
-	IntatisPermission \
-	IntatisAgentKernel \
-	IntatisCowork
+	EgakiumCore \
+	EgakiumProtocol \
+	EgakiumProviders \
+	EgakiumConversation \
+	EgakiumArtifacts \
+	EgakiumMultimodal \
+	EgakiumSharedUI \
+	EgakiumTools \
+	EgakiumPermission \
+	EgakiumAgentKernel \
+	EgakiumCowork
 do
 	cat >> "$plist" <<PLIST_SCHEME
 		<key>$scheme.xcscheme</key>

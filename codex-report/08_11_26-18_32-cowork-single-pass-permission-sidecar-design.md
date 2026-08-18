@@ -16,13 +16,13 @@ DeterministicPolicyGate、WorkspaceLease、CapabilityLease 或 durable tool exec
 input、permission-request receipt、plain-text verdict、manual reserved-key fence、dedicated host admission、
 duplicate/recovery invocation revalidation、durable non-echo 与 in-engine reviewer misconfiguration fence。2026-08-12
 corrective focused 验证为 7 个 suite、162 tests / 0 failures；本次 strict-schema correction 的受影响目标
-`IntatisAgentKernelTests` 217/217、`IntatisKnowledgeTests` 118/118、`IntatisCoworkTests` 364/364、
-`IntatisCLITests` 45/45（8 skipped）通过。真实 provider sidecar/UI smoke 尚未运行；
+`EgakiumAgentKernelTests` 217/217、`EgakiumKnowledgeTests` 118/118、`EgakiumCoworkTests` 364/364、
+`EgakiumCLITests` 45/45（8 skipped）通过。真实 provider sidecar/UI smoke 尚未运行；
 live 路径没有固定 sidecar byte ceiling，也没有 `review_input_too_large` admission。
 
 > **2026-08-12 实现校正（覆盖本文所有冲突的旧设计措辞）**
 >
-> - `__intatis_authorization_context` 当前是 request-owned provider schema 中 required 的单一 String；任何
+> - `__egakium_authorization_context` 当前是 request-owned provider schema 中 required 的单一 String；任何
 >   `strict:true` function 的 decorated schema 均须满足 `required == properties.keys` 与
 >   `additionalProperties:false`；装饰器递归验证并在发网前 typed fail closed。`tool_search` 本身保持原样，
 >   provider-bound `tool_search_output` 中的 deferred function/namespace children 同样装饰而 durable output
@@ -118,7 +118,7 @@ durable settlement → authorization/workspace revalidation
 
 ### 3.1 v0.47 ToolCall 没有独立 sidecar 通道
 
-Packages/IntatisProviders/Sources/ToolCalling.swift 中：
+Packages/EgakiumProviders/Sources/ToolCalling.swift 中：
 
 - ToolSpec.parameters 已经是 provider-facing JSON Schema。
 - ToolCall 只有 id、name、arguments、kind、namespace、status 和 execution。
@@ -130,7 +130,7 @@ Packages/IntatisProviders/Sources/ToolCalling.swift 中：
 
 ### 3.2 v0.47 Reporter 是第二次主模型调用
 
-Packages/IntatisAgentKernel/Sources/AgentLoop.swift 在 v0.47 中于主模型已经返回工具调用后构造
+Packages/EgakiumAgentKernel/Sources/AgentLoop.swift 在 v0.47 中于主模型已经返回工具调用后构造
 PermissionAuthorizationReportingTurn，其中包含：
 
 - 本次主模型的完整 request.messages；
@@ -142,7 +142,7 @@ PermissionAuthorizationReportingTurn，其中包含：
 当权限 gate 进入 automatic ask-class 路径时，AgentLoop 再调用
 PermissionAuthorizationContextReporter。
 
-Packages/IntatisAgentKernel/Sources/PermissionAuthorizationContextReporter.swift 当时又把：
+Packages/EgakiumAgentKernel/Sources/PermissionAuthorizationContextReporter.swift 当时又把：
 
 ~~~text
 turn.providerMessages
@@ -321,7 +321,7 @@ Executor 永远只收到剥离 sidecar 后、经过原工具 schema 验证的 ca
 本设计使用：
 
 ~~~text
-__intatis_authorization_context
+__egakium_authorization_context
 ~~~
 
 它只存在于 provider-visible tool schema 和主模型返回的 function arguments 中。它不是业务工具参数，
@@ -333,7 +333,7 @@ __intatis_authorization_context
 {
   "path": "reports/summary.md",
   "content": "...actual business argument...",
-  "__intatis_authorization_context": "The source review is complete; writing only reports/summary.md produces the requested deliverable."
+  "__egakium_authorization_context": "The source review is complete; writing only reports/summary.md produces the requested deliverable."
 }
 ~~~
 
@@ -560,7 +560,7 @@ request 恢复为 deny。
 ToolSpec：
 
 1. 复制原 JSON Schema。
-2. 在 properties 中加入 __intatis_authorization_context。
+2. 在 properties 中加入 __egakium_authorization_context。
 3. 将它加入 decorated copy 的 `required`，使 acting model 每次 automatic Cowork function call 都输出 sidecar。
 4. 保留原业务字段、原 ToolDescriptor/business required/executor schema 与 strict 值；若 strict 为 true，
    decorated copy 必须满足全部 properties 均 required、`additionalProperties:false`。
@@ -930,7 +930,7 @@ call 必须携带。
 
 ### 18.5 保留字段冲突
 
-如果本地或 MCP 工具已经声明 __intatis_authorization_context：
+如果本地或 MCP 工具已经声明 __egakium_authorization_context：
 
 - 不得覆盖；
 - 不得静默改名；
@@ -989,16 +989,16 @@ lease 和 execution revalidation 仍保留，但 Reviewer 无法证明主模型�
 
 ### 21.1 Provider/ToolSpec 层
 
-实际实现位于 `Packages/IntatisAgentKernel/Sources/AuthorizationSidecar.swift`：它在 request-owned `ToolSpec`
+实际实现位于 `Packages/EgakiumAgentKernel/Sources/AuthorizationSidecar.swift`：它在 request-owned `ToolSpec`
 copy 上装饰 ordinary/namespace/deferred function schema，保留 `tool_search` 与原 execution descriptor，并在
 provider 返回后拆分 sidecar/business view。Providers 与 MCP 的基础 wire/type 没有为此新增 sibling metadata。
 EvidenceID manifest 与 route capability/size admission 尚未实现。
 
 ### 21.2 AgentKernel
 
-- Packages/IntatisAgentKernel/Sources/AgentLoop.swift
-- Packages/IntatisAgentKernel/Sources/AuthorizationSidecar.swift
-- 删除 Packages/IntatisAgentKernel/Sources/PermissionAuthorizationContextReporter.swift
+- Packages/EgakiumAgentKernel/Sources/AgentLoop.swift
+- Packages/EgakiumAgentKernel/Sources/AuthorizationSidecar.swift
+- 删除 Packages/EgakiumAgentKernel/Sources/PermissionAuthorizationContextReporter.swift
 
 职责：
 
@@ -1015,10 +1015,10 @@ EvidenceID manifest 与 route capability/size admission 尚未实现。
 
 ### 21.3 Permission/Cowork Control Plane
 
-- Packages/IntatisPermission/Sources/ModelPermissionReviewer.swift
-- Packages/IntatisPermission/Sources/PermissionReviewTextVerdict.swift
-- Packages/IntatisCowork/Sources/AgentPermissionResponder.swift
-- Packages/IntatisCowork/Sources/PermissionReviewControlPlane.swift
+- Packages/EgakiumPermission/Sources/ModelPermissionReviewer.swift
+- Packages/EgakiumPermission/Sources/PermissionReviewTextVerdict.swift
+- Packages/EgakiumCowork/Sources/AgentPermissionResponder.swift
+- Packages/EgakiumCowork/Sources/PermissionReviewControlPlane.swift
 
 职责：
 
@@ -1033,7 +1033,7 @@ EvidenceID manifest 与 route capability/size admission 尚未实现。
 
 ### 21.4 Protocol
 
-- Packages/IntatisProtocol/Sources/PermissionReview.swift
+- Packages/EgakiumProtocol/Sources/PermissionReview.swift
 
 原则：
 
@@ -1114,11 +1114,11 @@ EvidenceID manifest 与 route capability/size admission 尚未实现。
   WebKit/Seatbelt/terminal 环境限制失败；该次还暴露一个仍按旧 Reporter 行为编写的 reliability fixture，
   fixture 随本轮流程修正。不能把第一次运行写成源码全绿；
 - 随后在用户批准的工作区沙箱外，用相同完整 `swift test` 命令重跑并 exit 0；独立 xctest 复核
-  `IntatisCoworkTests` 362/362、`IntatisAgentKernelTests` 210/210；新增 focused
+  `EgakiumCoworkTests` 362/362、`EgakiumAgentKernelTests` 210/210；新增 focused
   `OrchestrationReliabilityTests.testCancelAllDrainsDataPlaneBeforeShuttingDownPermissionReviewer` 1/1；
 - `xcodegen generate` 通过；`scripts/check-version-consistency.sh` 通过并输出
-  `Intatis version is consistent: 0.40 (build 40)`；`IntatisMac` macOS Debug unsigned 与
-  `IntatisiOS` generic Simulator Debug unsigned build 均 exit 0，仅有仓库既有 warnings；
+  `Egakium version is consistent: 0.40 (build 40)`；`EgakiumMac` macOS Debug unsigned 与
+  `EgakiumiOS` generic Simulator Debug unsigned build 均 exit 0，仅有仓库既有 warnings；
 - Chat Completions、Responses/OpenRouter exact route 的真实 provider sidecar smoke 尚未运行；本轮也没有
   运行 UI/manual switch smoke 或真实大 PDF/长上下文 cost/latency 测量。
 
@@ -1220,19 +1220,19 @@ EvidenceID manifest 与 route capability/size admission 尚未实现。
 | `AutomaticPermissionReviewTests` | 35/35 |
 | `DurableMultimodalAgentLoopTests` | 9/9 |
 | `AuthorizationSidecarTests` | 12/12 |
-| `IntatisPermissionReviewerTests` | 10/10 |
+| `EgakiumPermissionReviewerTests` | 10/10 |
 | `PermissionReviewProtocolTests` | 12/12 |
 | focused 合计 | 162 tests / 0 failures |
 | `OrchestrationReliabilityTests.testCancelAllDrainsDataPlaneBeforeShuttingDownPermissionReviewer` | 1/1 |
 | `swift build --disable-sandbox --disable-automatic-resolution` | exit 0 |
 | 完整 `swift test --disable-sandbox --disable-automatic-resolution`（Codex 工作区沙箱内首次） | WebKit/Seatbelt/terminal 环境限制失败；并暴露、随后修复一个旧 Reporter reliability fixture |
 | 同一完整 `swift test`（用户批准的工作区沙箱外重跑） | exit 0 |
-| 独立 `IntatisCoworkTests.xctest` | 362/362 |
-| 独立 `IntatisAgentKernelTests.xctest` | 210/210 |
+| 独立 `EgakiumCoworkTests.xctest` | 362/362 |
+| 独立 `EgakiumAgentKernelTests.xctest` | 210/210 |
 | `xcodegen generate` | exit 0 |
 | `scripts/check-version-consistency.sh` | exit 0；`0.40 (build 40)` |
-| `IntatisMac` macOS Debug unsigned build | exit 0；仅既有 warnings |
-| `IntatisiOS` generic Simulator Debug unsigned build | exit 0；仅既有 warnings |
+| `EgakiumMac` macOS Debug unsigned build | exit 0；仅既有 warnings |
+| `EgakiumiOS` generic Simulator Debug unsigned build | exit 0；仅既有 warnings |
 | opt-in real provider sidecar smoke | 未运行 |
 | UI/manual permission switch smoke | 未运行 |
 
@@ -1366,7 +1366,7 @@ reviewer input、permission-request receipt、plain-text verdict、媒体 blanke
 fence、correctable tool-input sidecar failure、dedicated host admission、duplicate/recovery revalidation、fixed durable reason/
 diagnostic 与 in-engine misconfiguration fail-closed 均已有生产源码和 regression coverage。
 
-验证结论是：focused 162/162、SwiftPM build、`IntatisMac` macOS Debug unsigned build、本次受影响的
+验证结论是：focused 162/162、SwiftPM build、`EgakiumMac` macOS Debug unsigned build、本次受影响的
 AgentKernel 217/217、Knowledge 118/118、Cowork 364/364、CLI 45/45（8 skipped）均通过。当前完整 SwiftPM test 在 Tools 223/223 后挂于既有
 SharedUI async waiter并人工中断，不能记为本次全量通过；此前完整 test、XcodeGen、版本一致性与
 macOS/iOS Debug unsigned build 的通过证据，以及早先 WebKit/Seatbelt/terminal 环境失败历史，仍保留在

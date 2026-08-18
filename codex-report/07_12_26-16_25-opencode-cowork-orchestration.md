@@ -1,4 +1,4 @@
-# OpenCode / Claude Code 编排调研与 Intatis Cowork 修复建议
+# OpenCode / Claude Code 编排调研与 Egakium Cowork 修复建议
 
 ## MODEL_CHECK_RESULT
 
@@ -6,8 +6,8 @@
 
 ## PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 路径匹配预期：是
 - 工作树在本报告创建和本次修订前均已有多项未提交改动；本报告没有覆盖、回退或清理这些改动。
 
@@ -17,21 +17,21 @@
 
 ## POLICY_REVISION
 
-本报告最初按 Intatis 的严格 clean-room 政策编写。2026-07-12 项目政策已升级为 Apple-first、Swift-native 优先，并允许按 `docs/OPEN_SOURCE_REUSE.md` 选择性复制、翻译、修改或运行兼容许可证的公开实现。本修订版据此把“禁止复制源码”改为“可以合规复用源码，但不能照搬不兼容的运行语义、品牌资产或安全默认值”。
+本报告最初按 Egakium 的严格 clean-room 政策编写。2026-07-12 项目政策已升级为 Apple-first、Swift-native 优先，并允许按 `docs/OPEN_SOURCE_REUSE.md` 选择性复制、翻译、修改或运行兼容许可证的公开实现。本修订版据此把“禁止复制源码”改为“可以合规复用源码，但不能照搬不兼容的运行语义、品牌资产或安全默认值”。
 
-截至本次修订，OpenCode 仍是 `research-only`：尚未把其源码、公开 prompt、UI 资产或 runtime 加入 Intatis。后续每批复用必须固定上游 commit、核对具体文件/依赖许可证并更新 `NOTICE.md`。
+截至本次修订，OpenCode 仍是 `research-only`：尚未把其源码、公开 prompt、UI 资产或 runtime 加入 Egakium。后续每批复用必须固定上游 commit、核对具体文件/依赖许可证并更新 `NOTICE.md`。
 
 本报告随后又根据 2026-07-12 的产品方向讨论修订：Cowork 的默认权限审批目标明确为全自动；累计 token 预算不再被视为权限硬边界；第一阶段以“新建 session 到任务明确终态”的最小可用闭环为目标，OpenCode 调研与源码复用只作为加速该闭环的工程手段。
 
 ## SUMMARY
 
-结论是：Intatis 对 Cowork 的核心判断基本正确，但最终实现不应完整复制 OpenCode 或 Claude Code 中的任何一种架构。更适合 Intatis 的组合是：
+结论是：Egakium 对 Cowork 的核心判断基本正确，但最终实现不应完整复制 OpenCode 或 Claude Code 中的任何一种架构。更适合 Egakium 的组合是：
 
 - 用 OpenCode 的思路定义可靠的单 agent session/runtime。
 - 用 Claude Code Agent Teams 的思路定义共享任务、mailbox 和多 session 控制平面。
-- 用 Intatis 自己的 EventLog、CapabilityLease、WorkspaceLease、PermissionEngine 和 scheduler 提供可恢复、可审计、自动审批的本地执行语义。
+- 用 Egakium 自己的 EventLog、CapabilityLease、WorkspaceLease、PermissionEngine 和 scheduler 提供可恢复、可审计、自动审批的本地执行语义。
 
-从产品定位上看，Intatis 不是三个彼此独立的聊天页面，而是一个本地 Agent runtime/scheduler：
+从产品定位上看，Egakium 不是三个彼此独立的聊天页面，而是一个本地 Agent runtime/scheduler：
 
 ```text
 Chat    = provider / streaming 基线
@@ -51,7 +51,7 @@ Orchestrator     = scheduler / control plane
 UI               = projection / console，不是事实源
 ```
 
-模型负责意图、规划和工具选择；Intatis 负责校验、授权、执行、持久化、调度和恢复。
+模型负责意图、规划和工具选择；Egakium 负责校验、授权、执行、持久化、调度和恢复。
 
 产品目标不是让用户操作一套 agent 管理后台，而是让用户选择项目、描述目标，随后由 `@main` 自动组织受限 worker 和真实工具完成工作。用户不应被要求手动创建普通 worker、理解 lease/task graph、反复批准权限，或通过猜测侧栏和输入框状态判断任务是否已经启动。
 
@@ -75,13 +75,13 @@ OpenCode 的 `TaskTool` 使用与 read、edit、bash 等工具相同的工具定
 
 源码依据：[`packages/opencode/src/tool/task.ts`](https://github.com/anomalyco/opencode/blob/dev/packages/opencode/src/tool/task.ts)。
 
-这验证了 Intatis 的设计哲学：创建、恢复和调度 agent 可以是模型可见的普通工具调用，差异仅在 executor 由宿主应用处理。
+这验证了 Egakium 的设计哲学：创建、恢复和调度 agent 可以是模型可见的普通工具调用，差异仅在 executor 由宿主应用处理。
 
 ### 2. 子 agent 是真实 session，而不是特殊函数回调
 
 OpenCode 创建子 agent 时会为其建立具有 `parentID`、agent 类型、模型与权限配置的子 session。子 agent 继续使用同一个 session prompt/runtime，而不是维护另一套简化执行器。
 
-这支持以下 Intatis 方向：
+这支持以下 Egakium 方向：
 
 ```text
 Code UI ───────▶ AgentRuntime × 1
@@ -101,9 +101,9 @@ OpenCode 的工具 registry 会：
 
 源码依据：[`packages/opencode/src/tool/registry.ts`](https://github.com/anomalyco/opencode/blob/dev/packages/opencode/src/tool/registry.ts)。
 
-因此“告诉模型它有哪些工具”不能只依赖 system prompt。Intatis 每次请求至少要同时保证：
+因此“告诉模型它有哪些工具”不能只依赖 system prompt。Egakium 每次请求至少要同时保证：
 
-- system message 中有稳定的 Intatis 运行环境和行为约束。
+- system message 中有稳定的 Egakium 运行环境和行为约束。
 - API `tools` 中有本轮真实可用的工具以及严格 Schema。
 - 协调工具 description 中动态列出允许的 agent 类型、限制和调用语义。
 - 动态任务、workspace、agent、lease 信息放在有边界的 user-role untrusted context 中。
@@ -114,7 +114,7 @@ OpenCode 会在 system context 中加入模型、工作目录、workspace root�
 
 源码依据：[`packages/opencode/src/session/system.ts`](https://github.com/anomalyco/opencode/blob/dev/packages/opencode/src/session/system.ts)。
 
-这支持 Intatis 增加自己的 `RuntimeEnvironmentManifest`，也说明 DeepSeek Flash 等较弱模型可能需要小型、Intatis-specific 的 model-family prompt overlay。OpenCode 公开仓库中由兼容许可证覆盖的 model-facing prompt 可以作为派生复用候选，但必须固定 commit、记录来源、移除 OpenCode 品牌/支持链接，并重新适配 Intatis 的工具名、权限与安全语义；产品文案、名称和 UI 品牌不复用。
+这支持 Egakium 增加自己的 `RuntimeEnvironmentManifest`，也说明 DeepSeek Flash 等较弱模型可能需要小型、Egakium-specific 的 model-family prompt overlay。OpenCode 公开仓库中由兼容许可证覆盖的 model-facing prompt 可以作为派生复用候选，但必须固定 commit、记录来源、移除 OpenCode 品牌/支持链接，并重新适配 Egakium 的工具名、权限与安全语义；产品文案、名称和 UI 品牌不复用。
 
 ### 5. 权限是工具级规则，而不是单独的“agent 系统”
 
@@ -122,7 +122,7 @@ OpenCode 的 permission service 使用 `allow`、`deny`、`ask` 规则匹配工�
 
 源码依据：[`packages/opencode/src/permission/service.ts`](https://github.com/anomalyco/opencode/blob/dev/packages/opencode/src/permission/service.ts)。
 
-这直接支持 Intatis 的修正：一个已获准的 `spawn_agent` 或 `delegate_task` 应当只有一个外部权限决定。内部的 registry mutation、workspace lease 建立、roster 更新、event batch append 和 scheduler enqueue 不应递归进入 PermissionEngine。
+这直接支持 Egakium 的修正：一个已获准的 `spawn_agent` 或 `delegate_task` 应当只有一个外部权限决定。内部的 registry mutation、workspace lease 建立、roster 更新、event batch append 和 scheduler enqueue 不应递归进入 PermissionEngine。
 
 ### 6. OpenCode 当前会显式派生子 agent 权限
 
@@ -130,7 +130,7 @@ OpenCode 曾出现子 agent 丢失父级限制的问题。当前 `deriveSubagent
 
 源码依据：[`packages/opencode/src/agent/subagent-permissions.ts`](https://github.com/anomalyco/opencode/blob/dev/packages/opencode/src/agent/subagent-permissions.ts)。
 
-对 Intatis 的含义是：
+对 Egakium 的含义是：
 
 - 子 agent 能力只能等于或小于 CapabilityLease 授权范围。
 - 父级 hard deny 和 workspace 边界必须向下传播。
@@ -155,7 +155,7 @@ Claude Code 主程序不是完整开源项目，因此本报告只使用其官�
 
 官方并行 agent 文档也明确把各种 worker 视为 session，并区分 subagent、agent view、agent teams 和 dynamic workflow 的协调方式。来源：[Claude Code Run agents in parallel](https://code.claude.com/docs/en/agents)。
 
-这与 Intatis 已有的 Orchestrator、TaskGraph、AgentScheduler、MessageBus 和 EventLog 更接近，也说明 Cowork 不应退化为主 AgentLoop 同步调用多个子函数。
+这与 Egakium 已有的 Orchestrator、TaskGraph、AgentScheduler、MessageBus 和 EventLog 更接近，也说明 Cowork 不应退化为主 AgentLoop 同步调用多个子函数。
 
 ### 8. 权限审查者应属于控制面，不是普通 teammate
 
@@ -163,32 +163,32 @@ Claude Code 的公开 hook 机制把 `PreToolUse` 和 `PermissionRequest` 放在
 
 Claude Code 官方文档还明确说明：agent 消息不能批准 pending permission，也不能修改另一个 agent 的权限设置。来源：[Claude Code Subagents](https://code.claude.com/docs/en/sub-agents)。
 
-这支持 Intatis 当前原则：`@permission-reviewer` 是独立权限控制面，不进入普通 task pool，不接受普通 delegate/message，不占 worker scheduler slot，也不能通过 agent 消息改变权限。
+这支持 Egakium 当前原则：`@permission-reviewer` 是独立权限控制面，不进入普通 task pool，不接受普通 delegate/message，不占 worker scheduler slot，也不能通过 agent 消息改变权限。
 
 ## REUSE_BOUNDARIES
 
 ### 1. 不照搬 OpenCode 的同步嵌套执行方式
 
-OpenCode 的前台 TaskTool 会在工具 executor 中直接调用子 session 的 `prompt()`。这种实现对单进程工具壳很直观，但与 Intatis 的明确原则冲突：`AgentLoop` 不得同步递归调用另一个 `AgentLoop`。
+OpenCode 的前台 TaskTool 会在工具 executor 中直接调用子 session 的 `prompt()`。这种实现对单进程工具壳很直观，但与 Egakium 的明确原则冲突：`AgentLoop` 不得同步递归调用另一个 `AgentLoop`。
 
-Intatis 应保留下列路径：
+Egakium 应保留下列路径：
 
 ```text
 ToolCall
   -> schema / lease / permission
   -> durable prepare
-  -> Intatis orchestration executor
+  -> Egakium orchestration executor
   -> append task/agent/mailbox events
   -> scheduler 唤醒目标 AgentRuntime
   -> TaskReport / message event 返回调用者
   -> durable settle
 ```
 
-OpenCode 对应源码可以在 MIT 与 provenance 要求下选择性复用或翻译，但进入 Intatis 时必须把同步 `ops.prompt()` 递归改造成 scheduler/mailbox/event flow，不能因为复用了成熟实现就保留与 Intatis durability 原则冲突的执行方式。
+OpenCode 对应源码可以在 MIT 与 provenance 要求下选择性复用或翻译，但进入 Egakium 时必须把同步 `ops.prompt()` 递归改造成 scheduler/mailbox/event flow，不能因为复用了成熟实现就保留与 Egakium durability 原则冲突的执行方式。
 
 ### 2. 不把 `ask` 式人工等待带入全自动审批模式
 
-OpenCode 的默认 `ask` 会等待外部 UI 回复。Intatis 的核心产品特征是全程自动权限审批，因此自动模式必须有清晰终态：
+OpenCode 的默认 `ask` 会等待外部 UI 回复。Egakium 的核心产品特征是全程自动权限审批，因此自动模式必须有清晰终态：
 
 ```text
 allow | deny
@@ -206,22 +206,22 @@ OpenCode 根仓库使用 MIT License，因此具体源码、测试和由该许�
 
 ### 4. 不把 agent 层级硬编码成永久角色树
 
-OpenCode 的 primary/subagent 配置适合工具壳，但 Intatis 已定义更通用的模型：Agent Identity 持久、角色属于 TaskContract、能力属于临时 Lease。不能重新固化 main/coordinator/worker/leaf 永久递归树。
+OpenCode 的 primary/subagent 配置适合工具壳，但 Egakium 已定义更通用的模型：Agent Identity 持久、角色属于 TaskContract、能力属于临时 Lease。不能重新固化 main/coordinator/worker/leaf 永久递归树。
 
 ## SOURCE_REUSE_UPGRADE_MAP
 
 为降低语言迁移和上游升级成本，建议按文件/模块分批采用，而不是 fork 整个 OpenCode monorepo：
 
-| OpenCode 候选 | Intatis 目标 | 推荐复用形式 | 必须保留/改写 |
+| OpenCode 候选 | Egakium 目标 | 推荐复用形式 | 必须保留/改写 |
 |---|---|---|---|
-| `session/system.ts` 与 provider prompt selection | `RuntimeEnvironmentManifest` / `ContextBuilder` | `derived`：选择性翻译环境组装和模型分流逻辑 | 保留 Swift-native；重写 Intatis 身份、工具名、权限说明；不保留 OpenCode 品牌文案 |
+| `session/system.ts` 与 provider prompt selection | `RuntimeEnvironmentManifest` / `ContextBuilder` | `derived`：选择性翻译环境组装和模型分流逻辑 | 保留 Swift-native；重写 Egakium 身份、工具名、权限说明；不保留 OpenCode 品牌文案 |
 | `tool/registry.ts` | `ToolRegistry` / lease-filtered descriptors | `derived` + 上游行为测试 | 复用动态 agent/tool description 思路；继续由 CapabilityLease 决定真实工具面 |
 | `tool/task.ts` | `CoordinatorTools` / atomic `delegate_task` | 选择性翻译参数、session metadata 与结果注入逻辑 | 删除同步 child `prompt()`；改为 durable prepare → scheduler/mailbox → TaskReport → settle |
-| `agent/subagent-permissions.ts` | Capability/Workspace lease derivation | 翻译规则与测试边界 | Intatis hard deny、workspace identity、task-scoped revoke 比上游更严格，不能降级 |
+| `agent/subagent-permissions.ts` | Capability/Workspace lease derivation | 翻译规则与测试边界 | Egakium hard deny、workspace identity、task-scoped revoke 比上游更严格，不能降级 |
 | `permission/service.ts` | reviewer 前的规则匹配与 deny feedback | 复用匹配算法或测试，不整体替换 PermissionEngine | 保留三层门、自动 reviewer、durable review request/settled 和 fail-closed |
-| session/task tests | request snapshot、model compatibility、delegation regression | 移植测试意图；必要时翻译 fixture | 记录上游测试来源；断言改为 Intatis EventLog/Lease/TaskGraph 语义 |
+| session/task tests | request snapshot、model compatibility、delegation regression | 移植测试意图；必要时翻译 fixture | 记录上游测试来源；断言改为 Egakium EventLog/Lease/TaskGraph 语义 |
 | OpenCode TypeScript runtime | 可选 macOS external runtime adapter | 仅在确有收益时作为 `external-runtime` 评估 | 需要 Node/Bun、签名、Hardened Runtime、超时/取消/进程清理；不得进入 iOS |
-| OpenCode TUI/Desktop UI、名称、图标、截图 | 无 | 不采用 | Intatis 保持 SwiftUI/AppKit 和独立产品身份 |
+| OpenCode TUI/Desktop UI、名称、图标、截图 | 无 | 不采用 | Egakium 保持 SwiftUI/AppKit 和独立产品身份 |
 
 每批升级的固定流程：
 
@@ -230,7 +230,7 @@ pin upstream commit
   -> audit target files / LICENSE / NOTICE / transitive dependencies
   -> classify reuse mode
   -> create provenance entry
-  -> adapt to Swift + Intatis security/event semantics
+  -> adapt to Swift + Egakium security/event semantics
   -> add request/behavior regression tests
   -> update NOTICE
   -> record local patch/translation delta for future upstream sync
@@ -238,7 +238,7 @@ pin upstream commit
 
 这种形式允许优先拿到 OpenCode 已验证的请求构造、工具描述、task/session 和 permission 边界，又避免把 Bun/TypeScript 整仓强行塞进 Apple-native 内核。
 
-## REVISED_INTATIS_PLAN
+## REVISED_EGAKIUM_PLAN
 
 ### 1. 提取统一的 AgentRuntime
 
@@ -257,7 +257,7 @@ CodeViewModel 只拥有一个 runtime；Cowork Orchestrator 持有多个 runtime
 
 第一次请求以及后续每次模型请求都应可靠包含：
 
-- 当前运行在 Intatis 的 Chat/Code/Cowork 哪种模式。
+- 当前运行在 Egakium 的 Chat/Code/Cowork 哪种模式。
 - 所有外部动作必须通过工具完成。
 - 只有 API `tools` 中出现的工具才真实可用。
 - Tool arguments 必须严格满足 JSON Schema。
@@ -266,7 +266,7 @@ CodeViewModel 只拥有一个 runtime；Cowork Orchestrator 持有多个 runtime
 
 动态 workspace path、TaskContract、agent identity、CapabilityLease 和近期事件只放在有界、转义的 user-role untrusted block，不能拼入稳定 system prompt。
 
-### 3. 所有 Intatis-native 操作进入统一 ToolRegistry
+### 3. 所有 Egakium-native 操作进入统一 ToolRegistry
 
 建议工具面分为：
 
@@ -294,7 +294,7 @@ goal
   complete_goal
 ```
 
-这些工具与文件、网络、浏览器工具使用相同的 ToolDescriptor、JSON Schema、side-effect classification、permission decision、execution ticket、ToolResult 和 audit 结构。区别只在 executor 路由到 Intatis Orchestrator。
+这些工具与文件、网络、浏览器工具使用相同的 ToolDescriptor、JSON Schema、side-effect classification、permission decision、execution ticket、ToolResult 和 audit 结构。区别只在 executor 路由到 Egakium Orchestrator。
 
 ### 4. 让 `delegate_task` 成为常用的原子协调工具
 
@@ -366,7 +366,7 @@ ToolCall
 
 ### 7. 使用共享 EventLog，但保持 agent transcript 隔离
 
-OpenCode/Claude Code 都强调子 agent 拥有独立上下文和 transcript。Intatis 不必改为多个物理 JSONL；可以继续使用一个 Cowork EventLog，并按以下键投影：
+OpenCode/Claude Code 都强调子 agent 拥有独立上下文和 transcript。Egakium 不必改为多个物理 JSONL；可以继续使用一个 Cowork EventLog，并按以下键投影：
 
 ```text
 sessionID / agentID / taskID / attempt / causalChain
@@ -444,7 +444,7 @@ New Cowork Session
 
 本报告定义的第一阶段 Cowork 最小闭环已经落到本地源码：
 
-- Code 与 Cowork 共享 Swift-native headless `AgentRuntime`；`RuntimeEnvironmentManifest` 在首个 system message 稳定声明 Intatis mode、API tools 权威性、严格 JSON Schema 与 ToolResult 完成语义。
+- Code 与 Cowork 共享 Swift-native headless `AgentRuntime`；`RuntimeEnvironmentManifest` 在首个 system message 稳定声明 Egakium mode、API tools 权威性、严格 JSON Schema 与 ToolResult 完成语义。
 - request snapshot 覆盖 Code main、Cowork main/coordinator、worker 与 permission reviewer；worker/reviewer 的真实工具面继续由 lease 收窄。
 - `spawn_agent` 的目标 path 进入外层 `touchedPaths`，一个 ToolCall 只做一次权限决定；executor 使用一个 durable admission batch 建立 roster/leases/attached/spawned，不再递归普通 `attach`。
 - `delegate_task.to` 可省略；Orchestrator 会优先复用同 workspace idle worker，否则在 delegation budget 内原子创建 `worker-N`，并返回稳定 `task_id`、`agent_id` 与 TaskReport；如果后续 task admission 失败，本次新建 worker 会被回滚。
@@ -452,7 +452,7 @@ New Cowork Session
 - exact repeated denied ToolCall 只进入 reviewer 一次，随后快速拒绝，并在第三次相同尝试以结构化 terminal error 结束本轮。
 - GUI 只有在 `@main` 与自动 reviewer 就绪后才开放 composer；reviewer 失败时锁定并可 Retry，运行中可 Cancel task。CLI 只有用户明确 `/default` 才进入人工审批。
 
-验证结果：全量 SwiftPM 494 tests、14 skipped、0 failures；IntatisMac macOS Debug Xcode build 成功。Computer Use 新建 `cowork_54xwnbgl` 后，EventLog 连续持久化 `@main`（read_write）与 `@permission-reviewer`（read_only/无工具）的 leases + attach；重启后 session 出现在侧栏，页面显示 reviewer enabled / 2 agents / 0 running，composer 可编辑并成功输入未发送文本。
+验证结果：全量 SwiftPM 494 tests、14 skipped、0 failures；EgakiumMac macOS Debug Xcode build 成功。Computer Use 新建 `cowork_54xwnbgl` 后，EventLog 连续持久化 `@main`（read_write）与 `@permission-reviewer`（read_only/无工具）的 leases + attach；重启后 session 出现在侧栏，页面显示 reviewer enabled / 2 agents / 0 running，composer 可编辑并成功输入未发送文本。
 
 本轮没有复制或翻译 OpenCode 源码，因此无需新增上游 provenance/NOTICE 条目；OpenCode 继续保持 research-only。为避免未经单独授权的外部 provider 数据传输或费用，本次 GUI 未点击 Send；真实 DeepSeek/OpenRouter 多工具 E2E 仍是下一验证项，而非已知本地闭环缺陷。
 
@@ -478,7 +478,7 @@ New Cowork Session
 - `docs/ARCHITECTURE.md`：定义 Chat、Code、Cowork 链路、权限三层门、持久化、安全、平台边界与工具执行模型。
 - `docs/DO_NOT_BREAK.md`：规定 append-only EventLog、路径/secret/权限边界、Git 限制、iOS 子集和回归要求。
 - `docs/TESTING.md`：规定文档任务至少执行 `git diff --check` 与 `git status --short`；Cowork/AgentKernel 源码修改必须运行相称测试。
-- `docs/NEXT_TARGET.md`：当前目标是把 Intatis 做成真实 model-backed 本地 AI workbench；Cowork 仍需真实 provider、长任务恢复与产品化验证。
+- `docs/NEXT_TARGET.md`：当前目标是把 Egakium 做成真实 model-backed 本地 AI workbench；Cowork 仍需真实 provider、长任务恢复与产品化验证。
 - `docs/COWORK_PRINCIPLES.md`：规定 TaskContract、Scoped Context、CapabilityLease、TaskGraph/Scheduler、MessageBus、无嵌套 AgentLoop、自动 reviewer 控制面，以及开源复用不得削弱这些边界。
 - `docs/OPEN_SOURCE_REUSE.md`：规定许可证准入、源码/公开 prompt 复用形式、provenance、NOTICE、Apple-first 集成与 pinned-upstream 升级流程。
 
@@ -492,7 +492,7 @@ git rev-parse --show-toplevel
 git status --short
 ```
 
-结果：路径与 Git root 均为 `/Users/vita/Vitemis/Intatis`；工作树已有多项与本次报告修订无关的未提交改动，本次未覆盖或清理。
+结果：路径与 Git root 均为 `/Users/vita/Vitemis/Egakium`；工作树已有多项与本次报告修订无关的未提交改动，本次未覆盖或清理。
 
 本次修订后执行：
 
@@ -504,9 +504,9 @@ git status --short
 最初创建/修订报告时是文档任务，未运行构建或测试。随后按本报告实施第一阶段时实际运行：
 
 ```text
-swift build --disable-sandbox --scratch-path /private/tmp/intatis-upgrade-build
-swift test --disable-sandbox --scratch-path /private/tmp/intatis-upgrade-full-tests
-xcodebuild -project Intatis.xcodeproj -scheme IntatisMac -configuration Debug -destination platform=macOS -derivedDataPath /private/tmp/intatis-upgrade-derived-data CODE_SIGNING_ALLOWED=NO build
+swift build --disable-sandbox --scratch-path /private/tmp/egakium-upgrade-build
+swift test --disable-sandbox --scratch-path /private/tmp/egakium-upgrade-full-tests
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumMac -configuration Debug -destination platform=macOS -derivedDataPath /private/tmp/egakium-upgrade-derived-data CODE_SIGNING_ALLOWED=NO build
 git diff --check
 git status --short
 ```
@@ -518,7 +518,7 @@ git status --short
 - Claude Code 主程序没有可供本报告审查的完整官方开源实现，因此 Claude 部分仅以官方公开文档为依据。
 - OpenCode `dev` 分支持续变化，本报告描述的是 2026-07-12 调研时可见的实现，不应视为永久 API 契约。
 - 本报告尚未为计划复用的每个 OpenCode 文件固定 commit 或完成文件头、NOTICE、传递依赖审计；在实际复制/翻译前必须完成，当前只能标为候选映射。
-- fake-provider request snapshot 已证明 Intatis 构造的首个 system message、tools 与 strict Schema 符合源码意图；真实 DeepSeek Flash 的服务端接收/遵循程度仍需外部 provider E2E。
+- fake-provider request snapshot 已证明 Egakium 构造的首个 system message、tools 与 strict Schema 符合源码意图；真实 DeepSeek Flash 的服务端接收/遵循程度仍需外部 provider E2E。
 - DeepSeek Flash 的具体失败比例、复杂工具调用可靠性和多轮协调能力仍需兼容性测试，不能只凭当前 Cowork 失败归因于模型。
 - 已运行真实 macOS GUI 的 session/bootstrap/sidebar/restart/main+reviewer/composer 验证；未发送外部 provider 请求，因此真实 provider 多工具链仍未验证。
 - reviewer 与普通 agent 的 soft budget、checkpoint、continuation 和成本控制最终数据模型尚未确定；最小闭环只要求预算不造成权限控制面永久失效或 UI 死锁。
@@ -530,6 +530,6 @@ git status --short
 1. 在用户明确同意外部数据传输与费用后，用当前 DeepSeek/OpenRouter 配置运行一个包含文件读取、自动 `delegate_task`、worker TaskReport、main synthesis 和 root terminal 的 GUI Cowork 任务。
 2. 在任务运行中验证 Cancel task，并在完成或中断后重启 App，核对 EventLog projection、sidebar、roster、task terminal 与未决 tool ticket 恢复。
 3. 若 request snapshot 正确而某个模型仍频繁误用工具，再针对该 model family 增加小型 prompt overlay；不要把模型能力问题重新硬编码成永久 agent 角色。
-4. 需要复用 OpenCode 实现时，先固定 upstream commit，审计目标文件与传递依赖许可证，建立 provenance/NOTICE，再只移植可适配 Intatis Permission/Lease/EventLog 与 Apple-first 边界的部分。
+4. 需要复用 OpenCode 实现时，先固定 upstream commit，审计目标文件与传递依赖许可证，建立 provenance/NOTICE，再只移植可适配 Egakium Permission/Lease/EventLog 与 Apple-first 边界的部分。
 
 真实 provider E2E 通过后，再设计更完整的长任务 checkpoint/continuation 与成本额度模型；这些不是当前最小闭环的阻断项。

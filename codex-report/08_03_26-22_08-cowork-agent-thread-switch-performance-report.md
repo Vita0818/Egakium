@@ -11,8 +11,8 @@
 
 ## 2. PATH_CHECK_RESULT
 
-- pwd：/Users/vita/Vitemis/Intatis
-- Git root：/Users/vita/Vitemis/Intatis
+- pwd：/Users/vita/Vitemis/Egakium
+- Git root：/Users/vita/Vitemis/Egakium
 - 两者匹配项目预期。
 - 开始审计时 git status --short 为空；没有需要规避的用户既有工作区改动。
 
@@ -60,7 +60,7 @@
 - 与 task/turn/submission 有明确关联的 error、retry、状态事件：跟随其归属 agent。
 - 无法可靠归属的 session 全局事件：留在全局状态面，不能猜测 agent。
 
-默认线程仍使用当前 IntatisExecutionTracePresentation 的展示策略：普通用户/agent 对话可见，隐藏的工具细节不应因为 agent 切换而突然全部展开。若产品后续需要“仅对话”和“完整工作轨迹”两种模式，应在投影层建立两个明确 lane，不能在每次点击时扫描并过滤全历史。
+默认线程仍使用当前 EgakiumExecutionTracePresentation 的展示策略：普通用户/agent 对话可见，隐藏的工具细节不应因为 agent 切换而突然全部展开。若产品后续需要“仅对话”和“完整工作轨迹”两种模式，应在投影层建立两个明确 lane，不能在每次点击时扫描并过滤全历史。
 
 ### 5.3 始终全局的内容
 
@@ -74,7 +74,7 @@
 
 | 区域 | 当前事实 | 对本需求的性能影响 |
 | --- | --- | --- |
-| CoworkShell | CoworkViews.swift:537 保存整份 displayedItems；初始化时在 615 行通过 IntatisExecutionTracePresentation.displayedItems(items) 对输入整数组过滤 | 如果再在点击时做 agent filter，会在 UI 路径重复 O(N) 扫描和分配 |
+| CoworkShell | CoworkViews.swift:537 保存整份 displayedItems；初始化时在 615 行通过 EgakiumExecutionTracePresentation.displayedItems(items) 对输入整数组过滤 | 如果再在点击时做 agent filter，会在 UI 路径重复 O(N) 扫描和分配 |
 | 默认 agent | CoworkViews.swift:663-665 在没有 selectedAgentID 时退回 agents.first | agent roster 在 CoworkViewModel.swift:1207 起按名字排序，第一项不保证是 main，默认合同必须显式绑定 main |
 | 右侧 Agents | CoworkViews.swift:854-909 的 agentStatusRow 当前是静态 HStack | 可以增加点击语义，但点击处理本身必须只改轻量 selection/generation |
 | 线程窗口 | CoworkViews.swift:1767 起使用 eager VStack；ThreadSurfaces.swift:1316 固定 capacity = 16 | 这是必须保留的安全边界；agent page 必须在进入视图前就已经不超过 16 行 |
@@ -85,7 +85,7 @@
 | Projection snapshot | SessionProjectionPump.swift 的 CoworkSessionProjectionSnapshot 可携带完整 [CodeItem] | 线程 dirty 时向 UI 交付整数组，不适合作为超大多 agent 历史的最终 presentation API |
 | typed 归属 | Event.swift 的 UserMessagePayload.to、MessageDeltaPayload.agent、MessageCompletedPayload.agent、ToolCallPayload.agent，以及 CoworkEvents.swift 的 AgentMessagePayload.from/to 已存在 | 不需要改 EventLog wire schema；应在 fold 时保留归属，不要在 UI 反向解析标题 |
 | CodeItem | CodeProjection.swift:7 起的 CodeItem 没有专门的 agent identity 字段；agentIndex 和 toolName 仍有 firstIndex/扫描 | 需要 presentation-only attribution/index；同时应消除流式 delta 对长数组反复线性查找 |
-| 富文本生命周期 | IntatisMessageContentView.swift:257 起 onDisappear 会 deactivate；Markdown facade 限制 64 KiB、1 running、32 pending、50 ms incomplete debounce、150 ms viewport dwell、100 ms raw projection cadence | 切换必须触发 exact disappear/deactivate，并延续这些边界；不能为“秒开”保留多 agent 原生视图缓存 |
+| 富文本生命周期 | EgakiumMessageContentView.swift:257 起 onDisappear 会 deactivate；Markdown facade 限制 64 KiB、1 running、32 pending、50 ms incomplete debounce、150 ms viewport dwell、100 ms raw projection cadence | 切换必须触发 exact disappear/deactivate，并延续这些边界；不能为“秒开”保留多 agent 原生视图缓存 |
 
 这里最重要的不是某一次 filter 花了多少毫秒，而是多条线性工作会相乘：
 
@@ -287,7 +287,7 @@ P 表示页面容量，固定 P ≤ 16；N 表示 session 全部展示候选；N
 
 ## 14. 诊断与可观测性
 
-应扩展现有 IntatisPerformanceDiagnostics，而不是依赖肉眼感受。建议新增不含正文和真实 agent 名称的安全指标：
+应扩展现有 EgakiumPerformanceDiagnostics，而不是依赖肉眼感受。建议新增不含正文和真实 agent 名称的安全指标：
 
 - agentSwitch.request / commit / staleDiscard
 - agentSwitch.mainActorDuration
@@ -349,16 +349,16 @@ P 表示页面容量，固定 P ≤ 16；N 表示 session 全部展示候选；N
 
 这不是本轮修改清单，只是审计定位：
 
-- Packages/IntatisProtocol/Sources/Event.swift
-- Packages/IntatisProtocol/Sources/CoworkEvents.swift
-- Packages/IntatisConversation/Sources/CodeProjection.swift
-- Packages/IntatisConversation/Sources/SessionProjectionPump.swift
-- Apps/IntatisMac/Sources/CoworkViewModel.swift
-- Apps/IntatisMac/Sources/IntatisMacApp.swift
-- Packages/IntatisSharedUI/Sources/CoworkViews.swift
-- Packages/IntatisSharedUI/Sources/ThreadSurfaces.swift
-- Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMessageContentView.swift
-- Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMicrosoftMarkdownPipeline.swift
+- Packages/EgakiumProtocol/Sources/Event.swift
+- Packages/EgakiumProtocol/Sources/CoworkEvents.swift
+- Packages/EgakiumConversation/Sources/CodeProjection.swift
+- Packages/EgakiumConversation/Sources/SessionProjectionPump.swift
+- Apps/EgakiumMac/Sources/CoworkViewModel.swift
+- Apps/EgakiumMac/Sources/EgakiumMacApp.swift
+- Packages/EgakiumSharedUI/Sources/CoworkViews.swift
+- Packages/EgakiumSharedUI/Sources/ThreadSurfaces.swift
+- Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMessageContentView.swift
+- Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMicrosoftMarkdownPipeline.swift
 - 对应 Conversation、SharedUI、macOS integration 和 renderer fixture 测试
 
 不建议先从 CoworkViews.swift 加一个 filter 试做；必须先完成 Phase 0/1/2 的有界数据边界。

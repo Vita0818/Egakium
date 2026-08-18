@@ -1,12 +1,12 @@
 # 架构缺陷剖析 4：长会话的性能炸弹 (Performance Indexing Missing)
 
 ## 缺陷描述
-Intatis 选择了一种极端追求持久化还原度（Durability）的 append-only 事件溯源日志（Event Source）设计。但因为缺失了内存快照和持久化索引，这个设计在长距离多轮交互后，会变成可怕的性能黑洞。
+Egakium 选择了一种极端追求持久化还原度（Durability）的 append-only 事件溯源日志（Event Source）设计。但因为缺失了内存快照和持久化索引，这个设计在长距离多轮交互后，会变成可怕的性能黑洞。
 
 ## 涉及的核心文件与类型
-- **底层日志存储**：`Packages/IntatisConversation/Sources/EventLog.swift`
-- **状态构建投影**：`Packages/IntatisConversation/Sources/CoworkProjection.swift` (例如 `CoworkProjection.build(from: events)`)
-- **上下文裁剪**：`Packages/IntatisAgentKernel/Sources/ContextProjector.swift`
+- **底层日志存储**：`Packages/EgakiumConversation/Sources/EventLog.swift`
+- **状态构建投影**：`Packages/EgakiumConversation/Sources/CoworkProjection.swift` (例如 `CoworkProjection.build(from: events)`)
+- **上下文裁剪**：`Packages/EgakiumAgentKernel/Sources/ContextProjector.swift`
 
 ## 代码级致病机理分析
 1. **每次操作都需全量重放 (O(N) Replay)**：

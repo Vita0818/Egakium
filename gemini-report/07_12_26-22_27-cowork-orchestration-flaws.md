@@ -1,15 +1,15 @@
-# Intatis 多 Agent 编排架构缺点与风险审查
+# Egakium 多 Agent 编排架构缺点与风险审查
 
 ## MODEL_CHECK_RESULT
 Gemini 3.1 Pro (High)
 
 ## PATH_CHECK_RESULT
-- `pwd`: `/Users/vita/Vitemis/Intatis`
-- `git rev-parse`: `/Users/vita/Vitemis/Intatis`
+- `pwd`: `/Users/vita/Vitemis/Egakium`
+- `git rev-parse`: `/Users/vita/Vitemis/Egakium`
 工作目录匹配预期。
 
 ## FINDINGS
-基于对 `ARCHITECTURE.md`、`COWORK_PRINCIPLES.md` 及 `CURRENT_STATE.md` 的深入只读审查，Intatis 的多 Agent 编排虽然在理论抽象上严谨，但在当前的落地形态与设计边界上，存在以下明显缺陷与待验证的架构瓶颈：
+基于对 `ARCHITECTURE.md`、`COWORK_PRINCIPLES.md` 及 `CURRENT_STATE.md` 的深入只读审查，Egakium 的多 Agent 编排虽然在理论抽象上严谨，但在当前的落地形态与设计边界上，存在以下明显缺陷与待验证的架构瓶颈：
 
 ### 1. 进程内架构与隔离缺失 (In-Process Bottleneck)
 - **非分布式运行**：虽然系统设计了 `MessageBus` 和持久化投递，但当前的 v0.1 内核完全是**单进程（In-Process）内运行**（JSON-RPC 传输层未实装，外部 daemon 仍在规划中）。所有 Agent 在同一内存空间执行，一旦某个任务（如操作大量原生指针的底层逻辑或沙盒崩溃）导致宿主 App 崩溃，整个编排环境会集体宕机，缺乏进程级别的容错与隔离能力。

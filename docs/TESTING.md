@@ -1,8 +1,18 @@
 # TESTING
 
+## 外部依赖与禁止兜底验证（Vitemis 强制规则）
+
+本项目继承 `/Users/vita/Vitemis/docs/DEPENDENCY_POLICY.md`。涉及外部能力的变更必须验证：
+
+- exact 外部依赖可用时只调用其官方 API/扩展点，不调用第一方重复实现。
+- 依赖缺失、版本不兼容或构建/签名/许可证/平台/安全条件不成立时，产生明确、可诊断失败并停止该能力。
+- 失败路径不会切换到 legacy、另一 provider/backend、adapter/shim、cache、mock、简化实现或不完整路径。
+- 测试 double 只存在于测试 target，不进入 production selection 或 runtime fallback。
+- Review 检查新增 wrapper/adapter/facade 是否仅为官方 API 必需的最薄接线；发现核心能力复制、第二实现或静默降级即判定失败。
+
 文档状态：当前验证矩阵
-最近核对：2026-08-16
-产品基线：v0.2（build 49）
+最近核对：2026-08-18
+产品基线：v0.4（build 50）
 
 历史测试数量、性能数字和事故复验保留在 Git 历史及 dated reports；它们不能替代当前
 working tree 的验证。这里只记录现行命令、release gate 和最近一次真实结果。
@@ -10,14 +20,93 @@ working tree 的验证。这里只记录现行命令、release gate 和最近一
 ## 环境与产品边界
 
 - 当前 Apple 构建环境：Xcode 27 / Swift 6.x / XcodeGen。
-- macOS 默认只验证 Developer ID/direct-distribution `IntatisMac`。
-- `IntatisMacAppStore` 是 legacy target，除非用户明确点名，否则不构建、不修复，也不作为
+- macOS 默认只验证 Developer ID/direct-distribution `EgakiumMac`。
+- `EgakiumMacAppStore` 是 legacy target，除非用户明确点名，否则不构建、不修复，也不作为
   release gate。
 - iOS 验证只覆盖 Chat 子集，不得链接 Tools、Permission、AgentKernel、Cowork 或 MCP。
 - SwiftPM 测试中的 sandbox、managed terminal Seatbelt、Linux bwrap/guard、权限与路径
   围栏仍是产品安全边界，不能因为不做 App Store 而跳过。
 
-## Ekagium v0.2 品牌与版本验证（2026-08-16）
+## Egakium v0.4 版本推进（2026-08-18）
+
+本轮只更新产品版本元数据与当前规范，不修改 runtime 行为、依赖版本、协议 schema 或历史里程碑。
+执行命令：
+
+```sh
+xcodegen generate
+scripts/check-version-consistency.sh
+scripts/prepare-cef-runtime.sh Debug
+
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumMac \
+  -configuration Debug -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath build/egakium-xcode CODE_SIGNING_ALLOWED=NO build
+
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumiOS \
+  -configuration Debug -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath build/egakium-xcode CODE_SIGNING_ALLOWED=NO build
+```
+
+真实结果：
+
+- version gate 输出 `Egakium version is consistent: 0.4 (build 50)`；
+- `Egakium.xcodeproj` 生成成功，当前 build settings 为 `MARKETING_VERSION = 0.4`、
+  `CURRENT_PROJECT_VERSION = 50`；
+- `EgakiumMac` ARM64 Debug unsigned build 成功，最终 App 为 `0.4 (50)`；
+- `EgakiumiOS` universal Simulator Debug unsigned build 成功，最终 App 为 `0.4 (50)`；
+- 嵌入 macOS App 的 generic/Alerts/GPU/Plugin/Renderer 五个 CEF Helpers 均为 `0.4 (50)`；
+- 两个参考 Info.plist 通过 `plutil -lint`；`git diff --check` 通过；
+- 本轮没有运行 Developer ID 签名、公证、staple、Gatekeeper、DMG、安装或 GUI 人工验收；版本元数据
+  变更未触及 runtime 源码，因此没有重新运行完整 Swift test。完整 suite 的两个既有 retry-boundary
+  失败仍按下节记录，不得误写成已修复或本轮新失败。
+
+## Egakium identity hard cutover（2026-08-18）
+
+本轮在不保留旧 identity discovery/alias 的当前工作树运行：
+
+```sh
+swift package dump-package
+swift build
+xcodegen generate
+scripts/prepare-cef-runtime.sh Debug
+
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumMac \
+  -configuration Debug -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath build/egakium-xcode CODE_SIGNING_ALLOWED=NO build
+
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumiOS \
+  -configuration Debug -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath build/egakium-xcode CODE_SIGNING_ALLOWED=NO build
+
+scripts/check-version-consistency.sh
+swift test
+```
+
+真实结果：
+
+- 540 个 tracked 文件/目录 basename 完成物理映射；每个旧 tracked path 都有对应的新 path；
+- repo-owned source/path scan 对六种旧拼写为零，`.agents` 也单独复核为零；
+- SwiftPM package graph、`swift build`、XcodeGen、CEF wrapper/host/五 Helpers、`EgakiumMac` ARM64
+  Debug unsigned build 与 `EgakiumiOS` universal Simulator Debug unsigned build 全部成功；
+- 最终 macOS identity 为 `EgakiumMac.app` / `EgakiumMac` /
+  `com.Vita0818.EgakiumMac`，iOS 为 `EgakiumiOS.app` / `EgakiumiOS` /
+  `com.Vita0818.Egakium`；五个 CEF Helper bundle ID 都位于
+  `com.Vita0818.EgakiumMac.helper*`；
+- `scripts/check-version-consistency.sh` 输出 `Egakium version is consistent: 0.2 (build 49)`；
+- `SessionCanvasStoreTests` 12/12 通过，`SpawnAgentPermissionTests` 14/14 通过，确认当前
+  `.egakium/canvas/...` 路径、generic element template、fresh no-overwrite provisioning 与 spawn
+  descriptor/permission 合同未被 identity cutover 破坏；
+- `.build/debug/egakium selftest` 离线通过，Chat、Code write/read 与 Cowork inference-profile 路径均
+  使用新的 Egakium CLI、环境变量和文案；
+- 完整 `swift test` 并非全绿：绝大部分测试通过，但最终准确报告
+  `EgakiumProvidersTests` 与 `EgakiumConversationTests` 各有一个既有流式 retry-boundary 失败：
+  `testOpenAIStreamingDoesNotRetryAfterResponseBytes` 和
+  `testOfficialProviderRetryBoundaryStaysInsideOneLogicalGeneration`。两项单独重跑仍失败；对应 production
+  source 与 `HEAD` 在只做 identity 映射后无 diff，因此不是本次重命名引入。本次任务没有越界修改
+  provider retry 语义或测试预期。
+
+本轮未运行 GUI 人工验收、真机、真实 provider、Developer ID 签名、公证、DMG、安装或发行验证。
+
+## 历史：Egakium v0.2 品牌与版本验证（2026-08-16）
 
 本轮在当前工作树运行：
 
@@ -25,33 +114,33 @@ working tree 的验证。这里只记录现行命令、release gate 和最近一
 xcodegen generate
 scripts/check-version-consistency.sh
 
-xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisMac \
+xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumMac \
   -configuration Debug -destination 'platform=macOS,arch=arm64' \
   -derivedDataPath /private/tmp/EgakiumCanvasDerivedData \
   -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile \
   COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
 
-xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisiOS \
+xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumiOS \
   -configuration Debug -destination 'generic/platform=iOS Simulator' \
-  -derivedDataPath /private/tmp/intatis-view-image-ios-dd \
+  -derivedDataPath /private/tmp/egakium-view-image-ios-dd \
   -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile \
   COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
 ```
 
 真实结果：
 
-- XcodeGen 重新生成成功，版本一致性门输出 `Ekagium version is consistent: 0.2 (build 49)`；
+- XcodeGen 重新生成成功，版本一致性门输出 `Egakium version is consistent: 0.2 (build 49)`；
 - macOS arm64 Debug 与 iOS universal Simulator Debug 均构建成功；日志只有已有 Swift 弃用及
   未使用结果警告，没有品牌/版本改动引入的编译错误；
-- 最终 `IntatisMac.app` 的 `CFBundleDisplayName` / `CFBundleName` 为 `Ekagium`，版本为
-  `0.2 (49)`，兼容 identity 仍为 `com.Vita0818.IntatisMac` / `IntatisMac`；
-- 最终 `IntatisiOS.app` 的 `CFBundleDisplayName` / `CFBundleName` 为 `Ekagium`，版本为
-  `0.2 (49)`，兼容 identity 仍为 `com.Vita0818.Intatis` / `IntatisiOS`；
+- 最终 `EgakiumMac.app` 的 `CFBundleDisplayName` / `CFBundleName` 为 `Egakium`，版本为
+  `0.2 (49)`，当前 identity 为 `com.Vita0818.EgakiumMac` / `EgakiumMac`；
+- 最终 `EgakiumiOS.app` 的 `CFBundleDisplayName` / `CFBundleName` 为 `Egakium`，版本为
+  `0.2 (49)`，当前 identity 为 `com.Vita0818.Egakium` / `EgakiumiOS`；
 - 两个仓库参考 Info.plist 均通过 `plutil -lint`，共享 String Catalog 通过 JSON 解析；
 - 本轮没有运行完整 SwiftPM test suite、GUI 人工验收、真机、真实 provider、Developer ID
   签名、公证、DMG、安装或发行验证。
 
-## Ekagium Canvas 方案一原型（2026-08-15，历史证据）
+## Egakium Canvas 方案一原型（2026-08-15，历史证据）
 
 本节保留 2026-08-15 原型当时的验证。其独立 Canvas Window 路线已被用户 2026-08-16 的单窗口
 纠正取代并从当前源码移除，不能继续作为现行产品入口或验收要求。
@@ -68,9 +157,9 @@ env CLANG_MODULE_CACHE_PATH=/private/tmp/egakium-clang-cache \
   swift test --filter ContextProjectionTests.testExactMainCanvasPromptNamesHostCreatedEditableIndex
 
 xcodegen generate
-xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisMac \
+xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumMac \
   -configuration Debug -destination 'platform=macOS,arch=arm64' \
-  -derivedDataPath /private/tmp/EkagiumCanvasDerivedData \
+  -derivedDataPath /private/tmp/EgakiumCanvasDerivedData \
   CODE_SIGNING_ALLOWED=NO build
 ```
 
@@ -81,8 +170,8 @@ xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisMac \
   presentation lookup 不创建缺失 Canvas；
 - exact `@main` Canvas prompt test 1/1 通过：root prompt 含精确 Session 路径、直编/嵌套/iframe/
   ordinary sub-agent 并发隔离合同，worker prompt 不含路径；
-- `IntatisMac` arm64 Debug、`CODE_SIGNING_ALLOWED=NO` 构建通过；构建产物是 arm64 Mach-O；
-- 未构建遗留 `IntatisMacAppStore`，未链接或修改 `Chromium/`、`.deps/`、`build/` 中的 CEF 资产；
+- `EgakiumMac` arm64 Debug、`CODE_SIGNING_ALLOWED=NO` 构建通过；构建产物是 arm64 Mach-O；
+- 未构建遗留 `EgakiumMacAppStore`，未链接或修改 `Chromium/`、`.deps/`、`build/` 中的 CEF 资产；
 - 当时未运行真实 GUI 双 Session/Canvas Window 手测、真实 provider、CEF build/Helper、签名、公证或
   发行验证。
 
@@ -91,7 +180,7 @@ Cowork 都只出现一个组合窗口并同时看到左 Canvas 与右 harness；
 刷新；组合窗口关闭/重开不创建、覆盖、删除或停止 Session；外部网络资源加载被阻断；Command-W、
 Command-Q、Session 删除与冷启动行为保持既有 lifecycle 合同。
 
-## Ekagium Canvas 原样左右拼接与 Canvas-only 入口移除（2026-08-16）
+## Egakium Canvas 原样左右拼接与 Canvas-only 入口移除（2026-08-16）
 
 本轮只改 macOS presentation 组合，不修改测试源码、Canvas lifecycle、Cowork runtime 或权限链。验证
 命令为：
@@ -109,23 +198,23 @@ env CLANG_MODULE_CACHE_PATH=/private/tmp/egakium-canvas-join-clang-cache \
 
 scripts/check-version-consistency.sh
 
-xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisMac \
+xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumMac \
   -configuration Debug -destination 'platform=macOS,arch=arm64' \
-  -derivedDataPath /private/tmp/EkagiumCanvasJoinCompileProbe \
+  -derivedDataPath /private/tmp/EgakiumCanvasJoinCompileProbe \
   -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile \
   COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
 
 rg -n 'CoworkCanvasWindowValue|CoworkCanvasWindowModel|CoworkCanvasWindowView|onOpenCanvas|Open Canvas' \
-  Apps/IntatisMac/Sources
+  Apps/EgakiumMac/Sources
 
-test ! -e Apps/IntatisMac/Sources/CoworkCanvasWindow.swift
+test ! -e Apps/EgakiumMac/Sources/CoworkCanvasWindow.swift
 # 上述 rg 预期无输出（exit 1 表示没有匹配）；test 预期 exit 0。
 ```
 
 真实结果：
 
 - `CoworkSessionView` 的左 `CoworkCanvasHost` / 右现有 `CoworkShell` 原生 `HSplitView` 组合，以及
-  独立 Canvas scene/header action/value/resolver/view 的移除，均通过 `IntatisMac` arm64 Debug unsigned
+  独立 Canvas scene/header action/value/resolver/view 的移除，均通过 `EgakiumMac` arm64 Debug unsigned
   编译；构建退出 0，只有仓库既有 unused-result / deprecated `onChange` warning 和 Xcode 的
   exit-code-0 噪声诊断；
 - `SessionCanvasStoreTests` 6/6、`ThreadLayoutTests` 21/21，均为 0 failures；前者确认 Canvas
@@ -134,12 +223,227 @@ test ! -e Apps/IntatisMac/Sources/CoworkCanvasWindow.swift
 - 受限外层 sandbox 的首次 SwiftPM 尝试在 manifest 阶段被 `sandbox-exec: Operation not permitted`
   拦住，没有执行测试；按项目测试说明在允许 SwiftPM 自身 sandbox 的宿主边界重跑后得到上述通过结果，
   不把首次环境失败记作产品失败；
-- XcodeGen 生成成功，版本一致性门输出 `Ekagium version is consistent: 0.2 (build 49)`；
+- XcodeGen 生成成功，版本一致性门输出 `Egakium version is consistent: 0.2 (build 49)`；
 - 上述残留标识扫描无输出，旧 `CoworkCanvasWindow.swift` 也已不存在；当前 App source 只保留
   `CoworkCanvasHost.swift`，不再存在 Canvas-only window/action 路径；
 - 未运行 GUI 像素/交互手测、分隔线拖拽、双 Session 串线、macOS state restoration、真实 provider、
   CEF、签名、公证或发行验证。因此自动化结果不能证明实际窗口默认宽度、Canvas/harness 光学比例、
   拖拽手感或系统恢复后的设备级行为。
+
+## Egakium Canvas CEF-only cutover（2026-08-18）
+
+本轮按 dependency-first/no-fallback 直接接入 pinned official CEF，没有保留 WKWebView、WebKit 注入、
+parallel renderer 或运行时切换。验证命令：
+
+```sh
+scripts/prepare-cef-runtime.sh Debug
+zsh -n scripts/prepare-cef-runtime.sh \
+  scripts/embed-cef-runtime.sh \
+  scripts/package-macos-release.sh
+
+xcodegen generate
+
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumMac \
+  -configuration Debug -destination platform=macOS \
+  -derivedDataPath /private/tmp/egakium-cef-derived \
+  CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO build
+
+xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumMac \
+  -configuration Debug -destination platform=macOS \
+  -derivedDataPath /private/tmp/egakium-cef-fixture-derived \
+  CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO \
+  OTHER_SWIFT_FLAGS='$(inherited) -DEGAKIUM_RENDERER_VALIDATION' build
+
+open -n /private/tmp/egakium-cef-fixture-derived/Build/Products/Debug/EgakiumMac.app \
+  --args -EgakiumCEFCanvasFixture \
+  -EgakiumRendererFixtureAutoExitSeconds 12 \
+  -ApplePersistenceIgnoreState YES
+
+swift test --filter SessionCanvasStoreTests
+swift test --filter ThreadLayoutTests.testCanvasHostUsesOnlyTheOfficialCEFView
+
+rg -n 'WebKit|WKWebView|WKContentWorld|WKNavigationDelegate|SessionCanvasRuntime|directorySignature' \
+  Apps/EgakiumMac/Sources/CoworkCanvasHost.swift \
+  Packages/EgakiumCore/Sources project.yml Apps/EgakiumMac/CEF
+
+git diff --check
+```
+
+真实结果：
+
+- pinned CEF `151.3.17+gf059e67+chromium-151.0.7922.138_macosarm64` archive SHA-256 校验通过；
+  CEF 官方 `libcef_dll_wrapper`、official external message pump、Objective-C++ thin host 和五个
+  sandbox Helper 均以 C++20/ARM64 编译成功，`USE_SANDBOX=ON`；
+- `xcodegen generate` 通过；完整 `EgakiumMac` ARM64 Debug unsigned build 退出 0。Swift bridge、
+  `CoworkCanvasHost → EgakiumCEFView` 与 application init/shutdown 均实际链接；只有仓库既有 Swift
+  deprecated/unused warning；
+- 最终 `EgakiumMac.app` inventory 通过：主 executable、CEF Framework 和五个 Helpers 均为 ARM64；
+  framework 使用 `Versions/A` + `Versions/Current -> A`；五个 Helper bundle ID 分别为 `.helper`、
+  `.helper.alerts`、`.helper.gpu`、`.helper.plugin`、`.helper.renderer`；SwiftUI `NSApplication` 安装
+  CEF/JCEF-derived `CefAppProtocol` event/terminate wiring；CEF LICENSE/CREDITS 位于 App resources；
+- production-path CEF Canvas fixture 显示 exact
+  `.egakium/canvas/cef_fixture/index.html`，实际出现 CEF generic GPU/network/storage 与专用 Renderer
+  subprocess，全部命令行包含 `--seatbelt-client`；12 秒后 browser child 关闭、`OnBeforeClose`、
+  `CefShutdown` 与 App 自动退出完成，原 PID 不再存在。该 smoke 使用临时 unsigned Debug App，不
+  等于 Developer ID 发行证据；
+- 首轮 fixture 暴露两条真实生命周期缺口：SwiftUI 实际创建私有 `SwiftUI.AppKitApplication` 而忽略
+  `NSPrincipalClass`；windowed CEF child 默认要求关闭 top-level window。修正采用 official JCEF
+  `NSApplication` category/swizzling 的 event/terminate pattern（只取 CEF-required 部分），并在
+  `DoClose` 中只 teardown CEF internal child view，保留同窗 Cowork harness。修正前的挂起 PID 已清理，
+  修正后上述 12 秒 auto-exit 通过；
+- Canvas source scan 对 `CoworkCanvasHost.swift`、Core Canvas、project CEF wiring 无 WKWebView、
+  WKContentWorld、WKNavigationDelegate、SessionCanvasRuntime 或 directory monitor 命中；仓库另有
+  `EgakiumTools` 的 HTML→PDF WKWebView renderer，属于独立 document tool，不是 Canvas backend；
+- `SessionCanvasStoreTests` 12/12、0 failures：source card/CSS contract、no injected runtime、generic
+  element template、no-overwrite、Session isolation、path/symlink、spawn provisioning/rollback 均通过；
+- `zsh -n` 和 `git diff --check` 通过。完整 Cowork/Agent/permission 回归仍沿用下方 spawn-element
+  证据；本轮最终 selected regression 68/68（Protocol/projection/context/spawn permission/replay/
+  lost-ack/read-only/ToolResult causality）和 CEF CanvasHost source-contract 1/1 通过；
+- Release CEF wrapper/host/五 Helpers 以 C++20/ARM64 编译通过；完整 normal `EgakiumMac` ARM64 Release
+  unsigned build 退出 0。最终 Release main/framework/helpers arch、versioned symlink、notices 和 linked
+  CEF/category/scheme symbols 均核对通过；
+- `/private/tmp` Release App 副本完成 ad-hoc Hardened Runtime inside-out signing：五个 CEF dylibs →
+  Framework → 五 Helpers → main App；generic/GPU/Renderer Helpers 读回 `allow-jit=true`，main App 仍为
+  `allow-jit=false`，`codesign --verify --deep --strict --verbose=4` 通过。该演练不使用 Developer ID
+  identity/secure timestamp，也未执行 notarization，因此不能替代正式发行 gate。
+
+当前未验证：真实 App 内双 Session、provider-driven `@main → spawn → worker edit → card integration`、
+用户交互的 durable layout、Developer ID nested signing、notarization、staple 与 Gatekeeper。当前没有
+宿主 drag/resize/sessionStorage 层；这些缺口不能通过恢复 WK/DOM adapter 降级补齐。
+
+## 历史：WK provisional 元素卡片宿主 v1（2026-08-17；已删除）
+
+> **历史记录，不是当前 gate**：用户已撤销以 WKWebView 作为临时/preview renderer 的许可；下列
+> WK/Edge/JavaScript 结果只解释已删除代码。当前 CEF 验收以紧邻上方 2026-08-18 section 为准。
+
+用户当时曾把实施顺序调整为先改造现有主画布，使每份未来子 HTML 可作为卡片/元素显示并由用户拖动、
+resize，再继续正式 CEF；该顺序现已被上方最新验收覆盖撤销。主画布交互实现没有修改 Cowork harness/runtime/bootstrap、App scene 或 iOS
+target，也没有引入第三方依赖。后续自动供应决定没有增加新 Event type、改变 Envelope discriminator
+或重写 permission engine，但为现有 spawn payload 增加 optional descriptor，并为既有 structured
+PermissionIntent 增加明确的 host-provision control effect/workspace-mutation risk。
+
+同日后续先固定唯一 `SessionCanvasElementTemplate`；用户随后进一步明确“新 sub-agent 像 `@main`
+得到空白 Canvas 一样自动携带真实子元素模板”。因此 current implementation 对 ordinary successful
+spawn 增加 additive Event payload descriptor 与 explicit permission control effect：host 在 child exact
+workspace 下先创建 fresh no-overwrite file，再提交原子 agent admission batch；append failure 先
+complete-known replay，exact durable batch 恢复成功，只有 absence proof 才 compensation 删除未变化
+模板，unknown 保留并 fail closed。ToolResult、`list_agents`、replay 与 child prompt 使用同一 ID/path/version，read-only
+仍不可编辑，manual/legacy attach 保留 prompt fallback，shared `index.html` 不被 spawn 修改。
+
+自动化命令：
+
+```sh
+awk '/private static let javaScriptTemplate = #\"\"\"/ { inside=1; next } \
+     inside && /^    \"\"\"#/ { exit } \
+     inside { sub(/^    /, \"\"); print }' \
+  Packages/EgakiumCore/Sources/SessionCanvasRuntime.swift \
+  | sed 's/__EGAKIUM_RUNTIME_STYLE_JSON__/\"\"/' \
+  | node --check
+
+env CLANG_MODULE_CACHE_PATH=/private/tmp/egakium-element-canvas-clang-cache \
+  SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/egakium-element-canvas-swiftpm-cache \
+  swift test --disable-automatic-resolution --filter SessionCanvasStoreTests
+
+env CLANG_MODULE_CACHE_PATH=/private/tmp/egakium-element-canvas-clang-cache \
+  SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/egakium-element-canvas-swiftpm-cache \
+  swift test --disable-automatic-resolution --filter ContextProjectionTests
+
+env CLANG_MODULE_CACHE_PATH=/private/tmp/egakium-element-canvas-clang-cache \
+  SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/egakium-element-canvas-swiftpm-cache \
+  swift test --disable-automatic-resolution --filter ThreadLayoutTests
+
+env CLANG_MODULE_CACHE_PATH=/private/tmp/egakium-element-template-clang-cache \
+  SWIFTPM_MODULECACHE_OVERRIDE=/private/tmp/egakium-element-template-swiftpm-cache \
+  swift test --disable-automatic-resolution --filter EgakiumCoworkTests
+
+swift test --filter \
+  'SessionCanvasStoreTests|InferenceProfileProtocolTests|CoworkProjectionRegressionTests|ContextProjectionTests|SpawnAgentPermissionTests|EgakiumCoworkTests.testMainCanSpawnWorker|AgentInvocationNonRecursiveTests.testToolSpawnedWorkerReportsStructuredResultAndIsAutoDetachedWhenIdle|AutomaticPermissionReviewTests.testSpawnToolUsesOneAutomaticReviewAndCommitsCoordinatorAdmissionAtomically'
+
+xcodegen generate
+scripts/check-version-consistency.sh
+
+xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumMac \
+  -configuration Debug -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath /private/tmp/EgakiumElementCanvasDerivedData \
+  -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile \
+  COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
+```
+
+真实结果：
+
+- exact injected JavaScript 通过 Node `--check`；`swiftc -parse` 与 `git diff --check` 也通过；
+- `SessionCanvasStoreTests` 当前 12/12：原 no-overwrite/Session isolation/path safety 与 direct-card
+  runtime 回归保持通过；generic child template v1 与
+  `defaultElementHTML()` exact 同 bytes，含 `#element`/`#content`、no-network/no-nested-frame CSP，
+  不含 identity/path/remote URL；新增用例确认 real file canonical path、shared index 不被创建/修改、
+  same-ID no-overwrite、existing lookup、unchanged rollback、edited rollback refusal 与 unsafe ID 拒绝；
+  lookup 返回值不带 process-local rollback token，不能被伪装成刚供应资源而删除；
+- `ContextProjectionTests` 24/24：exact `@main` 获得
+  `#canvas > .egakium-element`、safe ID、source x/y/width/height、relative element iframe、
+  `sandbox="allow-scripts"`、host drag/resize 与 source-authority 合同，ordinary worker 继续不见共享
+  Canvas path；同一 suite 还确认 `@main` 只获得 ToolResult→later card/delegation 合同，spawned worker
+  得到 exact real-file descriptor 而不重复嵌入模板；manual/legacy fallback 才按 host flag 获得完整
+  identity-free template，flag 缺失时模板不出现；其余
+  context/scoping/Skill/mailbox tests 无回归；
+- `ThreadLayoutTests` 22/22：新增 source-contract 测试确认 runtime 注入专用 `WKContentWorld`、
+  non-persistent Web data、Session-directory read access、4096-entry bounded metadata monitor 与无
+  `Open Canvas`；原 21 项 Cowork/Code UI 几何、rail、composer、error 回归均通过；
+- Playwright CLI 使用本机已有 Microsoft Edge 运行离线、无外网 fixture。两个 child HTML 分别在
+  sandboxed iframe 中可见；Alpha card 从 source (64,64) 真实 pointer-drag 到 (184,144)，再从
+  420×300 resize 到 516×364；同一页面 reload 后该 non-persistent Web session override 保留，
+  iframe sandbox 读回仍为 `allow-scripts`。截图人工检查确认网格、card chrome、独立 child content、
+  z-order 与 resize handle；
+- 第一版 real-browser run 因 rescan 每次重复写同一个 `data-element-id`，触发 MutationObserver
+  microtask loop 并让 CLI snapshot timeout；实现改为仅在 trim 后值实际变化时写回，随后相同 headed
+  Edge open/snapshot/drag/resize/reload 全部通过。该 corrective evidence 不能从记录中删除；
+- Playwright wrapper 初次默认寻找 Google Chrome 失败；没有下载浏览器，改用本机已安装的
+  `--browser msedge`。浏览器唯一 console error 是临时 fixture 未提供 `favicon.ico` 的 404，与
+  Canvas runtime 无关；fixture、截图、`.playwright-cli` 状态与本地 HTTP server 均已清理；
+- generic element template 又以独立 420×300 iframe fixture 在 Microsoft Edge 中真实加载；DOM
+  snapshot 包含 `Canvas element`、`Untitled element`、summary 与 empty state。第一版 180px
+  empty-state 会在默认卡片内产生多余 scrollbar；改为 100px 后标题、separator、空态完整落在
+  420×300 viewport 内且不再滚动。临时 fixture/截图/server 同样已清理；
+- current auto-provision focused selection 68/68、0 failures：覆盖 Protocol legacy decode、projection
+  descriptor validate/detach、fresh real file、requested/spawned descriptor equality、ToolResult keys、
+  worker exact-path prompt、automatic permission review 的 explicit provisioning effect、EventLog batch
+  failure absence-proof compensation、committed lost-ack recovery、restore 后 `list_agents`、read-only lease、shared index unchanged 与 recycle 后
+  element file 保留；spawned worker 仍不含共享 Canvas path、`data-element-id`、coordinator tools 或完整
+  template duplicate；
+- follow-up 完整 `EgakiumCoworkTests` 366/366、0 failures；完整 `EgakiumPermissionTests` 56/56、0
+  failures，确认新 provisioning metadata/control effect 与 workspace-mutation risk 没有破坏 read-only
+  parent→read-only child、deterministic gate、automatic reviewer、scheduler、Goal/WorkTask/mailbox 或
+  durable admission 语义；
+- XcodeGen 与版本一致性门通过，输出 `Egakium version is consistent: 0.2 (build 49)`；
+- 在 auto-provision/lost-ack 修正后重新运行 XcodeGen 与版本一致性门，随后用独立
+  `/private/tmp/EgakiumSpawnElementDerivedData` 完成 `EgakiumMac` arm64 Debug unsigned build（退出 0；
+  `xcodebuild -quiet` 仍输出仓库既有 unused/deprecated 与 exit-code-0 噪声诊断）；最终 bundle 读回
+  `Egakium 0.2 (49)`，可执行文件为 arm64 Mach-O。日志只有仓库既有 unused-result /
+  deprecated `onChange` warning 和 Xcode 的 exit-code-0/no-further-output 噪声诊断，没有本轮源码
+  编译错误。未构建 legacy `EgakiumMacAppStore`。
+
+上述历史构建只证明当时含 WK renderer 的工作树能够编译；它不是当前 CEF 证据。不得再以
+WKWebView/Edge fixture 作为 Canvas renderer release gate。
+
+当时为正式 CEF 接入列出的 gate 如下；前 3 类已由上方 2026-08-18 cutover 覆盖，发行类仍未完成：
+
+- product target link map 与 bundle inventory 证明加载指定 CEF Framework、Resources 和全部所需
+  Helper apps；版本/hash/provenance 与 `NOTICE`/第三方声明一致；
+- 启动 smoke 证明唯一组合 Cowork 窗口中的左 Canvas 实际由 CEF AppKit child browser 渲染 exact Session
+  `index.html`，右侧仍复用同一 Cowork runtime；
+- 源码/工程扫描证明不再存在 Canvas WKWebView、WKContentWorld、WKNavigationDelegate 或 runtime/
+  compile-time renderer fallback；CEF 缺失/损坏/初始化失败测试证明 fail closed/Canvas unavailable；
+- CEF 页面真实完成双 Session、origin/CSP/sandbox、Helper exit；任何未来 pan/zoom/元素交互/bridge
+  还须先冻结产品与依赖合同；Hardened Runtime、nested signing、notarization 与 Gatekeeper 仍须验证；
+- mock、DOM fixture、接口相同或另一浏览器运行通过不得替代以上真实 dependency execution 证据。
+
+当前未验证：
+
+- 没有完成真实 Egakium Cowork 双 Session 串线、Window restoration、Command-W/Q 或 VoiceOver/
+  keyboard 的 App 内手测；Edge fixture 只证明已删除 DOM runtime 的历史行为；
+- 当前没有宿主 drag/resize；也没有 durable CanvasID/ElementID/layout revision/projection、native
+  bridge、`@main`/sub-agent 多元素委派 E2E；
+- 已运行 CEF Debug build/bundle/subprocess smoke；未运行真实 provider、Developer ID 签名、公证、
+  staple、Gatekeeper 或正式发行打包。
 
 ## macOS Chat/Code 入口隐藏（2026-08-16）
 
@@ -151,24 +455,24 @@ xcodegen generate
 scripts/check-version-consistency.sh
 swift test --filter ThreadLayoutTests
 
-xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisMac \
+xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumMac \
   -configuration Debug -destination 'platform=macOS,arch=arm64' \
-  -derivedDataPath /private/tmp/EkagiumCoworkOnlyNavigationProbe \
+  -derivedDataPath /private/tmp/EgakiumCoworkOnlyNavigationProbe \
   -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile \
   COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
 
 rg -n 'visibleNavigationItems|@State private var selection|case chat, code, cowork|case \.chat:|case \.code:' \
-  Apps/IntatisMac/Sources/IntatisMacRootView.swift
+  Apps/EgakiumMac/Sources/EgakiumMacRootView.swift
 ```
 
 真实结果：
 
 - `visibleNavigationItems` 精确为 `[.cowork]`，初始 `selection` 精确为 `.cowork`；sidebar 的
   `ForEach(items)` 因此只生成 Cowork 行，不会启动后停留在隐藏的 Chat；
-- 同一源码静态核对确认 `IntatisNavItem.chat/code`、Chat/Code detail switch、history、新建/恢复与
+- 同一源码静态核对确认 `EgakiumNavItem.chat/code`、Chat/Code detail switch、history、新建/恢复与
   runtime 路径仍存在。实现方式是可逆的 visibility filter，不是删除产品面或数据；
-- `ThreadLayoutTests` 21/21、0 failures；`IntatisMac` arm64 Debug unsigned build 退出 0；XcodeGen
-  生成成功，版本门仍为 `Ekagium 0.2 (build 49)`；
+- `ThreadLayoutTests` 21/21、0 failures；`EgakiumMac` arm64 Debug unsigned build 退出 0；XcodeGen
+  生成成功，版本门仍为 `Egakium 0.2 (build 49)`；
 - 构建日志只有仓库既有 unused-result / deprecated `onChange` warning 及 Xcode 的 exit-code-0
   噪声诊断，没有本轮入口隐藏引入的编译错误；
 - 未运行实际 App 的 GUI/Accessibility 手测、签名、公证或发行验证。自动化证明可见集合、默认选择和
@@ -192,7 +496,7 @@ git count-objects -vH
 
 - 父 index 从 231,413 个普通 OpenSource entries 转为精确 26 个 mode `160000` gitlink；
 - `.gitmodules` 各有 26 个 path、URL 和 `shallow = true`，URL 均为公开 upstream；
-- 26 个 gitlink SHA 与源 Intatis 逐项一致；本机 26 个子仓库 HEAD 与父 index 一致且全部 clean；
+- 26 个 gitlink SHA 与业务基线导入记录逐项一致；本机 26 个子仓库 HEAD 与父 index 一致且全部 clean；
 - 本机 11 GB 工作树原地保留，没有复制或读取迁移时排除的 `.env`、证书、私钥或 provisioning
   profile；这些有意缺失路径只在对应子仓库本地 index 标记为 skip-worktree；
 - 用户明确授权后，使用旁路 index/tree 与 `commit-tree` 重建仅本地的两层提交：新 `v0.2` 以
@@ -215,11 +519,11 @@ scripts/check-version-consistency.sh
 
 必须同时满足：
 
-- `project.yml`：`MARKETING_VERSION=0.2`，`CURRENT_PROJECT_VERSION=49`；
-- macOS/iOS 参考 Info.plist：`0.2 (49)`；
-- 生成的 `Intatis.xcodeproj`：相同版本；
+- `project.yml`：`MARKETING_VERSION=0.4`，`CURRENT_PROJECT_VERSION=50`；
+- macOS/iOS 参考 Info.plist：`0.4 (50)`；
+- 生成的 `Egakium.xcodeproj`：相同版本；
 - README、文档索引、CURRENT_STATE 和 PROJECT_MAP：相同当前基线；
-- 最终 App bundle：`CFBundleShortVersionString=0.2`、`CFBundleVersion=49`。
+- 最终 App bundle：`CFBundleShortVersionString=0.4`、`CFBundleVersion=50`。
 
 旧设计文档、依赖版本、协议 schema 和 dated reports 中的其他 v0.x 不属于该一致性检查。
 
@@ -236,13 +540,13 @@ host 环境重跑，不能把 sandbox 环境失败直接改写成产品失败，
 高风险改动至少补充对应 focused suite：
 
 ```sh
-swift test --filter IntatisProvidersTests
-swift test --filter IntatisConversationTests
-swift test --filter IntatisToolsTests
-swift test --filter IntatisPermissionTests
-swift test --filter IntatisAgentKernelTests
-swift test --filter IntatisCoworkTests
-swift test --filter IntatisSharedUITests
+swift test --filter EgakiumProvidersTests
+swift test --filter EgakiumConversationTests
+swift test --filter EgakiumToolsTests
+swift test --filter EgakiumPermissionTests
+swift test --filter EgakiumAgentKernelTests
+swift test --filter EgakiumCoworkTests
+swift test --filter EgakiumSharedUITests
 ```
 
 修改共享provider streaming runtime时，还必须覆盖默认initial + 5 reconnects及1/2/4/8/16秒退避、
@@ -255,7 +559,7 @@ status/heartbeat/尚未yield的tool-call fragment后可重连、text/完整tool 
 ```sh
 swift test --filter PermissionReviewProtocolTests
 swift test --filter AuthorizationSidecarTests
-swift test --filter IntatisPermissionReviewerTests
+swift test --filter EgakiumPermissionReviewerTests
 swift test --filter PermissionReviewControlPlaneTests
 swift test --filter AutomaticPermissionReviewTests
 swift test --filter DurableMultimodalAgentLoopTests
@@ -287,7 +591,7 @@ invocation-free host
 得到用户明确的真实网络与计费授权后，还应对当前 exact Agent route 运行：
 
 ```sh
-INTATIS_REAL_TOOL_SHAPE_DIAGNOSTIC=1 swift test --filter RealProviderSmokeTests/testRealAgentAuthorizationSidecarShapeWhenEnabled
+EGAKIUM_REAL_TOOL_SHAPE_DIAGNOSTIC=1 swift test --filter RealProviderSmokeTests/testRealAgentAuthorizationSidecarShapeWhenEnabled
 ```
 
 该 smoke 使用 `strict:true`，只验证当前 exact Agent route 接受 required string sidecar property，并在 prompt 明示需要时返回
@@ -304,8 +608,8 @@ MCP、browser、managed terminal、OAuth、real provider 和设备测试中明�
 `search_knowledge`、final grounding 或 Code/Cowork augmenter 时，至少运行：
 
 ```sh
-swift build --target IntatisKnowledge --disable-automatic-resolution
-swift test --filter IntatisKnowledgeTests
+swift build --target EgakiumKnowledge --disable-automatic-resolution
+swift test --filter EgakiumKnowledgeTests
 swift test --filter KnowledgeModelProviderTests
 swift test --filter CLIProviderAdapterTests
 swift test --filter ModelDrivenKnowledgeAgentLoopTests
@@ -352,7 +656,7 @@ swift test --filter ToolRegistryLeaseTests
   与 safe projection 分离；bookmark sidecar lock 必须拒绝 symlink/hardlink 等 unsafe inode。至少一个
   真实 AgentLoop turn 应查询两个 exact store，并证明每个成功结果
   `rerank_applied=true`、current-turn citations 不串 snapshot、scope 在 grounding 后 drain。
-- `.intatis-rag-store.json` / `.intatis-rag-snapshots` / `.intatis-rag-host` 必须由普通 file/patch/
+- `.egakium-rag-store.json` / `.egakium-rag-snapshots` / `.egakium-rag-host` 必须由普通 file/patch/
   Git/process 与实际 managed-terminal anti-bypass 回归覆盖；legacy `snapshots/` 只能由 writer 原子迁移，
   read-only open 不得创建基础设施，dual layout 必须拒绝。pointer/layout rename 的 post-commit
   uncertainty 必须返回 non-retryable typed failure；checked augmentation close 必须证明 false drain 不会
@@ -366,7 +670,7 @@ language/revision/dimension availability 和质量、真实 remote embedding/rer
 
 真实 Knowledge route 是显式付费 opt-in：
 
-运行前先在 `INTATIS_CONFIG` 指向的 Intatis JSON/JSONC（或默认 Intatis-owned 配置）中确认顶层
+运行前先在 `EGAKIUM_CONFIG` 指向的 Egakium JSON/JSONC（或默认 Egakium-owned 配置）中确认顶层
 `embedding_model`、`reranker_model` 均为完整 `<provider>/<model-id>`，且两个 provider 的
 `options.baseURL`、`options.apiKey` 引用和 `npm` adapter 与实际服务一致。可复制的无 secret 配置 shape
 见根目录 `README.md` 和
@@ -376,17 +680,17 @@ endpoint 不存在、embedding 维度不明或 adapter 不受支持时应在解�
 发网、取得 bookmark 或触碰 store。
 
 ```sh
-INTATIS_REAL_KNOWLEDGE_SMOKE=1 swift test \
+EGAKIUM_REAL_KNOWLEDGE_SMOKE=1 swift test \
   --filter RealProviderSmokeTests.testRealKnowledgeEmbeddingAndRerankerWhenEnabled
 
-INTATIS_REAL_KNOWLEDGE_QUALITY=1 swift test \
+EGAKIUM_REAL_KNOWLEDGE_QUALITY=1 swift test \
   --filter RealProviderSmokeTests.testRealKnowledgeRerankQualityWhenEnabled
 
-INTATIS_REAL_KNOWLEDGE_AGENT_E2E=1 swift test \
+EGAKIUM_REAL_KNOWLEDGE_AGENT_E2E=1 swift test \
   --filter RealProviderSmokeTests.testRealModelBuildsSearchesAndCitesExternalKnowledgeWhenEnabled
 
-INTATIS_REAL_KNOWLEDGE_PDF_E2E=1 \
-INTATIS_REAL_KNOWLEDGE_PDF_SOURCE=/absolute/path/to/pdf-directory \
+EGAKIUM_REAL_KNOWLEDGE_PDF_E2E=1 \
+EGAKIUM_REAL_KNOWLEDGE_PDF_SOURCE=/absolute/path/to/pdf-directory \
 swift test \
   --filter RealProviderSmokeTests.testRealModelBuildsSearchesAndCitesPDFKnowledgeWhenEnabled
 ```
@@ -401,7 +705,7 @@ reranker 的 MRR/nDCG@5/Recall@5；两个入口同时汇总 provider 实际返�
 资料外发授权；默认 `XCTSkip` 不能记为通过。这四条仍不能替代 macOS NSOpenPanel/bookmark 跨重启
 restore 交互验收。
 
-macOS external bookmark 手动验收必须使用 Developer ID/Debug `IntatisMac`（不使用 legacy App Store
+macOS external bookmark 手动验收必须使用 Developer ID/Debug `EgakiumMac`（不使用 legacy App Store
 target）：在 Code 中用自然语言给出一个 workspace 外的精确 `store_path`，批准 tool permission 后在
 NSOpenPanel 只选择该目录；核对当前 session 的 `knowledge-access.plist` 是 binary、owner-only `0600`，
 且只含 exact normalized path、opaque bookmark、revision 与 digest。随后退出 App、重新启动、恢复同一
@@ -413,8 +717,8 @@ Code session 并再次调用同一路径：不得再次出现授权面板。换 
 修改文档合同、固定 backend、staging/commit、registry、permission 或 lease 时，至少运行：
 
 ```sh
-swift build --target IntatisTools --disable-automatic-resolution
-swift build --target IntatisToolsTests --disable-automatic-resolution
+swift build --target EgakiumTools --disable-automatic-resolution
+swift build --target EgakiumToolsTests --disable-automatic-resolution
 swift test --filter DocumentReadToolSplitTests
 swift test --filter DocumentToolContractTests
 swift test --filter DocumentInfrastructureTests
@@ -432,23 +736,23 @@ swift test --filter AgentLoopPolicyTests
 本机已安装 runtime 的 opt-in smoke 使用精确 test product，避免 `--skip-build` 误跑旧 bundle：
 
 ```sh
-swift build --target IntatisToolsTests-product --disable-automatic-resolution
-INTATIS_REAL_DOCUMENT_RUNTIME_SMOKE=1 xcrun xctest \
-  -XCTest IntatisToolsTests.DocumentToolsIntegrationTests/testInstalledDocumentRuntimeEPUBWriteWhenEnabled \
-  .build/out/Products/Debug/IntatisToolsTests.xctest
-INTATIS_REAL_DOCUMENT_RUNTIME_SMOKE=1 xcrun xctest \
-  -XCTest IntatisToolsTests.DocumentToolsIntegrationTests/testInstalledDocumentRuntimePDFCPUAndOCRWhenEnabled \
-  .build/out/Products/Debug/IntatisToolsTests.xctest
-INTATIS_REAL_DOCUMENT_RUNTIME_SMOKE=1 xcrun xctest \
-  -XCTest IntatisToolsTests.DocumentToolsIntegrationTests/testInstalledDocumentRuntimeCoreToolChainWhenEnabled \
-  .build/out/Products/Debug/IntatisToolsTests.xctest
+swift build --target EgakiumToolsTests-product --disable-automatic-resolution
+EGAKIUM_REAL_DOCUMENT_RUNTIME_SMOKE=1 xcrun xctest \
+  -XCTest EgakiumToolsTests.DocumentToolsIntegrationTests/testInstalledDocumentRuntimeEPUBWriteWhenEnabled \
+  .build/out/Products/Debug/EgakiumToolsTests.xctest
+EGAKIUM_REAL_DOCUMENT_RUNTIME_SMOKE=1 xcrun xctest \
+  -XCTest EgakiumToolsTests.DocumentToolsIntegrationTests/testInstalledDocumentRuntimePDFCPUAndOCRWhenEnabled \
+  .build/out/Products/Debug/EgakiumToolsTests.xctest
+EGAKIUM_REAL_DOCUMENT_RUNTIME_SMOKE=1 xcrun xctest \
+  -XCTest EgakiumToolsTests.DocumentToolsIntegrationTests/testInstalledDocumentRuntimeCoreToolChainWhenEnabled \
+  .build/out/Products/Debug/EgakiumToolsTests.xctest
 ```
 
 普通 reader 还必须对用户提供的外部 corpus 做 opt-in 验证；测试只把候选文档复制到临时
 workspace，不得修改源目录，也不得把个人绝对路径写进仓库：
 
 ```sh
-INTATIS_REAL_DOCUMENT_CORPUS_ROOT=<external-corpus-root> \
+EGAKIUM_REAL_DOCUMENT_CORPUS_ROOT=<external-corpus-root> \
   swift test --filter DocumentToolsIntegrationTests/testInstalledDocumentRuntimeReadsUserCorpusWhenConfigured
 ```
 
@@ -489,7 +793,7 @@ write/read/preview/export/PDF read，以及 XLSX write/Calc round-trip/formula-c
   iOS target 依赖图仍不含 Tools/Permission/AgentKernel/Cowork/文档 runtime。
 
 2026-08-11 的本地回归中，外部 corpus opt-in 用例将 1 份稀疏 XLSX 与 3 份 PPTX 复制到临时
-workspace 后全部读取成功；完整 `IntatisToolsTests` 为 223 tests、0 failures、19 skipped，真实 core
+workspace 后全部读取成功；完整 `EgakiumToolsTests` 为 223 tests、0 failures、19 skipped，真实 core
 runtime 与 EPUB write/read smoke 各 1/1 通过。该结果证明当前开发机固定 runtime 上的读取链，不替代
 发行 runtime closure 或未来新增格式/文件变体的 corpus。相关 `AgentLoopPolicyTests` 36/36、
 capability/registry/mailbox 42/42、rbook fmt/check/test/clippy、SwiftPM build、macOS/iOS Debug unsigned
@@ -529,11 +833,11 @@ revision+seq 被丢弃；iOS 在 A→B 后收到 A commit 只更新 A row/header
 
 - `ChatSessionAutoTitleTests` 24/24、`ChatAutoTitleViewModelTests` 3/3、
   `ContextProjectionTests` 23/23，均为 0 failures；
-- `swift build --disable-automatic-resolution`、`IntatisMac` macOS Debug unsigned build 与
-  `IntatisiOS` generic Simulator Debug unsigned build 均退出 0；iOS 增量复核明确输出
+- `swift build --disable-automatic-resolution`、`EgakiumMac` macOS Debug unsigned build 与
+  `EgakiumiOS` generic Simulator Debug unsigned build 均退出 0；iOS 增量复核明确输出
   `BUILD SUCCEEDED`，首次构建仅出现仓库既有 warning 与一条 exit-code-0 Swift driver 噪声诊断；
-- 一次完整 `swift test --disable-automatic-resolution` 已完成 `IntatisToolsTests` 227/227
-  （19 个显式 opt-in smoke skipped）、`IntatisSkillsTests` 29/29，并在 SharedUI 中再次完成本次
+- 一次完整 `swift test --disable-automatic-resolution` 已完成 `EgakiumToolsTests` 227/227
+  （19 个显式 opt-in smoke skipped）、`EgakiumSkillsTests` 29/29，并在 SharedUI 中再次完成本次
   `ChatAutoTitleViewModelTests` 3/3；随后 SharedUI 后续用例连续约 90 秒无输出，人工中止为 130，
   因此不得记为整仓全绿；
 - 未运行真实 provider、credential/network 或 GUI/iOS 手动 smoke；prompt-only rename 的线上模型
@@ -543,15 +847,15 @@ revision+seq 被丢弃；iOS 在 A→B 后收到 A commit 只更新 A row/header
 测试复现失败 submission 与 `.error` 同时携带 `Task timed out after 600 seconds.` 的截图场景，
 确认只生成一项右栏错误、runtime title 优先且 exact Retry ID 保留；另覆盖失败 execution row、
 partial reply recovery、全部 host error strings、空来源不生成卡片、中央 transcript 仍保留用户原文与
-partial agent 正文。`swift build --disable-automatic-resolution`、`IntatisMac` macOS Debug unsigned
-build 与 `IntatisiOS` generic Simulator Debug unsigned build 均退出 0。未启动 App 或 fixture，卡片
+partial agent 正文。`swift build --disable-automatic-resolution`、`EgakiumMac` macOS Debug unsigned
+build 与 `EgakiumiOS` generic Simulator Debug unsigned build 均退出 0。未启动 App 或 fixture，卡片
 实际字高、长错误滚动、窄宽与 Light/Dark 像素仍需手动观察。
 
 2026-08-13 用户消息原生 Liquid Glass 气泡的直接证据：`ThreadLayoutTests` 18/18、0 failures；
 新增 source-shape 回归覆盖 macOS Chat、共享 iOS Chat 与 Code/Cowork，确认仅 user branch 使用
-`intatisLiquidGlass`，旧 `userSelectionStroke` / `bubbleStroke` / accent 蓝色 stroke 不再存在，
-failure 不参与气泡 admission。`swift build --disable-automatic-resolution`、`IntatisMac` macOS
-Debug unsigned build 与 `IntatisiOS` generic Simulator Debug unsigned build 均退出 0；构建只报告
+`egakiumLiquidGlass`，旧 `userSelectionStroke` / `bubbleStroke` / accent 蓝色 stroke 不再存在，
+failure 不参与气泡 admission。`swift build --disable-automatic-resolution`、`EgakiumMac` macOS
+Debug unsigned build 与 `EgakiumiOS` generic Simulator Debug unsigned build 均退出 0；构建只报告
 既有 `onChange(of:perform:)` deprecated warning。未启动 App 或 fixture，实际折射强度、长用户消息、
 Light/Dark、Reduce Transparency 与 Increase Contrast 仍需手动观察。
 
@@ -560,16 +864,16 @@ Light/Dark、Reduce Transparency 与 Increase Contrast 仍需手动观察。
 ```sh
 xcodegen generate
 
-xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisMac \
+xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumMac \
   -configuration Debug -destination 'platform=macOS' \
   COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
 
-xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisMac \
+xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumMac \
   -configuration Release -destination 'platform=macOS' \
   ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO \
   COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
 
-xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisiOS \
+xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumiOS \
   -configuration Debug -destination 'generic/platform=iOS Simulator' \
   COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
 ```
@@ -579,7 +883,7 @@ xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisiOS \
 ```sh
 plutil -extract CFBundleShortVersionString raw -o - <App>/Contents/Info.plist
 plutil -extract CFBundleVersion raw -o - <App>/Contents/Info.plist
-lipo -archs <App>/Contents/MacOS/IntatisMac
+lipo -archs <App>/Contents/MacOS/EgakiumMac
 ```
 
 macOS Release 必须同时包含 `arm64` 和 `x86_64`；iOS 仍须通过 target dependency/link
@@ -598,29 +902,29 @@ xcrun notarytool --version
 正式执行：
 
 ```sh
-INTATIS_NOTARY_PROFILE=<profile> scripts/package-macos-release.sh
+EGAKIUM_NOTARY_PROFILE=<profile> scripts/package-macos-release.sh
 ```
 
 如果访问 GitHub 必须开启代理/VPN，而 Apple notarization 必须关闭它，则运行：
 
 ```sh
-INTATIS_PAUSE_BEFORE_NOTARIZATION=1 \
-INTATIS_NOTARY_PROFILE=<profile> \
+EGAKIUM_PAUSE_BEFORE_NOTARIZATION=1 \
+EGAKIUM_NOTARY_PROFILE=<profile> \
   scripts/package-macos-release.sh
 ```
 
 保持代理/VPN 开启直到脚本完成依赖解析、构建和 App 签名并显示切换网络提示；随后保持
 终端和脚本运行，关闭代理/VPN，再按 Return。脚本在原地循环验证 `notarytool history`，
 成功后才提交 App；失败不会丢弃已签名的 staged App，也不要求重新下载依赖。该模式要求
-交互式终端，非交互 release job 不得设置 `INTATIS_PAUSE_BEFORE_NOTARIZATION=1`。
+交互式终端，非交互 release job 不得设置 `EGAKIUM_PAUSE_BEFORE_NOTARIZATION=1`。
 
 上传后终端必须显示 Apple submission ID 和实时状态。默认 wait deadline 是 30 分钟；仍为
 `In Progress` 时脚本必须保留 owner-only recovery 目录并打印 exact resume 命令，不能再次
-提交同一 App。可用 `INTATIS_NOTARY_TIMEOUT=<正整数>[s|m|h]` 修改单次等待时长。恢复命令为：
+提交同一 App。可用 `EGAKIUM_NOTARY_TIMEOUT=<正整数>[s|m|h]` 修改单次等待时长。恢复命令为：
 
 ```sh
-INTATIS_NOTARY_PROFILE=<profile> \
-INTATIS_RESUME_RELEASE_DIR=<脚本打印的绝对路径> \
+EGAKIUM_NOTARY_PROFILE=<profile> \
+EGAKIUM_RESUME_RELEASE_DIR=<脚本打印的绝对路径> \
   scripts/package-macos-release.sh
 ```
 
@@ -631,9 +935,10 @@ recovery App metadata/architecture/signature/entitlements 重新验证；超时�
 
 发行脚本必须在输出 `dist/` 前完成：
 
-1. v0.2/build 49 一致性检查；
-2. `IntatisMac` universal Release；
-3. Developer ID Application + secure timestamp + Hardened Runtime；
+1. v0.4/build 50 一致性检查；
+2. `EgakiumMac`、CEF Framework 与五个 Helpers 的 exact ARM64 Release closure；
+3. CEF dylibs/framework/helpers/main App inside-out Developer ID signing + secure timestamp + Hardened
+   Runtime；generic/GPU/Renderer Helper 带 `allow-jit`；
 4. signed entitlements 不含 App Sandbox；
 5. App notarization Accepted、staple/validate、strict codesign、Gatekeeper assessment；
 6. 带 `/Applications` 拖放入口的 Developer ID signed DMG；
@@ -699,7 +1004,7 @@ recovery App metadata/architecture/signature/entitlements 重新验证；超时�
   仍可用。无错误时无卡片、无占位；主 thread/composer 不得再显示 `Needs attention`、timeout、
   recovery advice、中央红框或另一张 `Recent Failures`；用户消息和 partial agent 正文必须保留；
 - wide rail 连续切换 agent、应用失焦/回焦、窗口移动与进入/退出全屏；系统日志中不得出现
-  `IntatisThreadViewportFramesPreferenceKey tried to update multiple times per frame`，源码不得恢复
+  `EgakiumThreadViewportFramesPreferenceKey tried to update multiple times per frame`，源码不得恢复
   viewport GeometryReader/PreferenceKey 坐标回写；
 - Settings disclosure、provider test、本地诊断 ZIP；
 - Dynamic Type、Reduce Transparency、Increase Contrast、VoiceOver 和 clipboard/selection。
@@ -710,7 +1015,7 @@ recovery App metadata/architecture/signature/entitlements 重新验证；超时�
 ### Cowork agent-thread 性能门禁
 
 Debug-only `CoworkAgentConversationFixtureView` 通过启动参数
-`-IntatisCoworkAgentConversationFixture` 使用真实 `CoworkShell`，但不打开 EventLog、provider、
+`-EgakiumCoworkAgentConversationFixture` 使用真实 `CoworkShell`，但不打开 EventLog、provider、
 workspace、permission runtime 或 credential。Computer Use 无法传入启动参数时，DEBUG 构建也可用
 以 `.CoworkAgentConversationFixture` 结尾的独立 bundle identifier 启动同一 fixture；该入口不进入
 Release。固定负载为 8 个 selectable agent × 每个 1,000 rows、4-agent 合计 500 canonical
@@ -780,7 +1085,7 @@ Code/Cowork/CLI 的显式 `hosted_web_search` 包装至少追加验证：
 - `CapabilityLeaseTests` / `ToolRegistryLeaseTests`：fresh read-write lease 有独立
   `ToolCapability.hostedWebSearch`，read-only/reviewer/旧 lease 无；concrete tool 必须同时有 lease 与
   bound service，且不得因此出现 `browser_search` / `web_fetch`。registry identity 固定为
-  `intatis.standard.v4` / `intatis.cowork.v4`。
+  `egakium.standard.v4` / `egakium.cowork.v4`。
 - 至少构建 SwiftPM 全图，并编译 macOS Code/Cowork 与 CLI composition root；iOS 继续不链接
   Tools/Permission/AgentKernel/Cowork。真实 provider smoke 必须显式 opt in 并记录 exact
   provider/model/dialect、tool choice、是否返回 citation、usage/cost 与失败形状，不得隐式读取凭据或
@@ -788,9 +1093,9 @@ Code/Cowork/CLI 的显式 `hosted_web_search` 包装至少追加验证：
 
 2026-08-13 本地已通过 `swift build`、`swift test --filter HostedWebSearch`、
 `swift test --filter HostedSearch`、`swift test --filter CapabilityLeaseTests` 与
-`swift test --filter ToolRegistryLeaseTests`，以及 `IntatisMac` macOS Debug unsigned build 与
-`IntatisiOS` generic Simulator Debug unsigned build。另尝试完整 `swift test`：
-`IntatisToolsTests` 227/227（19 个显式 opt-in smoke skipped）与 `IntatisSkillsTests` 29/29 通过，随后
+`swift test --filter ToolRegistryLeaseTests`，以及 `EgakiumMac` macOS Debug unsigned build 与
+`EgakiumiOS` generic Simulator Debug unsigned build。另尝试完整 `swift test`：
+`EgakiumToolsTests` 227/227（19 个显式 opt-in smoke skipped）与 `EgakiumSkillsTests` 29/29 通过，随后
 在 SharedUI `testSelectedAgentUpdateRestartsRichRenderingDwell` 连续约两分钟无输出并以 130 中止；同一
 exact test 单独重跑 1/1 通过。不得把该运行记为完整 suite 通过。未运行真实 provider/key smoke。
 
@@ -818,7 +1123,7 @@ exact test 单独重跑 1/1 通过。不得把该运行记为完整 suite 通过
   `generate_image` / `edit_image` 权限链不得被改写，iOS 不得因共享 VM 或 ArtifactStore 注入而出现
   本地文件/照片附件入口；
 - 至少运行共享附件 store/resolver tests、ChatLoop 当前轮+历史轮 rehydration test、完整 SwiftPM
-  tests、`IntatisMac` macOS Debug 与 `IntatisiOS` generic Simulator Debug unsigned build。文件选择、
+  tests、`EgakiumMac` macOS Debug 与 `EgakiumiOS` generic Simulator Debug unsigned build。文件选择、
   拖放和真实视觉命中仍需 macOS 手动 smoke 单独记录，不能从单元测试或编译外推。
 
 ## Agent durable 图片上下文专项
@@ -828,18 +1133,18 @@ exact test 单独重跑 1/1 通过。不得把该运行记为完整 suite 通过
 
 ```sh
 swift test --filter ArtifactImageResolverTests
-swift test --filter IntatisProvidersToolCallingTests
+swift test --filter EgakiumProvidersToolCallingTests
 swift test --filter ModelHistory
 swift test --filter DurableMultimodalAgentLoopTests
 swift test --filter CLIAttachmentTests
-swift build --target IntatisCLI
+swift build --target EgakiumCLI
 ```
 
 具备用户明确授权的真实OpenAI凭据、网络和额度时，再显式运行一次同时携带user image与原call
 function-output image的付费smoke：
 
 ```sh
-INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
+EGAKIUM_REAL_MULTIMODAL_SMOKE=1 swift test \
   --filter RealProviderSmokeTests.testRealOpenAIMultimodalUserAndFunctionOutputWhenEnabled
 ```
 
@@ -917,7 +1222,7 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   `NSMicrophoneUsageDescription`，English/简体中文说明可用；
 - 不迁入多模型对比、第二设置页、全局快捷键、review/clipboard 或输入法 target；至少运行 draft
   merge、recorder settings、multipart/OpenRouter JSON/config route focused tests、完整 SwiftPM tests、
-  `IntatisMac` macOS Debug 与 `IntatisiOS` generic Simulator Debug unsigned build。真实麦克风权限与
+  `EgakiumMac` macOS Debug 与 `EgakiumiOS` generic Simulator Debug unsigned build。真实麦克风权限与
   线上 provider smoke 必须单独记录，不能从离线测试或编译外推。
 
 ## 最近一次真实结果
@@ -927,27 +1232,27 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 - 官方 `LibreOfficeDev_26.8.0.0.beta1_MacOS_aarch64.dmg` 为 298,129,546 bytes，SHA-256
   `a56a5af102c78c294b3da48154958ecd9fa52d357589305c54e6e215ce611900`；`hdiutil verify` 和官方
   detached PGP signature 均通过。CLI exact 输出为 `LibreOfficeDev 26.8.0.0.beta1`，固定后端只解析
-  `~/Library/Application Support/Intatis/document-runtime/libreoffice/26.8.0.0.beta1/LibreOffice.app`；
+  `~/Library/Application Support/Egakium/document-runtime/libreoffice/26.8.0.0.beta1/LibreOffice.app`；
 - 在不受 Codex 外层 sandbox 干扰的宿主环境，DMG 原件、替换前 staging 和最终固定路径均通过
   `codesign --verify --deep --strict`；签名者为 The Document Foundation Developer ID（Team ID
   `7P5S3ZLCN7`），`spctl --assess --type execute --verbose=4` 返回 `accepted` / `Notarized Developer ID`。
   早先在外层受限环境得到的 Code Signing subsystem internal error 不能作为宿主签名失败证据；
-- 一次无 Intatis Seatbelt 的诊断运行确实让内置 Python 改写了签名包内的 `__pycache__/*.pyc`，随后
+- 一次无 Egakium Seatbelt 的诊断运行确实让内置 Python 改写了签名包内的 `__pycache__/*.pyc`，随后
   `codesign` 正确报告 sealed resource modified。该副本已移入废纸篓，并从仍为只读、已验签的官方
   DMG 重新复制；这与前述外层 sandbox 假阴性是两个不同事件；
 - 根因最终收敛为 LibreOffice SingleOffice IPC。`OSL_SOCKET_PATH` 是 LibreOffice bootstrap 值，
   必须以 `-env:OSL_SOCKET_PATH=...` 传入；旧实现只设置普通 process environment，因此无效。长 Darwin
   temp root 还会在 LibreOffice 追加 `OSL_PIPE_*` 后超过 `sockaddr_un.sun_path`，在 `socket()` 前就返回
   `BE_PATHINFO_MISSING`；
-- fixed runner 现为每次调用创建 `/private/tmp/intatis-lo-<12 hex>`，创建后以 `lstat` 证明它是
+- fixed runner 现为每次调用创建 `/private/tmp/egakium-lo-<12 hex>`，创建后以 `lstat` 证明它是
   current-UID、非 symlink、`0700` 目录。Seatbelt 只允许该 root 的文件读写、本地 `OSL_PIPE_*`
   Unix socket bind/connect，并继续拒绝 IP 网络和其他 Unix socket；调用结束清理 exact root。对应
   profile 单元测试 1/1、`DocumentFixedBackendsTests` 4/4；
-- `INTATIS_REAL_DOCUMENT_RUNTIME_SMOKE=1 swift test --filter DocumentToolsIntegrationTests/testInstalledDocumentRuntimeCoreToolChainWhenEnabled`
+- `EGAKIUM_REAL_DOCUMENT_RUNTIME_SMOKE=1 swift test --filter DocumentToolsIntegrationTests/testInstalledDocumentRuntimeCoreToolChainWhenEnabled`
   在干净副本上 1/1：
   DOCX write/read/preview/export/PDF read/render；PPTX write/read/preview/export/PDF read；XLSX write、
   LibreOffice Calc round-trip、公式文本保留、data-only cache 值 `4`、preview/export。真实测试后再次
-  `codesign --verify --deep --strict` 与 `spctl`，结果仍为 valid/accepted，证明 Intatis 路径没有修改
+  `codesign --verify --deep --strict` 与 `spctl`，结果仍为 valid/accepted，证明 Egakium 路径没有修改
   App 签名资源。旧 26.2.4 runtime 已按用户授权移入废纸篓；
 - 当前用户 runtime 的真实 smoke 仍只证明这台开发机，不代表 App bundle、双架构、NOTICE、许可证或
   clean-machine distribution closure 已完成。真实 EPUB write/EPUBCheck 和 strict pdfcpu +
@@ -955,7 +1260,7 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 
 2026-08-11 model-driven Knowledge 实现与 live acceptance 证据：
 
-- `IntatisKnowledgeTests.xctest` 118 tests / 0 failures；当前宿主 local-core corpus 指标为
+- `EgakiumKnowledgeTests.xctest` 118 tests / 0 failures；当前宿主 local-core corpus 指标为
   Recall@1 0.529、Recall@5 0.882、MRR 0.681、nDCG@5 0.698、citation coverage 0.882、citation
   precision 1.000，最近一次离线 Knowledge run 的 deterministic search proxy 200 次平均 1.640 ms；
   这些不是 semantic reranker uplift 报告；
@@ -972,18 +1277,18 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   redirect/malformed/timeout/cancel/credential failure 均通过；official-shaped provider fixture 还验证了
   embedding token 与 reranker token/billable-search-unit 解析，build descriptor 保持 `.write` 且
   network/model-cost 风险独立存在；
-- `INTATIS_REAL_KNOWLEDGE_SMOKE=1` 已使用 OpenRouter exact routes 运行 1/1、0 failures（3.447 秒）：
+- `EGAKIUM_REAL_KNOWLEDGE_SMOKE=1` 已使用 OpenRouter exact routes 运行 1/1、0 failures（3.447 秒）：
   `google/gemini-embedding-2` 返回并通过 1536 维校验，provider usage 为 input/total token 7；
   `cohere/rerank-4-pro` 返回完整两候选 permutation、有限 score，provider usage 为 search unit 1；
-- `INTATIS_REAL_KNOWLEDGE_QUALITY=1` 运行 1/1、0 failures：冻结 8-query 中英/代码集合的 dense
+- `EGAKIUM_REAL_KNOWLEDGE_QUALITY=1` 运行 1/1、0 failures：冻结 8-query 中英/代码集合的 dense
   embedding baseline 为 MRR 1.000、nDCG@5 1.000、Recall@5 1.000；configured semantic reranker 为
   MRR 1.000、nDCG@5 0.990、Recall@5 1.000。embedding usage 为 343 token，reranker usage 为 8
   search units。该结果证明 100% configured-rerank 调用和独立指标报告，但没有证明 uplift，nDCG@5
   回退 0.010，不能改写成推荐模型优于 baseline；
-- `INTATIS_REAL_KNOWLEDGE_AGENT_E2E=1` 运行 1/1、0 failures（32.686 秒）：真实 Agent 调用了
+- `EGAKIUM_REAL_KNOWLEDGE_AGENT_E2E=1` 运行 1/1、0 failures（32.686 秒）：真实 Agent 调用了
   `list_files` / `read_file` / `write_file` / `build_knowledge` / `search_knowledge`，在隔离外部 store
   完成 read-organize-build-search-cite，最终回答含通过 current-turn revalidation 的 exact evidence ID；
-- `INTATIS_REAL_KNOWLEDGE_PDF_E2E=1` 以项目根目录 `test-DS-Algorithm` 为 source 运行 1/1、0 failures
+- `EGAKIUM_REAL_KNOWLEDGE_PDF_E2E=1` 以项目根目录 `test-DS-Algorithm` 为 source 运行 1/1、0 failures
   （110.980 秒）。harness 只复制并读取 `DPV-chap2.pdf` 6–7 页、`DPV-chap4.pdf` 5–7 页、
   `DPV-chap6.pdf` 1–5 页；Agent 实际调用三次 `read_pdf`，写出 3 个 grounded concept，build 生成
   22 chunks，再用 configured query embedding 与 required reranker 搜索并在覆盖 mergesort、Dijkstra、
@@ -997,16 +1302,16 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   `TerminalToolsTests.testManagedTerminalCannotMutateKnowledgePublicationWithEmptyDenyList` 1/1、0 failures，
   证明实际 Seatbelt managed terminal 不能绕过 Knowledge publication deny floor。默认 skipped 的其它
   real provider/browser/Git/document/Keychain 用例不计为真实环境通过；
-- `IntatisMac` macOS Debug 与 `IntatisiOS` generic Simulator Debug unsigned build均退出 0；Mac 只出现
-  仓内既有 warning，未构建 legacy `IntatisMacAppStore`。本轮整仓 `swift test` 已完成 Tools 与 Skills，
-  随后 `IntatisSharedUITests.xctest` 进程持续约 7 分钟 0% CPU 且无新输出，复现既有 async scheduler
+- `EgakiumMac` macOS Debug 与 `EgakiumiOS` generic Simulator Debug unsigned build均退出 0；Mac 只出现
+  仓内既有 warning，未构建 legacy `EgakiumMacAppStore`。本轮整仓 `swift test` 已完成 Tools 与 Skills，
+  随后 `EgakiumSharedUITests.xctest` 进程持续约 7 分钟 0% CPU 且无新输出，复现既有 async scheduler
   挂起后人工中断，命令退出 130；不得记为整仓全绿，也没有观察到本任务相关 failure。本段所列
   Knowledge/Provider/Agent/Cowork/Permission/terminal 定向 suites 均独立退出 0。账单金额因 provider
   未返回 versioned monetary amount 而不推算。
 
 2026-08-09 OKF / RAG knowledge bundle 本地 core 的直接证据：
 
-- 最终 root run 的 `IntatisKnowledgeTests.xctest`：106 tests / 0 failures / 0 unexpected / 0 skips，
+- 最终 root run 的 `EgakiumKnowledgeTests.xctest`：106 tests / 0 failures / 0 unexpected / 0 skips，
   7.224 秒（wall 7.230 秒）；其中 focused Build/Search/SourceLocator 为 52/52，新增 diagnostic
   init/decode 脱敏回归 1/1；
 - 冻结 corpus：Recall@1 0.529、Recall@5 0.882、MRR 0.681、nDCG@5 0.698、citation coverage
@@ -1018,7 +1323,7 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 - host exact authority/current snapshot/cancel-drain 1/1，concrete search + source-locator + final-grounding
   purge 1/1；本地 dynamic registration intent、DeterministicPolicyGate reviewer boundary 和
   date-only stale UTC boundary各自定向通过；
-- `IntatisMac` unsigned Debug arm64 build 通过；`IntatisKnowledge` / `IntatisCLI` arm64 与 x86_64
+- `EgakiumMac` unsigned Debug arm64 build 通过；`EgakiumKnowledge` / `EgakiumCLI` arm64 与 x86_64
   cross-build 通过。x86_64 只证明编译；Intel 真机、最低支持 macOS、large corpus、真实 remote
   embedding/reranker、hybrid/reranker comparative uplift、签名/公证仍为 `UNKNOWN`；
 - urgent purge 的 current-pointer removal 是持久 admission boundary，receipt tombstone 阻止旧回执并发
@@ -1027,7 +1332,7 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 2026-08-10 Agent durable多模态上下文最小闭环的直接证据：
 
 - `DurableOwnerOnlyFileTests` 2 tests、`ArtifactImageResolverTests` 10 tests、
-  `IntatisProvidersToolCallingTests` 36 tests、`AgentToolOutputLoweringTests` 6 tests、
+  `EgakiumProvidersToolCallingTests` 36 tests、`AgentToolOutputLoweringTests` 6 tests、
   `DurableMultimodalAgentLoopTests` 9 tests、`CLIAttachmentTests` 4 tests，均为0 failures；
 - `ModelHistoryMediaBatchEventLogTests` 7 tests、`SubmittedIntentStoreTests` 13 tests，均为0 failures；前者
   覆盖same-turn/call result与完整settlement identity，后者覆盖Retry planner和outbox payload保真；
@@ -1040,9 +1345,9 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 - 从`v0.41` exact commit `e5f64ed`归档源码并临时编译旧reader fixture：3 tests / 0 failures；旧
   projector拒绝schema-v2 direct item及v1 checkpoint后的schema-v2 direct suffix，旧protocol拒绝
   schema-v2 checkpoint；
-- `swift build --disable-sandbox --target IntatisCLI`退出0；`IntatisMac` macOS Debug和`IntatisiOS`
+- `swift build --disable-sandbox --target EgakiumCLI`退出0；`EgakiumMac` macOS Debug和`EgakiumiOS`
   generic Simulator Debug unsigned build均退出0，只有仓库既有unused-result/deprecation warning；
-- 真实端点smoke的opt-in测试壳已编入当前`IntatisCLITests`；未设置开关时必须skip且不发请求，真实
+- 真实端点smoke的opt-in测试壳已编入当前`EgakiumCLITests`；未设置开关时必须skip且不发请求，真实
   credential/network调用仍未执行；
 - 当前完整`swift test --disable-sandbox`已成功构建全部targets，并先完成Tools 209 tests（15 skipped）
   与Skills 29 tests、均0 failures；随后在既有SharedUI
@@ -1059,18 +1364,18 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 2026-08-11 `v0.48 (48)` 版本推进、shipping target 构建与本机开发安装的直接证据：
 
 - `xcodegen generate` 通过；`scripts/check-version-consistency.sh` 通过并输出
-  `Intatis version is consistent: 0.48 (build 48)`；
-- `IntatisMac` unsigned universal Release 构建退出 0，最终 bundle 为 `0.48 (48)`，bundle
-  identifier 为 `com.Vita0818.IntatisMac`，可执行文件包含 `x86_64 arm64`；
-- `IntatisiOS` generic Simulator Debug unsigned 构建退出 0，最终 bundle 为 `0.48 (48)`；
+  `Egakium version is consistent: 0.48 (build 48)`；
+- `EgakiumMac` unsigned universal Release 构建退出 0，最终 bundle 为 `0.48 (48)`，bundle
+  identifier 为 `com.Vita0818.EgakiumMac`，可执行文件包含 `x86_64 arm64`；
+- `EgakiumiOS` generic Simulator Debug unsigned 构建退出 0，最终 bundle 为 `0.48 (48)`；
   两个构建只报告仓库既有 unused-result / deprecated API warnings；
-- staging App 使用 `IntatisMac.DeveloperID.entitlements` 完成 ad-hoc Hardened Runtime 签名；
+- staging App 使用 `EgakiumMac.DeveloperID.entitlements` 完成 ad-hoc Hardened Runtime 签名；
   embedded entitlements 为 audio input=true、JIT=false、library validation 未关闭，
   `codesign --verify --deep --strict` 通过；
-- `/Applications/Intatis.app` 已原子替换为上述 `0.48 (48)` 构建，版本、bundle identifier、
+- `/Applications/Egakium.app` 已原子替换为上述 `0.48 (48)` 构建，版本、bundle identifier、
   双架构、entitlements 和可执行文件 SHA-256 均与 staging 副本一致，且无 quarantine
   xattr。安装前的 `0.40 (40)` 保留在
-  `~/.Trash/Intatis-before-install-20260811-201644.app` 作为可恢复备份；
+  `~/.Trash/Egakium-before-install-20260811-201644.app` 作为可恢复备份；
 - 本轮版本/安装没有再跑 SwiftPM 测试；同一业务工作树在版本变更前已有 focused
   154/154、完整 SwiftPM 退出 0、Cowork 362/362 和 AgentKernel 210/210 证据。本轮未运行
   Developer ID 正式签名、公证、staple、Gatekeeper、DMG/ZIP 打包或启动后 UI/真实 provider
@@ -1079,20 +1384,20 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 2026-08-08 `v0.40 (40)` 版本推进、shipping target 构建与本机开发安装的直接证据：
 
 - `xcodegen generate` 通过；`scripts/check-version-consistency.sh` 通过并输出
-  `Intatis version is consistent: 0.40 (build 40)`；
-- `IntatisMac` unsigned universal Release 构建退出 0，最终 bundle 为 `0.40 (40)`，bundle
-  identifier 为 `com.Vita0818.IntatisMac`，可执行文件包含 `x86_64 arm64`；
-- `IntatisiOS` generic Simulator Debug unsigned build 退出 0，最终 bundle 为 `0.40 (40)`；
+  `Egakium version is consistent: 0.40 (build 40)`；
+- `EgakiumMac` unsigned universal Release 构建退出 0，最终 bundle 为 `0.40 (40)`，bundle
+  identifier 为 `com.Vita0818.EgakiumMac`，可执行文件包含 `x86_64 arm64`；
+- `EgakiumiOS` generic Simulator Debug unsigned build 退出 0，最终 bundle 为 `0.40 (40)`；
   两个构建只报告仓库既有的 unused-result / deprecated `onChange` warning；
-- 安装前使用 `IntatisMac.DeveloperID.entitlements` 对 staging App 完成 ad-hoc Hardened Runtime
+- 安装前使用 `EgakiumMac.DeveloperID.entitlements` 对 staging App 完成 ad-hoc Hardened Runtime
   签名；读回 microphone input=true、JIT=false、library validation 未关闭且无 App Sandbox，
   `codesign --verify --deep --strict` 通过；
-- `/Applications/Intatis.app` 已安装上述 `0.40 (40)` 开发构建，无 quarantine xattr；安装后
+- `/Applications/Egakium.app` 已安装上述 `0.40 (40)` 开发构建，无 quarantine xattr；安装后
   可执行文件与 staging 副本的 SHA-256 均为
   `617c5b50a5e20e580c0a5a7d2059bc2337b19e92de66dd0779f8ada2d5a44cbe`。安装前的
   `0.36 (36)` 曾移至
-  `/Users/vita/.Trash/Intatis-before-install-20260808-163949.app`，随后已按用户要求永久删除；
-  精确路径检查为 absent，Finder 复核废纸篓中名称含 `Intatis` 的项目数为 0；
+  `/Users/vita/.Trash/Egakium-before-install-20260808-163949.app`，随后已按用户要求永久删除；
+  精确路径检查为 absent，Finder 复核废纸篓中名称含 `Egakium` 的项目数为 0；
 - 本轮没有重跑 SwiftPM 单元测试，也没有启动 App 做 UI/真实 provider smoke；紧随其后的
   Cowork permission authorization context 完整测试证据覆盖同一业务源码。未运行 Developer ID
   正式签名、公证、staple、Gatekeeper 或 DMG/ZIP 打包，因此这是本机开发安装证据，不是正式
@@ -1116,16 +1421,16 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   current-turn live history、automatic attach 专用入口、allow/deny/cancel/failure 和 Reporter 不再 dispatch；
 - `DurableMultimodalAgentLoopTests`：9/9；覆盖 user/FCO image 不再 blanket deny、sidecar 摘要媒体证据、
   raw sidecar 不进入 durable history，以及 missing sidecar 不伪造可跨重启恢复的权限拒绝；
-- `AuthorizationSidecarTests`：12/12；`IntatisPermissionReviewerTests`：10/10；
+- `AuthorizationSidecarTests`：12/12；`EgakiumPermissionReviewerTests`：10/10；
   `PermissionReviewProtocolTests`：12/12；分别覆盖 schema decoration/extraction/binding、strict 发网前
   recursive fail-fast、deferred tool request-copy/durable isolation、plain-text verdict 与
   legacy/additive receipt wire；
 - 以上合计 162 tests / 0 failures。strict-schema correction 还单独通过 `SearchKnowledgeToolTests` 4/4，
   并在 `AuthorizationSidecarTests` 中抓取 OpenRouter 与 OpenAI-compatible 最终 HTTP body 验证 wire invariant。
   `ModelHistoryCompactionAgentLoopTests` 另覆盖 deferred schema 对压缩阈值、compactor request 与 durable raw output
-  的影响。`swift build --disable-automatic-resolution` 通过；受影响目标完整结果为 `IntatisAgentKernelTests` 217/217、
-  `IntatisKnowledgeTests` 118/118、`IntatisCoworkTests` 364/364、`IntatisCLITests` 45/45（8 skipped）。
-  `IntatisMac` macOS Debug、`CODE_SIGNING_ALLOWED=NO` 构建通过，只出现仓库既有 warnings。完整
+  的影响。`swift build --disable-automatic-resolution` 通过；受影响目标完整结果为 `EgakiumAgentKernelTests` 217/217、
+  `EgakiumKnowledgeTests` 118/118、`EgakiumCoworkTests` 364/364、`EgakiumCLITests` 45/45（8 skipped）。
+  `EgakiumMac` macOS Debug、`CODE_SIGNING_ALLOWED=NO` 构建通过，只出现仓库既有 warnings。完整
   `swift test --disable-automatic-resolution` 完成 Tools 223/223（19 skipped）后挂于仓库既有 SharedUI async
   waiter，连续两分钟无输出后人工中断为 130，不能记为本次全量通过。opt-in 真实 provider sidecar smoke
   成功编译但因未设置计费开关而按设计跳过；本次未运行 UI/manual switch smoke，因此线上 route
@@ -1146,7 +1451,7 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   reporter，以及 reviewer provider 前的 typed durable deny；
 - `testCancelAllDrainsDataPlaneBeforeShuttingDownPermissionReviewer`：1 test / 0 failures；确认 session
   cancel 会 drain 原始 inference、request-owned report 与 reviewer，不会释放 denial 后继续第三次
-  inference 或执行文件写入；完整 `IntatisCoworkTests`：346 tests / 0 failures；
+  inference 或执行文件写入；完整 `EgakiumCoworkTests`：346 tests / 0 failures；
 - managed sandbox 中第一次完整 `swift test --disable-sandbox` 因外层 Seatbelt 拒绝既有 browser/
   LaTeX/Git/process 子进程启动而失败；在允许真实子进程边界的宿主环境用同一 working tree 重跑后，
   14 个 XCTest target 合计 1727 tests / 19 conditional skips / 0 failures。`swift build
@@ -1165,7 +1470,7 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   `testRealAgentOutputFunctionShapeWhenEnabled`：1 test / 0 failures，普通单 function request 成功返回
   一个同名结构化 call。探索过程中 forced `tool_choice` 与 `response_format` 均被该 exact route 的上游
   参数兼容性检查拒绝，因此生产合同不依赖这两个可选参数；
-- `IntatisMac` Debug、`CODE_SIGNING_ALLOWED=NO` 构建通过；仅出现既有 unused-result 与 SwiftUI
+- `EgakiumMac` Debug、`CODE_SIGNING_ALLOWED=NO` 构建通过；仅出现既有 unused-result 与 SwiftUI
   deprecation warnings；
 - 本节是对 2026-08-08 `tools: []` 报告器测试证据的后续修正，不改变 reviewer 自身无工具判决请求。
 
@@ -1177,12 +1482,12 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   receipt 均不 ACK，实质追问使用 fresh RequestID；
 - run control、mailbox correlation、协议 round-trip、EventLog CAS/projection、tool registry/legacy lease
   migration、prompt、bundled Skill、permission 与 non-replayable mailbox side-effect focused tests 均通过；
-  完整 `IntatisCoworkTests` 为 341 tests / 0 failures；完整 `swift test` 退出 0，其中
-  `IntatisAgentKernelTests` 175 tests、`IntatisSharedUITests` 141 tests，所有已运行 target 均为
+  完整 `EgakiumCoworkTests` 为 341 tests / 0 failures；完整 `swift test` 退出 0，其中
+  `EgakiumAgentKernelTests` 175 tests、`EgakiumSharedUITests` 141 tests，所有已运行 target 均为
   0 failures；
 - `cowork-agent-orchestration` 通过仓内 `quick_validate.py`；`xcodegen generate` 通过；
-  `scripts/check-version-consistency.sh` 输出 `Intatis version is consistent: 0.38 (build 38)`；
-- `IntatisMac` macOS Debug unsigned build 与 `IntatisiOS` generic Simulator Debug unsigned build
+  `scripts/check-version-consistency.sh` 输出 `Egakium version is consistent: 0.38 (build 38)`；
+- `EgakiumMac` macOS Debug unsigned build 与 `EgakiumiOS` generic Simulator Debug unsigned build
   均退出 0；读回两个最终 bundle 均为 `0.38 (38)`。构建只报告仓库既有的 unused-result /
   deprecated `onChange` warning；
 - 按 `computer-use` Skill 通过 Sky 分别尝试按刚构建 App 的绝对路径、bundle ID 启动，并尝试列举
@@ -1193,33 +1498,33 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 2026-08-07 `v0.38 (38)` 版本推进的直接证据：
 
 - `xcodegen generate` 通过；`scripts/check-version-consistency.sh` 通过并输出
-  `Intatis version is consistent: 0.38 (build 38)`；
-- `IntatisMac` unsigned universal Release 构建退出码为 0，最终 bundle 为 `0.38 (38)`，
+  `Egakium version is consistent: 0.38 (build 38)`；
+- `EgakiumMac` unsigned universal Release 构建退出码为 0，最终 bundle 为 `0.38 (38)`，
   可执行文件包含 `x86_64 arm64`；
-- `IntatisiOS` generic Simulator Debug unsigned build 退出码为 0，最终 bundle 为
+- `EgakiumiOS` generic Simulator Debug unsigned build 退出码为 0，最终 bundle 为
   `0.38 (38)`；两个构建只报告仓库既有的 unused-result / deprecated `onChange` warning；
 - 本轮是版本元数据与当前文档变更，未运行 SwiftPM 单元测试；未安装 v0.38 App，
-  `/Applications/Intatis.app` 读回仍为 `0.36 (36)`。也未运行 Developer ID 正式签名、
+  `/Applications/Egakium.app` 读回仍为 `0.36 (36)`。也未运行 Developer ID 正式签名、
   公证、staple、Gatekeeper 或 DMG/ZIP 打包。
 
 2026-08-07 Cowork terminal/mailbox reconciliation 修复的直接证据：
 
 - 报告要求的 TaskContract、AgentLoop policy、model history、context projection、CodeProjection、
   MessageBus/delegation、orchestration reliability、WorkTask runtime 与 permission reviewer focused
-  tests 均通过；完整 `swift test --skip-build` 最终退出 0，其中 `IntatisCoworkTests` 327 tests、
-  `IntatisSharedUITests` 141 tests、`IntatisAgentKernelTests` 175 tests，均为 0 failures。真实
+  tests 均通过；完整 `swift test --skip-build` 最终退出 0，其中 `EgakiumCoworkTests` 327 tests、
+  `EgakiumSharedUITests` 141 tests、`EgakiumAgentKernelTests` 175 tests，均为 0 failures。真实
   Git/browser/Keychain 等显式 opt-in host smoke 仍按设计 skipped；
 - `xcodegen generate` 与 `scripts/check-version-consistency.sh` 通过，版本一致为 `0.36 (36)`；
-  `IntatisMac` macOS Debug、`IntatisiOS` generic Simulator Debug unsigned build 均退出 0；
-- `IntatisMac` unsigned universal Release 通过；最终 bundle identifier 为
-  `com.Vita0818.IntatisMac`，可执行文件包含 `x86_64 arm64`。临时 staging App 使用仓库
+  `EgakiumMac` macOS Debug、`EgakiumiOS` generic Simulator Debug unsigned build 均退出 0；
+- `EgakiumMac` unsigned universal Release 通过；最终 bundle identifier 为
+  `com.Vita0818.EgakiumMac`，可执行文件包含 `x86_64 arm64`。临时 staging App 使用仓库
   Developer ID entitlements 完成 ad-hoc Hardened Runtime 签名，embedded entitlements 为
   audio input=true、JIT=false、library validation 未关闭，`codesign --verify --deep --strict`
   通过；
-- `/Applications/Intatis.app` 已替换为该构建，版本、bundle identifier、架构和可执行文件
+- `/Applications/Egakium.app` 已替换为该构建，版本、bundle identifier、架构和可执行文件
   SHA-256 均与 staging 产物一致，且没有 `com.apple.quarantine` xattr。旧安装保存在废纸篓
-  `Intatis-before-install-20260807-1627.app`，可恢复；新进程的实际可执行路径已核对为
-  `/Applications/Intatis.app/Contents/MacOS/IntatisMac`；
+  `Egakium-before-install-20260807-1627.app`，可恢复；新进程的实际可执行路径已核对为
+  `/Applications/Egakium.app/Contents/MacOS/EgakiumMac`；
 - 对截图对应的 `cowork_rqx6cgvb` 事故日志做了只读回放审计：仍为连续 `seq 0...4564`
   （4565 行），冷启动后 mtime 仍为 `2026-08-07 13:09:04 +0800`，没有自动 provider 重跑或
   追加事件。事故链保留 `seq 2873 message_completed`、`2874 model_history_item`、
@@ -1233,19 +1538,19 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   卡片仍需在具备 Computer Use/Screen Recording 权限的环境补做。
 
 本轮没有运行 Developer ID 正式签名、公证、staple、Gatekeeper 或 DMG/ZIP 打包；以上是本机
-开发安装证据，不是正式 release 证据。遗留 `IntatisMacAppStore` 未构建。
+开发安装证据，不是正式 release 证据。遗留 `EgakiumMacAppStore` 未构建。
 
 2026-08-07 v0.36 阶段未提交工作树 macOS 本机开发安装的直接证据：
 
 - `xcodegen generate` 与 `scripts/check-version-consistency.sh`：通过，版本一致为 `0.36 (36)`；
-- `IntatisMac` unsigned universal Release：通过；最终 bundle identifier 为
-  `com.Vita0818.IntatisMac`，可执行文件包含 `x86_64 arm64`；
+- `EgakiumMac` unsigned universal Release：通过；最终 bundle identifier 为
+  `com.Vita0818.EgakiumMac`，可执行文件包含 `x86_64 arm64`；
 - 使用仓库 Developer ID entitlements 对临时 App 完成 ad-hoc Hardened Runtime 签名；embedded
   entitlements 已读回 microphone input=true、JIT=false、library validation 未关闭，
   `codesign --verify --deep --strict` 通过；
-- `/Applications/Intatis.app` 已替换为上述当前工作树构建，版本仍为 `0.36 (36)`，无 quarantine
+- `/Applications/Egakium.app` 已替换为上述当前工作树构建，版本仍为 `0.36 (36)`，无 quarantine
   xattr；安装后可执行文件与临时验证产物的 SHA-256 一致。旧的同版本 App 已以 timestamped
-  `Intatis-before-install-*.app` 移入废纸篓作为可恢复备份；
+  `Egakium-before-install-*.app` 移入废纸篓作为可恢复备份；
 - 本轮没有运行 Developer ID 正式签名、公证、staple、Gatekeeper 或 DMG/ZIP 打包，也没有自动启动
   App；因此这是本机开发安装证据，不是正式 release 或运行时 UI smoke 证据。
 
@@ -1258,7 +1563,7 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   provider request；
 - 完整 `swift test`：通过（exit 0）；真实 Git/browser/Keychain 等显式 opt-in host smoke 仍按设计
   skipped，构建只报告仓库既有的 unused-result / deprecated `onChange` warning；
-- `xcodegen generate`：通过；`IntatisMac` macOS Debug unsigned build：通过；`IntatisiOS` generic
+- `xcodegen generate`：通过；`EgakiumMac` macOS Debug unsigned build：通过；`EgakiumiOS` generic
   Simulator Debug unsigned build：通过；
 - 未执行 macOS 文件选择/拖放/视觉命中手动 smoke，也未执行真实 provider/credential/network 图片
   对话，因此这里只证明共享 UI/runtime 编译、durable attachment/replay 单元回归与 iOS linkage 边界，
@@ -1267,13 +1572,13 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 2026-08-05 `v0.36 (36)` 版本、shipping target 构建与本机安装的直接证据：
 
 - `xcodegen generate`：通过；`scripts/check-version-consistency.sh`：通过并输出
-  `Intatis version is consistent: 0.36 (build 36)`；
-- `IntatisMac` unsigned universal Release：通过；最终 bundle 为 `0.36 (36)`，可执行文件包含
+  `Egakium version is consistent: 0.36 (build 36)`；
+- `EgakiumMac` unsigned universal Release：通过；最终 bundle 为 `0.36 (36)`，可执行文件包含
   `x86_64 arm64`。安装前以仓库 Developer ID entitlements 完成 ad-hoc Hardened Runtime 签名，
   `codesign --verify --deep --strict` 通过；
-- `/Applications/Intatis.app` 已替换为上述 `0.36 (36)` 开发构建，bundle identifier 为
-  `com.Vita0818.IntatisMac` 且无 quarantine xattr；旧 `0.35 (35)` 已移入废纸篓作为可恢复备份；
-- `IntatisiOS` generic Simulator Debug unsigned build：通过；最终 bundle 为 `0.36 (36)`；
+- `/Applications/Egakium.app` 已替换为上述 `0.36 (36)` 开发构建，bundle identifier 为
+  `com.Vita0818.EgakiumMac` 且无 quarantine xattr；旧 `0.35 (35)` 已移入废纸篓作为可恢复备份；
+- `EgakiumiOS` generic Simulator Debug unsigned build：通过；最终 bundle 为 `0.36 (36)`；
 - 本轮没有运行 Developer ID 签名、公证、staple、Gatekeeper 或 DMG/ZIP 打包，因此这只是本机
   开发安装证据，不是正式 release 证据。完整离线图片工具测试仍见紧随其后的专项结果。
 
@@ -1282,17 +1587,17 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 - `CLIProviderAdapterTests`：4 tests / 0 failures；新增用例验证 image-only provider 的空
   `models` 不影响 Chat selection、`image_model` 精确映射到独立 opaque endpoint/model，以及字段
   缺失时无隐藏 fallback；
-- `IntatisProvidersMultimodalTests`：17 tests / 0 failures；覆盖 image provider registry、
+- `EgakiumProvidersMultimodalTests`：17 tests / 0 failures；覆盖 image provider registry、
   `images/generations` JSON、`images/edits` multipart reference、DALL-E 2 的显式 base64 response、
   `b64_json` decode、非法 URL、provider payload error、timeout/retry 与 no-image-model nil route；
-- `IntatisToolsTests`：144 tests / 15 skipped / 0 failures；覆盖 `edit_image` schema/registry、单图
+- `EgakiumToolsTests`：144 tests / 15 skipped / 0 failures；覆盖 `edit_image` schema/registry、单图
   preflight、输入/输出权限资源分离、无副作用拒绝与宿主 service 注入；
-- `IntatisAgentKernelTests`：171 tests / 0 failures；其中 provider image service 用例验证编辑调用使用
+- `EgakiumAgentKernelTests`：171 tests / 0 failures；其中 provider image service 用例验证编辑调用使用
   configured image model 而非 Chat model，并把结果写回 workspace；
 - `CoworkEndToEndTests`、`MessageDelegationSplitTests`、`ToolRegistryLeaseTests`：合计 28 tests /
   0 failures；覆盖 coordinator/read-write worker 的 `generateMedia` 暴露以及 read-only worker 的
   `edit_image` 抑制；
-- `IntatisMac` macOS Debug unsigned build：通过；构建和上述离线测试均不需要 API Key；
+- `EgakiumMac` macOS Debug unsigned build：通过；构建和上述离线测试均不需要 API Key；
 - 当前尚未执行真实 provider/credential/network 图片生成或编辑 smoke，因此不声称任何具体线上
   模型、provider 方言、size/count/quality 组合或计费路径已通过。首版编辑只支持单张输入图；mask、
   多参考图和原地覆盖仍未实现。
@@ -1303,7 +1608,7 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 - `ComposerVoiceInputTests`：6 tests / 0 failures；除空草稿、已有草稿、尾部空白和空转写 no-op
   外，精确验证默认 WAV 为 16-bit little-endian PCM，且 WAV/M4A 设置都不注入
   `AVEncoderBitRateKey`；
-- `IntatisProvidersMultimodalTests`：22 tests / 0 failures；覆盖 owner-only disk-backed multipart
+- `EgakiumProvidersMultimodalTests`：22 tests / 0 failures；覆盖 owner-only disk-backed multipart
   WAV、exact OpenRouter JSON-base64 `input_audio`、25 MiB recorded-file runtime、严格 JSON
   `Content-Type`、timeout/retry 与安全错误 payload；原有 modern/iOS importer focused tests 继续验证
   `transcription_model` 精确保留、transcription-only provider 空 `models`、exact route 与无 hidden
@@ -1311,32 +1616,32 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 - 完整 `swift test`：退出码 0；真实 provider、credential、browser、Keychain 等显式 opt-in 用例仍
   按各自声明跳过，不将其记为真实环境通过；
 - `xcodegen generate` 与 `scripts/check-version-consistency.sh` 通过，后者输出
-  `Intatis version is consistent: 0.36 (build 36)`；`IntatisMac` macOS Debug unsigned build 与
-  `IntatisiOS` generic Simulator Debug unsigned build 均通过，两端只有既有 deprecated `onChange` /
+  `Egakium version is consistent: 0.36 (build 36)`；`EgakiumMac` macOS Debug unsigned build 与
+  `EgakiumiOS` generic Simulator Debug unsigned build 均通过，两端只有既有 deprecated `onChange` /
   unused-result 等 warning；
 - 最终 macOS/iOS App bundle 都含 `NSMicrophoneUsageDescription` 与 English/简体中文
   `InfoPlist.strings`。macOS Developer ID target 的说明为“turn voice into editable message drafts”；
   shipping entitlements 另含最小 `com.apple.security.device.audio-input=true`，App Sandbox 仍关闭；
   本地 ad-hoc Debug 签名包的 embedded entitlements 已读回该值且
   `codesign --verify --deep --strict` 通过。ad-hoc 不证明正式 Developer ID/Hardened Runtime 或公证；
-  遗留 `IntatisMacAppStore` target 未修改、未构建；
+  遗留 `EgakiumMacAppStore` target 未修改、未构建；
 - 当前未启动 App、未授予真实麦克风权限，也未以真实 credential/network 调用线上
   `audio/transcriptions`，因此录音设备、具体 provider 方言、模型可用性、计费与运行态像素仍为
   `UNKNOWN`，需要下一步手动 smoke；本轮未执行签名、公证、staple、Gatekeeper 或发行打包。
 
 2026-08-14 provider streaming reconnect 与 Cowork terminal-Run Retry 最小修复的直接证据：
 
-- `IntatisMac` macOS Debug unsigned build 通过：
-  `xcodebuild -quiet -project Intatis.xcodeproj -scheme IntatisMac -configuration Debug
-  -destination platform=macOS -derivedDataPath /tmp/IntatisDerivedData-retryfix
+- `EgakiumMac` macOS Debug unsigned build 通过：
+  `xcodebuild -quiet -project Egakium.xcodeproj -scheme EgakiumMac -configuration Debug
+  -destination platform=macOS -derivedDataPath /tmp/EgakiumDerivedData-retryfix
   COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build`，仅有多架构 destination 选择 warning；
-- `IntatisProvidersToolCallingTests` 36/36、0 failures；覆盖错误型 SSE 后重连、首次语义输出前重连，
-  以及 text/完整 tool call/usage/done 已交付后不盲重放。完整 `IntatisProvidersTests` 为
+- `EgakiumProvidersToolCallingTests` 36/36、0 failures；覆盖错误型 SSE 后重连、首次语义输出前重连，
+  以及 text/完整 tool call/usage/done 已交付后不盲重放。完整 `EgakiumProvidersTests` 为
   203/204：唯一失败是旧断言
   `testOpenAIStreamingDoesNotRetryAfterResponseBytes`，其 fixture 只有尚未组成完整 SSE event 的 raw
   fragment，仍把“收到任意 byte”当成 replay fence，与当前批准的 consumer semantic-yield 合同冲突；
   本轮按仓库修改边界未改测试源码，也未把生产实现退回旧合同；
-- `ThreadLayoutTests` 21/21、0 failures；完整 `IntatisSharedUITests` filter 在约 70 秒无输出后
+- `ThreadLayoutTests` 21/21、0 failures；完整 `EgakiumSharedUITests` filter 在约 70 秒无输出后
   人工中止（exit 130），不记为通过；
 - `git diff --check` 通过。未运行真实 provider/credential/network、网络断线注入、GUI 点击、iOS、
   签名、公证或发行打包 smoke。
@@ -1351,8 +1656,8 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   非成功 finish reason 分别验证 secret-free typed diagnosis；旧 `malformed_verdict` 与
   `provider_still_stopping` 仍可解码；
 - 聚焦命令
-  `swift test --disable-automatic-resolution --filter 'IntatisPermissionReviewerTests|PermissionReviewProtocolTests|PermissionReviewControlPlaneTests'`
-  通过：`PermissionReviewProtocolTests` 13/13、`IntatisPermissionReviewerTests` 14/14、
+  `swift test --disable-automatic-resolution --filter 'EgakiumPermissionReviewerTests|PermissionReviewProtocolTests|PermissionReviewControlPlaneTests'`
+  通过：`PermissionReviewProtocolTests` 13/13、`EgakiumPermissionReviewerTests` 14/14、
   `PermissionReviewControlPlaneTests` 51/51，合计 78/78、0 failures；完成相关 package Debug 编译。
   未运行全量 test、macOS/iOS app build、真实 reviewer provider、credential/network 或 GUI smoke。
 
@@ -1368,8 +1673,8 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   不同 RunID，且 Run/Goal/invocation terminal 不传播 WorkTask 状态；
 - `PerAgentInferenceProfileTests.testAutomaticDelegationDoesNotProposeWorkerWhenNoneIsAttached` 1/1：
   验证 automatic delegation 不再 proposed/spawn worker；
-- `IntatisProtocolTests` 107/107、`IntatisConversationTests` 212/212、`IntatisAgentKernelTests`
-  220/220、`IntatisCoworkTests` 364/364、`IntatisSkillsTests` 29/29、`IntatisToolsTests`
+- `EgakiumProtocolTests` 107/107、`EgakiumConversationTests` 212/212、`EgakiumAgentKernelTests`
+  220/220、`EgakiumCoworkTests` 364/364、`EgakiumSkillsTests` 29/29、`EgakiumToolsTests`
   227/227（另有 19 个显式 opt-in skip）均通过；Cowork 内另确认 `PerAgentInferenceProfileTests`
   21/21、`OrchestrationReliabilityTests` 44/44、`PermissionReviewControlPlaneTests` +
   `RunControlTests` 58/58；
@@ -1395,9 +1700,9 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 - `AuthorizationSidecarTests` 12/12、`AgentLoopPolicyTests` 37/37、
   `AutomaticPermissionReviewTests` 39/39、`PermissionReviewControlPlaneTests` 52/52、
   `AgentInvocationNonRecursiveTests` 11/11、`PerAgentInferenceProfileTests` 21/21 均通过；
-  模块级完整结果为 `IntatisAgentKernelTests` 220/220、`IntatisConversationTests` 212/212、
-  `IntatisCoworkTests` 365/365，全部 0 failures；
-- `swift build --disable-automatic-resolution` 与 `IntatisMac` macOS Debug unsigned build 通过；Mac 构建只有
+  模块级完整结果为 `EgakiumAgentKernelTests` 220/220、`EgakiumConversationTests` 212/212、
+  `EgakiumCoworkTests` 365/365，全部 0 failures；
+- `swift build --disable-automatic-resolution` 与 `EgakiumMac` macOS Debug unsigned build 通过；Mac 构建只有
   仓内既有 unused-result / deprecated `onChange` warnings。未运行真实 provider、credential/network、
   GUI、iOS App、签名、公证或发行打包 smoke。
 
@@ -1409,7 +1714,7 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   manager 的 14 个完整字段与各自 capability grant 均保持不变；
 - `WorkTaskRuntimeTests.testMutatingWorkTaskToolsRejectMissingHostManagerAsNotStarted`：worker 窄入口仍
   委托既有宿主执行链，缺失 host-bound manager 时与完整入口一样 fail closed，不伪报成功；
-- `IntatisAgentKernelTests.testUnknownToolArgumentsDoNotRequestPermissionOrExecuteTool`：1/1；确认 closed
+- `EgakiumAgentKernelTests.testUnknownToolArgumentsDoNotRequestPermissionOrExecuteTool`：1/1；确认 closed
   schema 的未知字段不会产生 permission request，也不会进入 executor；
 - `ToolRegistryLeaseTests` 26/26、`WorkTaskRuntimeTests` 22/22，加上述内核 gate 合计 49/49、
   0 failures；`swift build --disable-automatic-resolution` 通过。未运行全量 test、macOS/iOS app
@@ -1421,16 +1726,16 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   同一 JSON 文档的顶层 `model`，而显式空值、错误类型、未知/禁用 provider、未知 model 与 unresolved
   env/file reference、缺失/未知 top-level compatibility source，以及已选 Mac 配置整体损坏/不可读都
   让 reviewer fail closed。Mac 当前选择、UserDefaults、Cowork session default、
-  `INTATIS_MODEL`、live/historical `@main` 与 main rebind 均不是 reviewer fallback；没有新增 UI 或
+  `EGAKIUM_MODEL`、live/historical `@main` 与 main rebind 均不是 reviewer fallback；没有新增 UI 或
   session/EventLog schema；
 - `AutomaticPermissionReviewTests`：39/39，覆盖独立 main/reviewer exact binding 的原子七事件落盘、
   reviewer tuple missing/mismatch、reviewer catalog TOCTOU 零事件失败，以及既有 reviewer lifecycle；
 - `PerAgentInferenceProfileTests`：21/21；`CLIProviderAdapterTests`：13/13，覆盖 JSON-model compatibility、
   环境变量只改变 main 而 reviewer 不漂移、显式非法 reviewer fail closed、缺失 reviewer 时不能从缺失/未知
   JSON default 发明 route、独立 profile lowering 与 main rebind 后 reviewer durable binding 不变；
-- `IntatisCLITests`：49 tests / 0 failures / 8 个显式 opt-in real-provider smoke skipped；未发送真实网络
+- `EgakiumCLITests`：49 tests / 0 failures / 8 个显式 opt-in real-provider smoke skipped；未发送真实网络
   请求或产生计费；
-- `swift build --disable-automatic-resolution` 与 `IntatisMac` macOS Debug unsigned build 通过；只有仓内
+- `swift build --disable-automatic-resolution` 与 `EgakiumMac` macOS Debug unsigned build 通过；只有仓内
   既有 unused-result / deprecated `onChange` warning。Mac App 无独立 XCTest target，因此 Mac config
   presence/normalization/writer 与 runtime freeze 还通过源码审计和完整 target 编译验证，不能冒充真实
   GUI/provider smoke；
@@ -1449,25 +1754,25 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 - `ToolRegistryLeaseTests`：16 tests / 0 failures；验证 Orchestrator 按 coordinator task lease
   生成的真实 provider request 同时含主动推进规则、`spawn_agent` 工具与上述恢复规则，worker lease
   边界不变；
-- `IntatisSkillsTests`：29 tests / 0 failures；验证产品内置 `cowork-agent-orchestration` Skill 包含主动
+- `EgakiumSkillsTests`：29 tests / 0 failures；验证产品内置 `cowork-agent-orchestration` Skill 包含主动
   执行循环，同时继续保留 capability hard gate、最小团队与 exact profile 路由约束；
-- `intatis-skill-creator/scripts/quick_validate.py`：`Skill is valid`；目录名/frontmatter、结构、文本安全
+- `egakium-skill-creator/scripts/quick_validate.py`：`Skill is valid`；目录名/frontmatter、结构、文本安全
   与资源引用校验通过；
-- `IntatisAgentKernelTests`：170 tests / 0 failures；`IntatisCoworkTests`：320 tests / 0 failures；
+- `EgakiumAgentKernelTests`：170 tests / 0 failures；`EgakiumCoworkTests`：320 tests / 0 failures；
 - SwiftPM 测试过程完成受影响源码/CLI package 的 Debug 编译。本次未改 App/UI、协议、权限实现或
   Xcode 工程，未另跑 macOS/iOS app build；也未执行真实模型的外部目录行为 smoke，因此这里只
   证明稳定提示词、工具表面与 lease 集成，不把任一模型一定遵循提示词写成确定性保证。
 
 2026-08-05 Chat 托管搜索路由修订的直接证据：
 
-- `IntatisProvidersTests`：171 tests / 0 failures；覆盖 exact route capability、OpenAI/OpenRouter
+- `EgakiumProvidersTests`：171 tests / 0 failures；覆盖 exact route capability、OpenAI/OpenRouter
   request shape、strict routing options、legacy search route ignore、静默普通 Chat、窄化的同路由
   fallback、partial-response replay guard、两类 citation annotation，以及无效 legacy 搜索字段不
   阻止 Chat/有效 legacy 搜索字段不污染可见模型列表；
-- `IntatisConversationTests`：173 tests / 0 failures；
-- `IntatisCLITests`：28 tests / 2 opt-in real-provider tests skipped / 0 failures；
-- `IntatisSharedUITests`：133 tests / 0 failures；
-- `IntatisMac` macOS Debug unsigned build：通过；`IntatisiOS` generic Simulator Debug unsigned
+- `EgakiumConversationTests`：173 tests / 0 failures；
+- `EgakiumCLITests`：28 tests / 2 opt-in real-provider tests skipped / 0 failures；
+- `EgakiumSharedUITests`：133 tests / 0 failures；
+- `EgakiumMac` macOS Debug unsigned build：通过；`EgakiumiOS` generic Simulator Debug unsigned
   build：通过。iOS 首次独立依赖解析遇到 GitHub proxy 503，复用已成功解析并缓存的同一
   working-tree dependencies 后构建通过，该网络失败不计为源码失败；
 - 未执行真实 provider/credential/network smoke，因此这里只证明离线 wire fixture、planner、
@@ -1477,21 +1782,21 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 
 - `xcodegen generate`：通过；
 - `scripts/check-version-consistency.sh`：通过，输出 `0.32 (build 32)`；
-- `IntatisMac` unsigned universal Release：通过；最终 bundle 为 `0.32 (32)`，可执行文件为
+- `EgakiumMac` unsigned universal Release：通过；最终 bundle 为 `0.32 (32)`，可执行文件为
   `x86_64 arm64`。这是代码与元数据验收，不是签名发行产物；
-- `IntatisiOS` generic Simulator Debug：通过；最终 bundle 为 `0.32 (32)`；
+- `EgakiumiOS` generic Simulator Debug：通过；最终 bundle 为 `0.32 (32)`；
 - 两端构建有既有的 unused-result 与 deprecated `onChange` 警告，无构建错误；
 - `swift build`：在允许 Swift/Clang 写入用户缓存的宿主环境通过；受限沙箱内首次尝试因
   module cache 无写权限而未进入源码编译，不计为产品失败；
 - release script `zsh -n`：通过；无证书 preflight 按预期在任何正式输出前失败；
 - 临时非发行探针：App runtime signing command、XML entitlements、UDZO DMG、DMG signing
   command 和 strict codesign 通过，临时目录已删除；
-- `IntatisToolsTests`（外层 sandbox 外）：141 tests / 15 skipped / 0 failures；
+- `EgakiumToolsTests`（外层 sandbox 外）：141 tests / 15 skipped / 0 failures；
 - `testSharedSoftTokenBudgetReservesBeforeDispatchAndReportsProviderOverrun` 原始 fixture 已先
   稳定复现为 `requestTooLarge(limit: 800, estimatedInput: 889)`，证明生产 pre-dispatch
   保护正常；测试随后改为使用有充足 prompt 余量的命名预算常量，继续精确验证 provider
   忽略 output ceiling 后超支 1 token 的 soft-budget 语义；
-- 修正后的 focused 用例：1 test / 0 failures；`IntatisAgentKernelTests`：169 tests /
+- 修正后的 focused 用例：1 test / 0 failures；`EgakiumAgentKernelTests`：169 tests /
   0 failures；
 - 完整 `swift test`：通过。真实 browser/Git/provider/credential/network 等显式 opt-in
   用例仍按设计 skipped，不计为已执行的真实环境验证；
@@ -1501,14 +1806,14 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   `ps` RSS 约 156.6 MiB；
 - 2026-08-04 historical-roster 增量：`CoworkProjectionRegressionTests` 8/8、
   `CoworkAgentThreadPresentationModelTests` 10/10、`CoworkInferencePresentationTests` 6/6、
-  `IntatisConversationTests` 172/172；Computer Use 实测 detach 当前 agent 后保持选择、离开再返回
+  `EgakiumConversationTests` 172/172；Computer Use 实测 detach 当前 agent 后保持选择、离开再返回
   仍可读，并在 500 delta/s 下追加完成 1,000 rapid switches，0 warning / 0 incident、16 rows。
-  当前 Codex managed sandbox 的完整 suite 只因 `IntatisToolsTests` process/Seatbelt/loopback 限制
-  失败；一次完整 `IntatisSharedUITests` target 在 build 后无测试输出并被中止，相关定向用例已独立
+  当前 Codex managed sandbox 的完整 suite 只因 `EgakiumToolsTests` process/Seatbelt/loopback 限制
+  失败；一次完整 `EgakiumSharedUITests` target 在 build 后无测试输出并被中止，相关定向用例已独立
   通过；
 - 2026-08-04 rail lighting/fixed-geometry 增量：
   `ThreadLayoutTests|CoworkInferencePresentationTests|CoworkAgentThreadPresentationModelTests`
-  30/30；IntatisMac macOS Debug 与 IntatisiOS generic Simulator Debug unsigned build 通过。
+  30/30；EgakiumMac macOS Debug 与 EgakiumiOS generic Simulator Debug unsigned build 通过。
   原生 Light fixture 在同一 1372×768 viewport 中切换 `@main` / `@research`，composer 水平像素
   run 完全一致，rail 两态均为 x=1076…1365；旧 `.regular` glass card 的一次性 QA sample
   为 240/255，新系统 `Glass.clear` sample 为 244/255。该数值只用于同机同窗对照，不是颜色 token。
@@ -1525,7 +1830,7 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
   Equatable view；transaction 同时关闭 animation 与 disablesAnimations。当前
   `ThreadLayoutTests|CoworkInferencePresentationTests|CoworkAgentThreadPresentationModelTests`
   31/31 通过，production-shaped host 包含 360 次交错 selection/mode/inspector/window-size 循环；
-  IntatisMac macOS Debug 与 IntatisiOS generic Simulator Debug unsigned build 通过。按用户要求不使用
+  EgakiumMac macOS Debug 与 EgakiumiOS generic Simulator Debug unsigned build 通过。按用户要求不使用
   Computer Use 或截图差分，因此最终几像素光学稳定性保留为用户新构建手动验收项，不能由自动化外推。
 - 用户普通终端的 `security find-identity -v -p codesigning` 已报告两个有效 identity，发行
   脚本也已进入真实 Developer ID 签名和 App 上传；Codex 托管沙箱无法读取登录 Keychain，
@@ -1537,7 +1842,7 @@ INTATIS_REAL_MULTIMODAL_SMOKE=1 swift test \
 只有以下条件同时满足才能写 release GO：
 
 - 当前 working tree 相关 tests/builds 通过，已知失败有明确处置；
-- 最终 App/ZIP/DMG 元数据为 `0.2 (49)`；
+- 最终 App/ZIP/DMG 元数据为 `0.4 (50)`；
 - Developer ID、notarization、staple、codesign、Gatekeeper 全部通过；
 - NOTICE/ThirdPartyNotices 和最终 bundle resource/link inventory 一致；
 - 关键真实环境矩阵完成，未完成项以明确的风险接受记录处理。

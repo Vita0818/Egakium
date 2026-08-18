@@ -2,7 +2,7 @@
 
 > 复核日期：2026-08-12
 >
-> 仓库：`/Users/vita/Vitemis/Intatis`
+> 仓库：`/Users/vita/Vitemis/Egakium`
 >
 > 被复核对象：根目录 `08_12_26-21_02-cowork-system-stabilization-audit-checklist.md`（1188 行，下称「原报告」）
 >
@@ -23,7 +23,7 @@
 
 ### 0.1 路径与 Git 状态
 
-- `pwd` 与 `git rev-parse --show-toplevel` 均为 `/Users/vita/Vitemis/Intatis`，与原报告 `PATH_CHECK_RESULT` 一致。
+- `pwd` 与 `git rev-parse --show-toplevel` 均为 `/Users/vita/Vitemis/Egakium`，与原报告 `PATH_CHECK_RESULT` 一致。
 - 复核时刻（`date`）：2026-08-12 21:26:51 +08。
 - `git status --short`：工作树**干净**，无未提交改动。
 - 最新提交：`85f535e v0.49`，作者 Vita，时间 **2026-08-12 21:23:08 +0800**。
@@ -45,25 +45,25 @@
 
 | # | 触点路径 | 复核结果 |
 |---|---|---|
-| 1 | `Packages/IntatisAgentKernel/Sources/AgentLoop.swift` | OK |
-| 2 | `Packages/IntatisAgentKernel/Sources/AuthorizationSidecar.swift` | OK |
-| 3 | `Packages/IntatisAgentKernel/Sources/ContextBuilder.swift` | OK |
-| 4 | `Packages/IntatisProviders/Sources/OpenAIToolCalling.swift` | OK |
-| 5 | `Packages/IntatisCowork/Sources/Orchestrator.swift` | OK |
-| 6 | `Packages/IntatisCowork/Sources/WorkTaskTools.swift` | OK |
-| 7 | `Packages/IntatisCowork/Sources/PermissionReviewControlPlane.swift` | OK |
-| 8 | `Packages/IntatisPermission/Sources/PermissionReviewTextVerdict.swift` | OK |
-| 9 | `Packages/IntatisConversation/Sources/CodeProjection.swift` | OK |
-| 10 | `Packages/IntatisSharedUI/Sources/CodeViews.swift` | OK |
-| 11 | `Packages/IntatisConversation/Sources/RuntimeErrorPresentation.swift` | OK |
-| 12 | `Apps/IntatisMac/Sources/AppConfig.swift` | OK |
-| 13 | `Apps/IntatisMac/Sources/CoworkViewModel.swift` | OK |
-| 14 | `Apps/IntatisMac/Sources/IntatisMacApp.swift` | OK |
-| 15 | `Apps/intatis-cli/Sources/CLIConfig.swift` | OK |
-| 16 | `Apps/intatis-cli/Sources/CLIProviderCatalog.swift` | OK |
-| 17 | `Apps/intatis-cli/Sources/CLIInferenceProfiles.swift` | OK |
-| 18 | `Apps/intatis-cli/Sources/Interactive.swift` | OK |
-| 19 | `Packages/IntatisSkills/Resources/BundledSkills/cowork-agent-orchestration/SKILL.md` | OK |
+| 1 | `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift` | OK |
+| 2 | `Packages/EgakiumAgentKernel/Sources/AuthorizationSidecar.swift` | OK |
+| 3 | `Packages/EgakiumAgentKernel/Sources/ContextBuilder.swift` | OK |
+| 4 | `Packages/EgakiumProviders/Sources/OpenAIToolCalling.swift` | OK |
+| 5 | `Packages/EgakiumCowork/Sources/Orchestrator.swift` | OK |
+| 6 | `Packages/EgakiumCowork/Sources/WorkTaskTools.swift` | OK |
+| 7 | `Packages/EgakiumCowork/Sources/PermissionReviewControlPlane.swift` | OK |
+| 8 | `Packages/EgakiumPermission/Sources/PermissionReviewTextVerdict.swift` | OK |
+| 9 | `Packages/EgakiumConversation/Sources/CodeProjection.swift` | OK |
+| 10 | `Packages/EgakiumSharedUI/Sources/CodeViews.swift` | OK |
+| 11 | `Packages/EgakiumConversation/Sources/RuntimeErrorPresentation.swift` | OK |
+| 12 | `Apps/EgakiumMac/Sources/AppConfig.swift` | OK |
+| 13 | `Apps/EgakiumMac/Sources/CoworkViewModel.swift` | OK |
+| 14 | `Apps/EgakiumMac/Sources/EgakiumMacApp.swift` | OK |
+| 15 | `Apps/egakium-cli/Sources/CLIConfig.swift` | OK |
+| 16 | `Apps/egakium-cli/Sources/CLIProviderCatalog.swift` | OK |
+| 17 | `Apps/egakium-cli/Sources/CLIInferenceProfiles.swift` | OK |
+| 18 | `Apps/egakium-cli/Sources/Interactive.swift` | OK |
+| 19 | `Packages/EgakiumSkills/Resources/BundledSkills/cowork-agent-orchestration/SKILL.md` | OK |
 
 **结论：全部 19 个触点均存在**。原报告第 19 节清单准确，且原报告自述这些「不是修改授权，也不是穷举列表」，复核认同其非穷举性质。
 
@@ -79,26 +79,26 @@
 
 ### 1.1 原报告核心断言
 
-- 旧实现把 `__intatis_authorization_context` 加入 `properties` 但不加入 `required`，同时保留 `strict:true`，形成 `strict==true && properties.keys != required` 的非法组合。
+- 旧实现把 `__egakium_authorization_context` 加入 `properties` 但不加入 `required`，同时保留 `strict:true`，形成 `strict==true && properties.keys != required` 的非法组合。
 - 涉及 `activate_skill`、`read_skill_resource`、`search_knowledge` 的可选 `limit`。
 - 「当前工作树已有修补」：strict sidecar、递归 strict schema 校验、`tool_search_output` 延迟工具装饰。
 - 正确边界：sidecar 在 provider copy 中是 required string；`strict:true` 对象递归 closed；发网前 typed validation。
 
 ### 1.2 源码核对
 
-`Packages/IntatisAgentKernel/Sources/AuthorizationSidecar.swift`：
+`Packages/EgakiumAgentKernel/Sources/AuthorizationSidecar.swift`：
 
-- `reservedFieldName = "__intatis_authorization_context"`（L173-174）——字段名吻合。
+- `reservedFieldName = "__egakium_authorization_context"`（L173-174）——字段名吻合。
 - `decorateParameters`（L429-493）：把 sidecar 同时写入 `properties`（L480）**和** `required`（L481），即修复后的合法组合，**与原报告「正确边界」一致**。
 - `validateStrictSchema`（L573-706）递归校验：`additionalProperties == false`（L621）、`required` 为字符串数组（L628-638）、`Set(requiredNames) == Set(properties.keys)`（L644），并递归进入 `properties`/`items`/`contains`/`anyOf`/`oneOf`/`allOf`/`$defs`/`definitions`/`dependentSchemas` 等。**与原报告「递归 closed-object invariant」一致**。
 - `tool_search` 本身不装饰（`.toolSearch` 分支 L411-412 直接返回），但 `decorate(_ output: ModelToolSearchOutput)`（L214-224）与 `decorateDeferredToolDefinition`（L495-566）递归装饰其延迟发现的 function/namespace 子工具。**与原报告「`tool_search` 本身保持原样，但其延迟工具必须装饰」一致**。
 - 非 automatic 模式存在保留字段时由 `containsReservedField`（L335-346）做 mode-confused 拒绝。
 
-`Packages/IntatisAgentKernel/Sources/AgentLoop.swift`：
+`Packages/EgakiumAgentKernel/Sources/AgentLoop.swift`：
 
 - `providerToolSpecs`（L1242-1252）与 `providerMessages`（L1258-1267）仅在 `mode == .cowork && approvalMode == .automaticReviewer` 时调用 `AuthorizationSidecarCodec.decorate` / `decorateProviderMessages`。**与原报告「automatic 模式下 provider-facing sidecar 才注入」一致**；decorate 在构造 provider specs/messages 阶段完成，先于发网，且 `decorate` 对 strict 违规直接 `throw`（typed fail-closed），**与原报告「发网前 typed validation」一致**。
 
-`Packages/IntatisKnowledge/Sources/SearchKnowledgeTool.swift`：
+`Packages/EgakiumKnowledge/Sources/SearchKnowledgeTool.swift`：
 
 - descriptor（L16-52）：`strict: true`、`additionalProperties: false`、`required` 含 `knowledge_base`/`query`/`limit`（L23-26），`limit` 用 `anyOf: [integer, null]`（L37-48）表示「必须出现但可为 null」。这正是原报告 4.4 节所述 strict 下的 nullable 语义（"语义可选"），**与原报告对该工具的描述一致**。
 
@@ -133,18 +133,18 @@
 
 ### 2.2 源码核对
 
-`Packages/IntatisCowork/Sources/WorkTaskTools.swift`：
+`Packages/EgakiumCowork/Sources/WorkTaskTools.swift`：
 
 - `task_create` descriptor（L65-93）：`owner` 为可选（`required` 仅 `title`/`description`，L91），description 明确写「owner is optional; when present it must name a currently attached data-plane agent confirmed by a successful list_agents or spawn_agent ToolResult received in an earlier tool-call round. Never name a planned or future agent. When creating before spawn or delegation, omit owner…」（L67）；`owner` 字段描述（L84）与 `depends_on` 描述（L79）均强调「earlier successful ToolResult」「Never reference a WorkTask that is only planned or created by another call in the same assistant response」。**与原报告「补充 owner/调用顺序合同」一致**。
 - 注意：`task_create` 的 `permissionIntent` 仍为 `replayPolicy: .requiresManualReconciliation`（L125）。该静态 replayPolicy 未变；修复体现在**运行期 effectDisposition**而非静态 replayPolicy。二者属不同轴（replayPolicy 描述可否重放，effectDisposition 描述实际副作用），不必然矛盾，但 descriptor 层仍标 manual reconciliation、运行层标 notStarted 的张力值得后续注意。
 
-`Packages/IntatisCowork/Sources/Orchestrator.swift`：
+`Packages/EgakiumCowork/Sources/Orchestrator.swift`：
 
-- `createWorkTask`（L5968-5998）：owner 校验 `guard owner != Self.automaticPermissionReviewerID, registry.agent(owner) != nil else { throw IntatisError.notFound("WorkTask owner is not an attached data-plane agent") }`（L5994-5998）发生在任何 WorkTask 事件 append 之前（preparedGraph/preparedEvents/created 在其后 L6000+）。**与原报告「owner 校验在任何 WorkTask 事件 append 之前正确拒绝」一致**。
+- `createWorkTask`（L5968-5998）：owner 校验 `guard owner != Self.automaticPermissionReviewerID, registry.agent(owner) != nil else { throw EgakiumError.notFound("WorkTask owner is not an attached data-plane agent") }`（L5994-5998）发生在任何 WorkTask 事件 append 之前（preparedGraph/preparedEvents/created 在其后 L6000+）。**与原报告「owner 校验在任何 WorkTask 事件 append 之前正确拒绝」一致**。
 - `provenWorkTaskCreatePreflightRejection`（L5924-5966）：把 preflight 拒绝映射为 `ToolExecutionRejectedWithoutSideEffect`，对 `.notFound`（owner 未 attach）给出 typed code `"owner_not_attached"`（L5941）并附纠正指引。**与原报告「更精确的 not_started 通道」一致**。
 - 恢复路径中对 stale-revision / preflight-no-effect 的 `toolExecutionSettled` 使用 `effectDisposition: .notStarted`（L3083-3087）。**与原报告 not_started 语义一致**。
 
-`Packages/IntatisCowork/Tests/WorkTaskRuntimeTests.swift`：
+`Packages/EgakiumCowork/Tests/WorkTaskRuntimeTests.swift`：
 
 - `testMutatingWorkTaskToolsRejectMissingHostManagerAsNotStarted`（L200）、future-owner 用例（L405-420）：对 `owner:"dpv-ch2"`（未 attach）断言抛出 `ToolExecutionRejectedWithoutSideEffect` 且 `code == "owner_not_attached"`（L412），且 `XCTAssertEqual(afterEvents, beforeEvents)`（L419-420）证明**零 WorkTask 事件**。`testManagerFrozenContractRejectionIsProvenNotStarted`（L512）覆盖 manager 冻结合同拒绝。**测试与原报告事故描述（零副作用、可纠正、非 manual reconciliation）一致**。
 
@@ -174,15 +174,15 @@
 
 ### 3.2 源码核对
 
-`Packages/IntatisPermission/Sources/PermissionReviewTextVerdict.swift`：
+`Packages/EgakiumPermission/Sources/PermissionReviewTextVerdict.swift`：
 
 - `maximumReasonCharacterCount = 240`（L20）——**吻合**。
 - `parse`（L22-54）：取末行作 marker（L31-32，`decision(forExactASCIIMarker:)` L56-65 为大小写不敏感精确 ASCII、无变体）；`markerCount == 1`（L41，拒多 marker）；reason 非空、`<= 240`、`!containsCodeFence`（``` 或 ~~~，L48/L81-83）、`!containsJSONPayload`（`{}`/`[]`，L49/L85-98）——**全部吻合**。
 - **所有失败路径均 `return nil`**（L33、L41、L50）——parser 本身不返回 typed 失败类别，**吻合原报告「只有 nil」描述**。
 
-`Packages/IntatisProtocol/Sources/ToolAuthorization.swift:769`：`case malformedVerdict = "malformed_verdict"`。
+`Packages/EgakiumProtocol/Sources/ToolAuthorization.swift:769`：`case malformedVerdict = "malformed_verdict"`。
 
-`Packages/IntatisCowork/Sources/PermissionReviewControlPlane.swift`：
+`Packages/EgakiumCowork/Sources/PermissionReviewControlPlane.swift`：
 
 - parser nil 与「无 completion marker / 非 success finish reason」两条路径**都**以 `failureKind: .malformedVerdict` 持久化（L1038、L1053）。即 `missing marker`、`bad finish reason`、`multiple markers`、`empty reason`、`reason too long`、`code fence`、`JSON` 等全部折叠为同一 `.malformedVerdict`。**吻合原报告「所有 parser 分支折叠为同一个 malformed_verdict」**，且复核发现折叠面**比原报告所述更广**（连 transport 层的 completion/finish reason 失败也归入 malformedVerdict）。
 - `invalidVerdictReason(output)`（L1027/1042 调用，定义 L1900-1911）返回**固定宿主文案**（如「permission reviewer returned a malformed plain-text verdict; automatic mode denied the request」L1910），而非 raw reviewer text。`persistTerminal` 持久化的 `reason` 是这些固定文案。**吻合原报告「raw reviewer text 不写入 EventLog」**；且持久化字段中**没有** `missing_marker`/`multiple_markers`/`reason_too_long`/`json_not_allowed` 这类 typed 诊断分类——**原报告 6.4 节的「持久化无敏感分类」建议尚未实现**。
@@ -219,29 +219,29 @@
 
 **`judge_model` 无读取链路**：对 `judge_model|judgeModel` 全仓 Grep（Sources+Tests）**零命中**。**吻合原报告「judge_model 不是实际受支持字段、无生产读取链路」**。
 
-`Apps/IntatisMac/Sources/AppConfig.swift`：
+`Apps/EgakiumMac/Sources/AppConfig.swift`：
 
 - 字段 `permissionReviewerModel: ModelRef?`（L282）+ `permissionReviewerModelWasExplicitlyConfigured: Bool?`（L286）。配置键 `permission_reviewer_model`（L280 注释、L1054 `root.keys.contains`）。
 - 「字段缺失一次性继承顶层 model」：`normalizedRoleModelRef(catalog.permissionReviewerModel ?? (catalog.permissionReviewerModelWasExplicitlyConfigured == nil ? permissionReviewerFallback : nil), …)`（L698-708）。`permissionReviewerFallback` 由 `selectedProviderID`/`selectedModelID` 构造（L695-697）。注释（L700-704）说明 nil marker 表示 legacy 内部 catalog。
 - 「显式非法/损坏 fail closed」：`catalogWithPermissionReviewerFailedClosed()`（L1082-1097）：配置无法产出 catalog 时，`failClosed.permissionReviewerModel = nil` 且 `WasExplicitlyConfigured = true`；注释（L1073-1078）明确「leave this authorization role explicitly unavailable instead of retargeting it to stale UI or @main state」。**吻合原报告「配置损坏 fail closed、不回退 main」**。
 - write-back 保留 presence（L1218-1226）：有值写字符串、无值写 `NSNull`，避免把 explicit-null 写成 absent。
 
-`Apps/intatis-cli/Sources/CLIProviderCatalog.swift`：
+`Apps/egakium-cli/Sources/CLIProviderCatalog.swift`：
 
 - `permissionReviewerFieldPresent`（L180）区分 present/absent；`selectPermissionReviewerModel`（L300）。
 - fail-closed 错误：「absent and the JSON top-level model is unavailable」（L313）、「cannot inherit an unknown JSON top-level model」（L325）、「invalid CLI permission_reviewer_model」（L460）、「does not resolve to a configured inference model」（L469）、「must use the canonical provider/model shape」（L476）。**吻合原报告 CLI 侧 present-aware + fail-closed 合同**。
 
-`Packages/IntatisCowork/Sources/Orchestrator.swift`：
+`Packages/EgakiumCowork/Sources/Orchestrator.swift`：
 
 - `bootstrapFreshSession(... permissionReviewerModel: ModelID, permissionReviewerInferenceBinding: AgentInferenceBinding? …)`（L1586-1592）：reviewer 模型与 binding 作为**显式冻结参数**传入，不来自 `@main`。
 - 校验 `permissionReviewerInferenceBinding.modelID != permissionReviewerModel` → fail（L1602-1607）；reviewer Agent 用 `model: permissionReviewerModel`（L1646）、`profile: .readOnly`（L1648）、`coordinationDepth: 0`（L1649）。**吻合原报告「reviewer binding 独立解析并冻结、read_only、depth 0、不跟随 main rebind」**。
 
-「不增加 UI 选项」：Grep 命中 `CoworkViewModel.swift`/`IntatisMacApp.swift` 中的 `permission_reviewer_model` 均为**校验/错误文案**（如 L298「Configure a resolvable permission_reviewer_model before creating Cowork.」、L449「The configured permission_reviewer_model is missing, invalid, or unavailable…」、CoworkViewModel L1704/L1925），**未发现 UI 选择器控件**。**吻合原报告「不增加 UI 选项」**。
+「不增加 UI 选项」：Grep 命中 `CoworkViewModel.swift`/`EgakiumMacApp.swift` 中的 `permission_reviewer_model` 均为**校验/错误文案**（如 L298「Configure a resolvable permission_reviewer_model before creating Cowork.」、L449「The configured permission_reviewer_model is missing, invalid, or unavailable…」、CoworkViewModel L1704/L1925），**未发现 UI 选择器控件**。**吻合原报告「不增加 UI 选项」**。
 
 ### 4.3 可指出的细节/张力
 
 - macOS legacy-catalog 桥接：`permissionReviewerModelWasExplicitlyConfigured == nil`（早于该字段的 legacy 内部 catalog）时，reviewer 回退到 `permissionReviewerFallback`，而后者由**当前 UI 选择的** `selectedProviderID`/`selectedModelID` 构造（L695-697、L705-707）。即原报告「reviewer 不跟随 UI 当前选择」对**现代配置**严格成立，但对**legacy 内部 catalog**存在一条窄迁移例外（注释 L700-704 自述为 legacy 兼容）。这是一条可指出的边界，但不违背现代配置的不变量。
-- 原报告 7.3 列出的 focused tests（`AutomaticPermissionReviewTests`/`PerAgentInferenceProfileTests`/`CLIProviderAdapterTests`/`IntatisCLITests`/`swift build`）属运行时事实；v0.49 stat 显示 `CLIProviderAdapterTests.swift`(+277)、`AutomaticPermissionReviewTests.swift`(+291) 等已扩展，但「是否已跑全量 suite / 真实 reviewer provider 矩阵 / config migration 全场景」源码无法证明，复核不替代运行验证。
+- 原报告 7.3 列出的 focused tests（`AutomaticPermissionReviewTests`/`PerAgentInferenceProfileTests`/`CLIProviderAdapterTests`/`EgakiumCLITests`/`swift build`）属运行时事实；v0.49 stat 显示 `CLIProviderAdapterTests.swift`(+277)、`AutomaticPermissionReviewTests.swift`(+291) 等已扩展，但「是否已跑全量 suite / 真实 reviewer provider 矩阵 / config migration 全场景」源码无法证明，复核不替代运行验证。
 
 ### 4.4 本点小结
 
@@ -264,22 +264,22 @@
 
 ### 5.2 源码核对
 
-`Packages/IntatisCowork/Sources/WorkTaskTools.swift`：
+`Packages/EgakiumCowork/Sources/WorkTaskTools.swift`：
 
 - `task_update` descriptor（L163-222）：`required` 仅 `task_id`/`expected_revision`（L220），`properties` 暴露 `title`/`description`/`acceptance_criteria`/`expected_artifacts`/`owner`/`depends_on`/`priority`/`progress_note`/`status`/`result`/`evidence`/`retry` **全部 optional 字段**（L172-219）。**吻合原报告「manager 与 worker 共享同一宽 schema、模型可发送全部 optional 字段」**。
 - descriptor 描述（L168）以文字约束 worker 行为（"Workers may update progress/status/result/evidence on their assigned task but cannot change its contract. …"），即依赖文字而非 schema 机械排除。**吻合原报告 8.3「主要依赖 description…」的批评**。
 
-`Packages/IntatisCowork/Sources/Orchestrator.swift`：
+`Packages/EgakiumCowork/Sources/Orchestrator.swift`：
 
 - `provenWorkTaskUpdatePreflightRejection`（L6108-6150）：把 task_update 的 preflight 拒绝映射为 `ToolExecutionRejectedWithoutSideEffect`，含 typed code（staleRevision / permission_denied / not_found / invalid_update / …）与「rejected without applying changes … Call task_get … then retry …」纠正指引。`updateWorkTask` 在 L6331 `throw Self.provenWorkTaskUpdatePreflightRejection(...)`。**吻合原报告「task_update 首个 WorkTask append 前拒绝 = not_started、无副作用」**，且为 5.4 所述「更精确 not_started 通道」的一部分。
 - capability 区分 manager/worker：`Leases.swift:42` `case updateOwnedWorkTask = "update_owned_work_task"`（L152 列入 worker 能力）。但 `Orchestrator.swift:11188-11189` `if lease.tools.contains(.updateOwnedWorkTask) { register([TaskUpdateTool()], granting: [.updateOwnedWorkTask]) }`——worker 拿到的仍是**同一个 `TaskUpdateTool()`**（同一个宽 schema），仅以 capability 闸门访问，**未按角色投影成更窄的 schema**。L2972-2974、L7616 也仅以 `capabilityLease.tools.contains(.updateOwnedWorkTask)` 区分 canUpdateOwned。
 
 **结论**：原报告 8.4 推荐的「独立、最小、不暴露冻结合同字段的 worker 工具」**尚未实现**；当前仅以 capability lease 区分 manager/worker，模型面 schema 未收窄。这与原报告把 8.4 列为推荐、第 20 节未列入「工作树已修补」一致，亦与第 21 节 DEC-02「是新增 `update_owned_work_task`，还是按 capability 投影同名 `task_update` 的不同 schema？」的待决状态一致。当前实现选择了后者（capability 投影同名工具），但**未实际投影出不同 schema**。
 
-`Packages/IntatisAgentKernel/Sources/AgentLoop.swift`：
+`Packages/EgakiumAgentKernel/Sources/AgentLoop.swift`：
 
 - `SideEffectEvidenceLedger` actor（L191），`AgentLoopError.unresolvedDeniedSideEffects([String])`（L68）；`throw AgentLoopError.unresolvedDeniedSideEffects(unresolved)`（L1078）——completion fuse 在存在 unresolved denied/failed 副作用时阻止假完成；`case .unresolvedDeniedSideEffects: code = "unresolved_denied_side_effects"`（L1850-1851）给出 typed code。**吻合原报告「SideEffectEvidenceLedger 持有 unresolved denied/failed → completion fuse 阻止假完成 → unresolved_denied_side_effects」**。
-- 该行为由 `AgentLoopPolicyTests.swift`（L2029/L2245/L2275/L2360/L2489/L2557）、`OrchestrationReliabilityTests.swift`（L2938）、`IntatisConversationCodeTests.swift`（L70 `code: "unresolved_denied_side_effects"`）测试覆盖。
+- 该行为由 `AgentLoopPolicyTests.swift`（L2029/L2245/L2275/L2360/L2489/L2557）、`OrchestrationReliabilityTests.swift`（L2938）、`EgakiumConversationCodeTests.swift`（L70 `code: "unresolved_denied_side_effects"`）测试覆盖。
 
 ### 5.3 第二次 reviewer 语义 DENY / 无 executor 副作用
 
@@ -310,7 +310,7 @@
 
 ### 6.2 源码核对
 
-`Packages/IntatisCowork/Sources/Orchestrator.swift`：
+`Packages/EgakiumCowork/Sources/Orchestrator.swift`：
 
 - `awaitSchedulerResult(_ taskID:)`（L10901-10913）：
   ```swift
@@ -362,7 +362,7 @@
 
 ### 7.2 源码核对
 
-`Packages/IntatisSharedUI/Sources/CodeViews.swift` 权限通知标题（L854-871）：**UI 标题是按 typed `failureSource` switch 的**，并非只消费单一粗字段：
+`Packages/EgakiumSharedUI/Sources/CodeViews.swift` 权限通知标题（L854-871）：**UI 标题是按 typed `failureSource` switch 的**，并非只消费单一粗字段：
 
 ```
 .policyDenied       → "%@ call denied by policy"
@@ -377,11 +377,11 @@ nil                 → "%@ denied"
 
 即 UI **确实区分** reviewer 失败（`.reviewerFailed`）、reviewer 超时（`.reviewerTimedOut`）、sandbox、user decline、runtime failure。故原报告 10.1「UI 无法区分 reviewer malformed/failure」**不精确**——这些在标题层是可区分的。
 
-但核心折叠点成立：`Packages/IntatisAgentKernel/Sources/AgentLoop.swift:3921` `failureSource: outcome.decision == .deny ? .policyDenied : nil`——**任何 deny 决策**（无论来自 deterministic gate 还是 automatic reviewer 语义 DENY）都映射为 `.policyDenied`；`ExecutionFailureSource` 枚举中**无 `.reviewerDenied` 分支**（全仓 Grep 未见）。因此 reviewer **语义 DENY** 与 deterministic **hard deny** 都落到 `.policyDenied` → 标题「call denied by policy」。**这一具体折叠与原报告 10.1 吻合**（reviewer-FAILURE 与 reviewer-DENY 是两回事：前者有独立 `.reviewerFailed`，后者折叠进 `.policyDenied`）。
+但核心折叠点成立：`Packages/EgakiumAgentKernel/Sources/AgentLoop.swift:3921` `failureSource: outcome.decision == .deny ? .policyDenied : nil`——**任何 deny 决策**（无论来自 deterministic gate 还是 automatic reviewer 语义 DENY）都映射为 `.policyDenied`；`ExecutionFailureSource` 枚举中**无 `.reviewerDenied` 分支**（全仓 Grep 未见）。因此 reviewer **语义 DENY** 与 deterministic **hard deny** 都落到 `.policyDenied` → 标题「call denied by policy」。**这一具体折叠与原报告 10.1 吻合**（reviewer-FAILURE 与 reviewer-DENY 是两回事：前者有独立 `.reviewerFailed`，后者折叠进 `.policyDenied`）。
 
 ### 7.3 10.2 字符串分类复核
 
-`Packages/IntatisConversation/Sources/RuntimeErrorPresentation.swift`：
+`Packages/EgakiumConversation/Sources/RuntimeErrorPresentation.swift`：
 
 - `recoveryAdvice(code:message:)`（L112-191）混用 code 与 **message 子串匹配**。L157-177：
   ```
@@ -396,7 +396,7 @@ nil                 → "%@ denied"
   ```
   「Retry or switch provider」「This looks transient or provider-side」**逐字命中原报告 10.2 引述**。`message(for:)`（L56-67）取 `error.localizedDescription` 经 sanitizer——`CoworkTaskExecutionError.timedOut(seconds:)` 的描述含「timed out」，会触发 L159 `lower.contains("timed out")` → 上述 transient/provider-side 建议。**吻合原报告「UI 据 message.contains("timed out") 做字符串分类」**，且该字符串分类在当前代码中**持续存在（未修）**。
 
-- `code(for:)`（L25-54）将 `IntatisError.permissionDenied` 映射为单一 `"permission_denied"`（L44-45），不携带 `automatic_reviewer` 等来源；`recoveryAdvice` 对 `permission_denied` 给出「Review permission and rerun / blocked by policy or user decision」（L143-148）。**吻合原报告「来源在 code/message 层丢失」**。
+- `code(for:)`（L25-54）将 `EgakiumError.permissionDenied` 映射为单一 `"permission_denied"`（L44-45），不携带 `automatic_reviewer` 等来源；`recoveryAdvice` 对 `permission_denied` 给出「Review permission and rerun / blocked by policy or user decision」（L143-148）。**吻合原报告「来源在 code/message 层丢失」**。
 
 ### 7.4 两层 UI 差异（可指出的事实）
 
@@ -506,7 +506,7 @@ nil                 → "%@ denied"
 ## 10. 本报告自身的检查记录
 
 - `MODEL_CHECK_RESULT`：当前会话模型为 `OpenRouter/z-ai/glm-5.2`（环境标注）；无法独立确认服务端精确模型版本。
-- `PATH_CHECK_RESULT`：`pwd` = `/Users/vita/Vitemis/Intatis`；`git rev-parse --show-toplevel` = `/Users/vita/Vitemis/Intatis`；一致，匹配预期。
+- `PATH_CHECK_RESULT`：`pwd` = `/Users/vita/Vitemis/Egakium`；`git rev-parse --show-toplevel` = `/Users/vita/Vitemis/Egakium`；一致，匹配预期。
 - `FILES_WRITTEN`：仅新增本报告 `08_12_26-21_26-cowork-stabilization-checklist-verification-audit.md`。**未修改任何源码、配置、构建脚本或测试**。
 - `PROJECT_AUDIT_SUMMARY`：对照原报告 7 事故 + 结构章节，核查 AgentKernel(sidecar/AgentLoop)、Cowork(Orchestrator/WorkTaskTools/PermissionReviewControlPlane)、Permission(Verdict/Gate/Reviewer/Engine)、Conversation(RuntimeErrorPresentation/CodeProjection)、SharedUI(CodeViews)、Apps(AppConfig/CLIConfig) 等模块。
 - `DOCS_CONTENT_SUMMARY`：本报告含 10 节——头注/分级、复核点 0(仓库与触点)、1–7(七个事故)、8(结构章节)、9(总体结论)、10(自检)。

@@ -17,8 +17,8 @@
 
 ## PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 两者与仓库要求一致。
 - 工作树在本轮开始前已有未提交改动，集中在 Chat/Cowork composer 附件相关 App、SharedUI、Conversation 与文档文件；这些都视为用户现有改动，本轮没有覆盖、回退、暂存或整理。
 
@@ -76,7 +76,7 @@
 
 ### 2.1 最终文本在 side-effect 校验前落盘
 
-文件：`Packages/IntatisAgentKernel/Sources/AgentLoop.swift`
+文件：`Packages/EgakiumAgentKernel/Sources/AgentLoop.swift`
 
 当前 `send` 主循环约在 860–921 行执行：
 
@@ -93,7 +93,7 @@
 
 ### 2.2 展示投影忽略权威 turn outcome
 
-文件：`Packages/IntatisConversation/Sources/CodeProjection.swift`
+文件：`Packages/EgakiumConversation/Sources/CodeProjection.swift`
 
 - `.messageCompleted` 会立即把 agent item 设为 `complete = true`。
 - 后续 `.error` 只调用 `markCurrentPartialAgentStopped(with:)`；该函数明确只处理最后一条尚未 complete 的 agent item。
@@ -103,13 +103,13 @@
 
 ### 2.3 后续 provider 历史也会保留失败轮的最终 assistant item
 
-文件：`Packages/IntatisAgentKernel/Sources/AgentModelHistoryProjector.swift`
+文件：`Packages/EgakiumAgentKernel/Sources/AgentModelHistoryProjector.swift`
 
 `directTurns` / `conversationDirectTurns` 按 `model_history_item` 重建后续 provider 历史，但目前不读取相同 `TurnID` 的 `turn_outcome`。最近 session 中，错误的最终 assistant item 与 `message_completed` 同批落盘；只修 UI 不足以阻止它继续影响下一轮模型。
 
 ### 2.4 mailbox task 的去重键不是 MessageID
 
-文件：`Packages/IntatisCowork/Sources/Orchestrator.swift`
+文件：`Packages/EgakiumCowork/Sources/Orchestrator.swift`
 
 - `enqueueMailboxWakeTask` 只检查同 assignee、Goal、ContinuationRun 下是否存在 queued/claimed mailbox task。
 - task 一旦 failed，它就不再属于 queued/claimed，后续扫描会创建新 `TaskID`。
@@ -118,13 +118,13 @@
 
 ### 2.5 mailbox task 继承了普通 delegated task 的宽 lease
 
-文件：`Packages/IntatisCowork/Sources/Orchestrator.swift`
+文件：`Packages/EgakiumCowork/Sources/Orchestrator.swift`
 
 `enqueueMailboxWakeTask` 调用 `prepareDelegatedTask`。后者会复制 assignee 的 default capability lease；对 `@main` 来说，这包含 `manageWorkTasks`、`delegateTask`、workspace mutation、Git、终端等 coordinator 能力。mailbox task 于是具备重新编排整条任务图的权限。
 
 ### 2.6 WorkTask 权限 preview 与模型语义不足
 
-文件：`Packages/IntatisCowork/Sources/WorkTaskTools.swift`
+文件：`Packages/EgakiumCowork/Sources/WorkTaskTools.swift`
 
 - `TaskCreateTool.permissionIntent` 虽在 metadata 中保存了 title/owner/dependencyCount，但默认 action preview 只识别一组通用 key，不识别 `title`、`description`、`acceptance_criteria` 等字段，所以 `task_create` preview 为空。
 - `TaskUpdateTool` 同样没有向 reviewer 提供 task ID、revision、status、result/evidence 的安全语义摘要。
@@ -171,28 +171,28 @@ flowchart TD
 
 | 文件 | 计划修改的类型/函数 | 目的 |
 |---|---|---|
-| `Packages/IntatisProtocol/Sources/Task.swift` | `TaskContract` 属性与 initializer | additive 保存 `mailboxMessageIDs` |
-| `Packages/IntatisAgentKernel/Sources/AgentLoop.swift` | `send` 主循环的 final branch | 校验先于 final publish；成功终态原子 batch |
-| `Packages/IntatisAgentKernel/Sources/AgentModelHistoryProjector.swift` | `directTurns`、`conversationDirectTurns`，新增 failed-turn 过滤 helper | 旧日志的 failed final assistant 不再进入后续 provider 历史 |
-| `Packages/IntatisAgentKernel/Sources/ContextProjection.swift` | `directMessages` | 新 mailbox task 只投影 contract 冻结的 MessageID |
-| `Packages/IntatisAgentKernel/Sources/ContextBuilder.swift` | `RuntimeEnvironmentManifest.systemPrompt`、`coworkSystemPrompt`、direct-message 渲染 | 强化 WorkTask revision/终态规则；给模型明确 MessageID/kind/causal identity |
-| `Packages/IntatisCowork/Sources/Orchestrator.swift` | message admission、mailbox wake、retry、lease preparation、terminal settlement、restore reconciliation | 精确 MessageID 去重、有界同 ID retry、窄 lease、task+consume 原子落盘 |
-| `Packages/IntatisCowork/Sources/WorkTaskTools.swift` | `TaskCreateTool`、`TaskUpdateTool`、`TaskGetTool` | 专属 permission preview、ID namespace 与 revision 指引 |
-| `Packages/IntatisConversation/Sources/CodeProjection.swift` | `apply` 的 `.turnOutcome` case，新增 failed-turn item helper | 现有错误 session 重放时撤销伪 complete 状态 |
+| `Packages/EgakiumProtocol/Sources/Task.swift` | `TaskContract` 属性与 initializer | additive 保存 `mailboxMessageIDs` |
+| `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift` | `send` 主循环的 final branch | 校验先于 final publish；成功终态原子 batch |
+| `Packages/EgakiumAgentKernel/Sources/AgentModelHistoryProjector.swift` | `directTurns`、`conversationDirectTurns`，新增 failed-turn 过滤 helper | 旧日志的 failed final assistant 不再进入后续 provider 历史 |
+| `Packages/EgakiumAgentKernel/Sources/ContextProjection.swift` | `directMessages` | 新 mailbox task 只投影 contract 冻结的 MessageID |
+| `Packages/EgakiumAgentKernel/Sources/ContextBuilder.swift` | `RuntimeEnvironmentManifest.systemPrompt`、`coworkSystemPrompt`、direct-message 渲染 | 强化 WorkTask revision/终态规则；给模型明确 MessageID/kind/causal identity |
+| `Packages/EgakiumCowork/Sources/Orchestrator.swift` | message admission、mailbox wake、retry、lease preparation、terminal settlement、restore reconciliation | 精确 MessageID 去重、有界同 ID retry、窄 lease、task+consume 原子落盘 |
+| `Packages/EgakiumCowork/Sources/WorkTaskTools.swift` | `TaskCreateTool`、`TaskUpdateTool`、`TaskGetTool` | 专属 permission preview、ID namespace 与 revision 指引 |
+| `Packages/EgakiumConversation/Sources/CodeProjection.swift` | `apply` 的 `.turnOutcome` case，新增 failed-turn item helper | 现有错误 session 重放时撤销伪 complete 状态 |
 
 ### 5.2 测试源码
 
 | 文件 | 计划新增/调整的测试 |
 |---|---|
-| `Packages/IntatisProtocol/Tests/TaskContractTests.swift` | 新字段 round-trip；旧 JSON 缺字段仍解码为 nil |
-| `Packages/IntatisAgentKernel/Tests/AgentLoopPolicyTests.swift` | unresolved side effect 不写 `message_completed`，只写 failed outcome |
-| `Packages/IntatisAgentKernel/Tests/ModelHistoryProjectionTests.swift` | failed turn 丢弃最终 assistant history；completed/missing legacy outcome 保持兼容 |
-| `Packages/IntatisAgentKernel/Tests/ContextProjectionTests.swift` | frozen IDs 精确投影、8 条上限、unrelated pending 不被呈现/消费、ID/kind/causal 字段转义 |
-| `Packages/IntatisConversation/Tests/IntatisConversationCodeTests.swift` | `message_completed -> error -> failed turn_outcome` 旧顺序被标成未完成/失败 |
-| `Packages/IntatisCowork/Tests/MessageDelegationSplitTests.swift` | wake contract 绑定 ID；普通 lease 无 coordinator/mutation 能力；consume failure 仍重试同 TaskID |
-| `Packages/IntatisCowork/Tests/OrchestrationReliabilityTests.swift` | restore 8+2 exact batch；active 不重复；failed exhausted 不创建 replacement；旧无字段 task 保守恢复 |
-| `Packages/IntatisCowork/Tests/WorkTaskRuntimeTests.swift` | task_create/update preview、ID namespace 提示、stale no-effect 语义保持 |
-| `Packages/IntatisCowork/Tests/PermissionReviewControlPlaneTests.swift` | reviewer prompt 能看到脱敏 WorkTask preview，但仍只保存 args digest/count、不暴露 raw args |
+| `Packages/EgakiumProtocol/Tests/TaskContractTests.swift` | 新字段 round-trip；旧 JSON 缺字段仍解码为 nil |
+| `Packages/EgakiumAgentKernel/Tests/AgentLoopPolicyTests.swift` | unresolved side effect 不写 `message_completed`，只写 failed outcome |
+| `Packages/EgakiumAgentKernel/Tests/ModelHistoryProjectionTests.swift` | failed turn 丢弃最终 assistant history；completed/missing legacy outcome 保持兼容 |
+| `Packages/EgakiumAgentKernel/Tests/ContextProjectionTests.swift` | frozen IDs 精确投影、8 条上限、unrelated pending 不被呈现/消费、ID/kind/causal 字段转义 |
+| `Packages/EgakiumConversation/Tests/EgakiumConversationCodeTests.swift` | `message_completed -> error -> failed turn_outcome` 旧顺序被标成未完成/失败 |
+| `Packages/EgakiumCowork/Tests/MessageDelegationSplitTests.swift` | wake contract 绑定 ID；普通 lease 无 coordinator/mutation 能力；consume failure 仍重试同 TaskID |
+| `Packages/EgakiumCowork/Tests/OrchestrationReliabilityTests.swift` | restore 8+2 exact batch；active 不重复；failed exhausted 不创建 replacement；旧无字段 task 保守恢复 |
+| `Packages/EgakiumCowork/Tests/WorkTaskRuntimeTests.swift` | task_create/update preview、ID namespace 提示、stale no-effect 语义保持 |
+| `Packages/EgakiumCowork/Tests/PermissionReviewControlPlaneTests.swift` | reviewer prompt 能看到脱敏 WorkTask preview，但仍只保存 args digest/count、不暴露 raw args |
 
 ### 5.3 实施后同步更新的项目文档
 
@@ -773,7 +773,7 @@ private func workTaskNamespaceHint(
 
 ### 7.4 UI projection
 
-`IntatisConversationCodeTests.swift` 新增：
+`EgakiumConversationCodeTests.swift` 新增：
 
 ```text
 message_delta
@@ -900,20 +900,20 @@ swift test --filter TaskContractTests
 swift test --filter AgentLoopPolicyTests
 swift test --filter ModelHistoryProjectionTests
 swift test --filter ContextProjectionTests
-swift test --filter IntatisConversationCodeTests
+swift test --filter EgakiumConversationCodeTests
 swift test --filter MessageDelegationSplitTests
 swift test --filter OrchestrationReliabilityTests
 swift test --filter WorkTaskRuntimeTests
 swift test --filter PermissionReviewControlPlaneTests
 swift test
 xcodegen generate
-xcodebuild -project Intatis.xcodeproj -scheme IntatisMac -configuration Debug build
-xcodebuild -project Intatis.xcodeproj -scheme IntatisiOS -configuration Debug -sdk iphonesimulator build
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumMac -configuration Debug build
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumiOS -configuration Debug -sdk iphonesimulator build
 git diff --check
 git status --short
 ```
 
-不默认构建遗留 `IntatisMacAppStore` target。
+不默认构建遗留 `EgakiumMacAppStore` target。
 
 ## 12. 完成判据
 
@@ -957,12 +957,12 @@ git status --short
 - terminal ordering、authoritative turn projection/provider history、TaskContract exact
   `mailboxMessageIDs`、mailbox 窄 lease/同 TaskID 有界重试/原子 consume、legacy fail-closed、
   WorkTask ID/revision 指引和秘密安全的语义 permission preview 均已完成；
-- 报告要求的 focused tests 通过；完整 SwiftPM suite 最终退出 0，`IntatisCoworkTests` 327、
-  `IntatisSharedUITests` 141、`IntatisAgentKernelTests` 175 tests 均为 0 failures；
-- `xcodegen generate`、版本一致性、`IntatisMac` Debug、`IntatisiOS` Simulator Debug 和
-  `IntatisMac` universal Release 全部通过。Release 为 `0.36 (36)`、
-  `com.Vita0818.IntatisMac`、`x86_64 arm64`；完成 ad-hoc Hardened Runtime 签名和 strict
-  codesign 验证后已安装到 `/Applications/Intatis.app`，旧 App 在废纸篓中有 timestamped
+- 报告要求的 focused tests 通过；完整 SwiftPM suite 最终退出 0，`EgakiumCoworkTests` 327、
+  `EgakiumSharedUITests` 141、`EgakiumAgentKernelTests` 175 tests 均为 0 failures；
+- `xcodegen generate`、版本一致性、`EgakiumMac` Debug、`EgakiumiOS` Simulator Debug 和
+  `EgakiumMac` universal Release 全部通过。Release 为 `0.36 (36)`、
+  `com.Vita0818.EgakiumMac`、`x86_64 arm64`；完成 ad-hoc Hardened Runtime 签名和 strict
+  codesign 验证后已安装到 `/Applications/Egakium.app`，旧 App 在废纸篓中有 timestamped
   可恢复备份；
 - 事故 session `cowork_rqx6cgvb` 未被改写；新 App 冷启动后仍为 `seq 0...4564`，mtime 未变化。
   `seq 2873 message_completed` / `2874 model_history_item` 后跟

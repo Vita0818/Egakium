@@ -1,125 +1,134 @@
-# EGAKIUM_MIGRATION
+# EGAKIUM_IDENTITY_CUTOVER
 
-文档状态：当前迁移边界
-迁移日期：2026-08-14
-最近更新：2026-08-16
+文档状态：当前 identity 与数据隔离边界
+业务基线导入：2026-08-14
+不兼容 hard cutover：2026-08-18
 当前 Git root：`/Users/vita/Vitemis/Volans/Egakium`
-业务基线来源：`/Users/vita/Vitemis/Intatis`
+产品版本：`v0.4`（build 50）
 
-## 迁移结果
+## 最终决定
 
-Ekagium 的仓库主体已经替换为 Intatis 的当前工作树，后续业务开发可以直接以该 SwiftPM +
-XcodeGen 项目为基础。当前导入的是源目录在迁移时的实际 working-tree 状态，包括其当时存在的
-未提交业务改动；它不是从某个干净 Git commit 重新检出的发布归档。
+Egakium 不再区分“用户可见品牌”和“内部技术 identity”。全项目只允许以下三种按语境使用的拼写：
 
-迁移保留了目标仓库自己的 `.git/`，所以当前仓库历史不属于源 Intatis。源 Intatis 的 Git metadata
-没有导入，不能用当前仓库的 `HEAD` 推断导入业务树的源 commit 或源工作区差异。macOS/iOS 的
-用户可见 GUI 品牌曾在 2026-08-15 使用 `Egakium`，并于 2026-08-16 按用户决定统一更正为
-`Ekagium`；同日 marketing version 设为 `0.2`、build number 从 48 单调推进到 49。产品代码、target、
-bundle identifier、模块、配置/数据路径与协议标识仍使用 `Intatis` identity。本次品牌与版本变更没有
-执行内部符号批量重命名、bundle identity 迁移、协议迁移或数据目录迁移。
+| 形式 | 用途 |
+|---|---|
+| `Egakium` | 产品名、Swift/C/Objective-C 类型与模块、SwiftPM/Xcode target、App/Helper、目录和文件名 |
+| `egakium` | CLI、scheme、workspace/config/data 文件夹、UserDefaults、协议/schema identifier |
+| `EGAKIUM` | 环境变量、编译条件和 C/CMake 常量 |
 
-仓库物理目录 `/Users/vita/Vitemis/Volans/Egakium`、活跃文档文件名 `EGAKIUM_*.md`、只读历史目录
-`docs/egakium-cef-baseline/` 与 Session Canvas `.egakium/` 路径作为迁移/兼容 identity 保持不变；
-不得仅为拼写统一而移动这些路径或让既有 Session 失效。
+该决定是 hard cutover，不是渐进迁移：
 
-## 迁移后的产品方向确认
+- 不提供旧产品名的 typealias、兼容 target、shim、adapter、redirect 或双写；
+- 不探测、不导入、不回放 hard cutover 前的会话、配置、UserDefaults、凭据、bookmark、cache 或浏览器状态；
+- 不在当前 identity 下复制旧数据，也不通过 fallback 搜索另一个产品目录；
+- 不删除用户机器上既有的旧数据。它留在原位置，Egakium 只是永远不发现它；
+- EventLog 内部仍可保留与当前 Egakium 数据格式有关的 additive decoder/recovery 逻辑，但它不构成跨产品数据迁移，也不得重新引入旧路径发现。
 
-2026-08-15 用户确认 Ekagium 后续不以导入的三栏 conversation harness 作为最终产品形态，而是以
-现有 Cowork runtime 为业务底座建立 Canvas-first macOS 工作台：
+## 当前技术 identity
 
-- 中央主要区域是每个 Cowork Session 独立初始化的 HTML/DOM 空白画布；
-- 右侧直接复用现有 Cowork harness，只做必要的父级布局和窄栏 UI 适配，不改其消息、任务、
-  Agent、权限、EventLog、恢复或生命周期语义；
-- 宿主从固定模板首次创建 Session `index.html`；用户最终选择方案一，允许 exact `@main` 通过既有
-  workspace 工具和权限链直接编辑整份 HTML/CSS/JavaScript；
-- ordinary sub-agent 需要并行时编辑互不重叠的辅助/元素 HTML，不让多个 Agent 并发修改同一主 HTML；
-- exact `@main` 通过提示词负责主入口编辑、全局空间布局、协调和委派；
-- ordinary sub-agent 默认在一次任务中编辑一个指定元素网页；该关系只是动态 prompt /
-  TaskContract 约定，不是永久角色、Element owner、硬编码 hierarchy 或新 lease；
-- 现有 Orchestrator、scheduler、AgentLoop、MessageBus/Mediator、PermissionEngine、七事件 fresh
-  bootstrap、EventLog 与 AppSessionRuntimeManager 继续作为权威运行底座。
+- Swift package：`Egakium`
+- Swift products/modules/targets：`EgakiumCore`、`EgakiumProtocol`、`EgakiumProviders`、
+  `EgakiumConversation`、`EgakiumArtifacts`、`EgakiumMultimodal`、`EgakiumSharedUI`、
+  `EgakiumTools`、`EgakiumKnowledge`、`EgakiumPermission`、`EgakiumAgentKernel`、
+  `EgakiumSkills`、`EgakiumCowork`、`EgakiumMCP`、`EgakiumMCPStdio` 以及相应内部 C/guard target。
+- macOS target/App/executable：`EgakiumMac` / `EgakiumMac.app` / `EgakiumMac`
+- iOS target/App/executable：`EgakiumiOS` / `EgakiumiOS.app` / `EgakiumiOS`
+- CLI product/executable：`egakium`
+- Xcode project：`Egakium.xcodeproj`
+- macOS bundle identifier：`com.Vita0818.EgakiumMac`
+- iOS bundle identifier：`com.Vita0818.Egakium`
+- CEF host archive：`libEgakiumCEFHost.a`
+- CEF Helpers：`EgakiumMac Helper` 及 Alerts/GPU/Plugin/Renderer variants
+- CEF Canvas scheme：`egakium://canvas`
+- authorization sidecar：`__egakium_authorization_context`
+- workspace Session Canvas：`.egakium/canvas/<SessionID>/...`
+- macOS/iOS Application Support root：`Egakium`
+- user config/auth root：`~/.config/egakium/`
+- 环境变量前缀：`EGAKIUM_`
+- UserDefaults/schema identifier 前缀：`egakium.`
+- 项目维护 Skill：`.agents/skills/egakium-skill-creator/`
 
-完整产品与架构合同见 `docs/EGAKIUM_CANVAS_COWORK.md`。方案一原型现已包含 Session Canvas 初始化、
-exact `@main` 直编路径提示、可复用 WKWebView `CoworkCanvasHost`、主 Cowork detail 内的左 Canvas /
-右原 `CoworkShell` 水平拼接。2026-08-16 用户进一步纠正为只保留这一个组合窗口；此前独立 Canvas
-scene/window/header action 已移除，不能作为调试/备用产品入口恢复。正式 CEF 接线、稳定元素/layout/
-event schema 与 Canvas bridge 仍是目标，不是当前完成度。
+## 配置与数据隔离
 
-2026-08-16 用户随后要求 macOS 主 sidebar 暂时只展示 Cowork。Chat 与 Code 入口只在 presentation
-层隐藏；导入的 Chat/Code enum、View/ViewModel、runtime、session/history、配置、CLI 与 iOS 边界均
-保留，没有从业务基线删除。该决定不得被解释为裁剪 target、数据或底层能力。
+当前应用只创建和读取 Egakium-owned roots。核心入口包括：
 
-## 导入范围
+- `~/Library/Application Support/Egakium/`
+- `~/.config/egakium/egakium.json`
+- `~/.config/egakium/egakium.jsonc`
+- `~/.config/egakium/auth.json`
+- workspace-local `.egakium/`
+- `EGAKIUM_CONFIG` 和 `EGAKIUM_AUTH_FILE` 明确指定的用户路径
 
-从源 Intatis 工作树复制了业务源码、测试、SwiftPM/XcodeGen 配置、脚本、文档、NOTICE、
-ThirdPartyNotices、Vendor、OpenSource、生成/缓存目录和普通资源。源项目根 `.agents/` 在单独的
-窄范围授权后按原路径导入；嵌套上游目录中的普通 `.agents/` 资料也作为源文件复制。
+显式环境变量 override 是用户对 exact 文件的当前授权，不是旧 identity fallback。应用内部允许
+`config.json` 等通用文件名出现在已经确定的 Egakium-owned 目录内；不得借此扩大到其他产品目录。
 
-为保持当前 Git root、避免携带凭据或浏览器会话，本次没有复制：
+本次 hard cutover 不执行磁盘数据删除。旧 App Support、配置、Keychain 项、UserDefaults、CEF cache、
+workspace metadata 或历史会话若仍存在，保留给用户自行处置；Egakium 不读取也不清理它们。
 
-- 任意层级的 `.git` metadata；
-- `.env` / `.env.*`、私钥、证书、provisioning profile 和常见本地凭据配置；
-- 浏览器 Cookies、Login Data、Web Data、Network Persistent State、Sessions、Session Storage、
-  Local Storage 等会话状态。
+## 源码与构建切换范围
 
-因此，本迁移是可开发的安全基线复制，不声称与源目录逐字节完全相同，也不应被当作凭据、登录态或
-签名材料的备份。任何需要本地 secret 的构建或 smoke 都必须由用户在当前仓库中重新配置，且不得把
-secret 提交到 Git。
+以下范围已统一改名，并以当前源码为唯一事实源：
 
-### 2026-08-17 OpenSource gitlink 纠正
+- `Apps/` 下 macOS、iOS 和 CLI 的目录、入口文件、类型、imports 与 tests；
+- `Packages/` 下所有公共/内部 target、source/test 目录、模块 imports、C headers 和 exported symbols；
+- `Package.swift` products、targets、dependencies、paths 与 CLI product；
+- `project.yml` project/target/scheme/package、bundle、module、executable、wrapper、icon、entitlement 和 CEF linkage；
+- CEF CMake targets、bridge/helper sources、Helper bundle metadata、build output 目录和嵌入脚本；
+- 配置/data/cache/diagnostics/workspace paths、UserDefaults、Keychain service、环境变量和 schema/protocol identifiers；
+- tests、fixtures、scripts、release tooling、NOTICE、ThirdPartyNotices、Vendor ledger、活跃文档和项目 Skill；
+- 文件与目录 basename，包括 App、Package、test、C symbol wrapper、icon、report 和 Skill paths。
 
-源 Intatis 的父 index 实际把 26 个 `OpenSource/<project>` 保存为 mode `160000` gitlink；每个目录在
-源工作树中另有独立 `.git/`，但源根目录缺少 `.gitmodules`。迁移时排除所有嵌套 `.git` 后，这 26 个
-边界一度被拍平为 Egakium 父仓库中的 231,413 个普通 tracked entries。当前工作树已按用户要求纠正：
+这是一次物理路径切换；没有通过旧目录 symlink 或 build-time alias 维持双结构。
 
-- 新增标准 `.gitmodules`，为 26 个项目固定公开 origin，并设置 `shallow = true`；
-- 父 index 只保留 26 个 gitlink，commit SHA 与源 Intatis 逐项一致；
-- 本机 11 GB 工作树原地保留，各子仓库 HEAD 与父 gitlink 一致且 clean；
-- 没有复制迁移时有意排除的 `.env`、证书、私钥或 provisioning profile；
-- 该结构只恢复版本控制边界，不把研究 checkout 改写成产品依赖、已审计分发物或可用 runtime。
+## Canvas / CEF 与 Cowork 边界
 
-普通文件最早进入尚未推送的旧本地 `v0.2` 提交。2026-08-17 用户明确授权重写仅本地的
-`v0.2` / `v0.3` 并保留两层结构：新 `v0.2` 直接以 26 个 gitlink 表示 `OpenSource/`，新 `v0.3`
-承载其后的产品改动与本次文档；`origin/main` 保持不变且未 push。旧提交不再被 branch/tag 引用，
-因此正常 push `main` 不会传输 flattened blob；旧对象在 reflog 到期和显式 GC 前仍可暂留本机 object
-store，本轮不自动清理或 GC。
+identity hard cutover 不改变已经确认的产品方向：
 
-## Ekagium 保留项
+- macOS 主窗口仍只有一个“左 CEF Canvas、右 Cowork harness”的组合 presentation；
+- 官方 CEF 仍是唯一 Canvas renderer，没有 WKWebView、第二 renderer 或 fallback；
+- `CoworkViewModel`、Orchestrator、scheduler、MessageBus、PermissionEngine、EventLog 和 session lifecycle
+  仍只有一套；
+- fresh Session 使用 `.egakium/canvas/<SessionID>/index.html`；exact `@main` 编辑主入口；
+- successful ordinary `spawn_agent` 获得 fresh generic child element document 和 durable descriptor；
+- Chat/Code 入口只是 presentation-hidden，底层能力仍保留；iOS 仍是 Chat 子集。
 
-| 路径 | 保留内容 | 当前用途与边界 |
-|---|---|---|
-| `.git/` | Ekagium 原 Git 仓库 | 保持当前仓库身份；未导入 Intatis Git history |
-| `docs/egakium-cef-baseline/` | 迁移前根 `AGENTS.md`、`CLAUDE.md`、`GEMINI.md`、`README.md` 与完整 `docs/` | 历史只读参考；活跃规则以根文件和当前 `docs/` 为准 |
-| `Chromium/` | 迁移前下载/构建的 Chromium 本地树 | 不属于当前 Intatis 构建依赖；未经明确任务不得修改或删除 |
-| `.deps/` | 迁移前官方 CEF 下载包与解包目录 | 保留 CEF 资产；当前 Intatis Swift 基线不自动消费它 |
-| `build/` | 迁移前 Ekagium CMake/CEF 生成物 | 与 Intatis 的 `.build/` 不同；未经明确任务不得清理或覆盖 |
+完整 Canvas/Cowork 合同见 `docs/EGAKIUM_CANVAS_COWORK.md`，dependency-first/no-fallback 合同见
+`docs/OPEN_SOURCE_REUSE.md` 和 Vitemis canonical
+`/Users/vita/Vitemis/docs/DEPENDENCY_POLICY.md`。
 
-## 活跃文档解释
+## 保留但不改写的资产
 
-- 根 `AGENTS.md` 是迁移后规则入口，预期路径仍是实际 Git root
-  `/Users/vita/Vitemis/Volans/Egakium`。
-- `docs/CURRENT_STATE.md`、`docs/PROJECT_MAP.md`、`docs/ARCHITECTURE.md`、
-  `docs/DO_NOT_BREAK.md`、`docs/TESTING.md` 等当前规范现以 Ekagium `v0.2 (49)` 为产品基线；其中
-  标明 `v0.48 (48)` 或更早版本的历史测试、安装、签名和真实 provider 结果只证明当时状态，不能
-  充当当前 `v0.2 (49)` 的验证证据。
-- `docs/NEXT_TARGET.md` 已在 2026-08-15 替换为用户确认的 Ekagium Canvas/Cowork 活跃目标；旧
-  Intatis v0.48 公证发布记录不再是本仓库的自动执行目标。
-- `docs/EGAKIUM_CANVAS_COWORK.md` 是迁移后新确认的产品合同，明确 Canvas、独立 HTML 元素、
-  `@main`/sub-agent prompt 分工和现有 Cowork harness 复用边界。
-- 迁移前 Ekagium CEF 白画布原型的事实、架构、禁区和测试说明只在
-  `docs/egakium-cef-baseline/` 中保留，不再描述当前业务主体。
+| 路径 | 边界 |
+|---|---|
+| `.git/` | 保留当前仓库历史；hard cutover 不重写 Git 历史对象 |
+| `OpenSource/` | 保持 26 个 mode-`160000` gitlink；不递归改上游仓库内容或指针 |
+| `Chromium/` | 历史 Chromium 本地资产；不是当前 product dependency，不因 identity cutover 删除 |
+| `.deps/` | 官方 CEF archive/distribution；当前 build 只通过 pinned config 消费，不重新下载或改写 |
+| `docs/egakium-cef-baseline/` | 只读历史快照；不作为当前规则或产品 identity 来源 |
+| `build/` / `.build/` | ignored 生成物；当前输出使用 `egakium-cef-runtime`、`egakium-xcode` 和新 SwiftPM module names |
 
-## 已知差异与能力边界
+hard cutover 前生成且带旧 identity 的 build/cache 目录已从工作区移动到
+`/private/tmp/egakium-pre-decouple-generated-backup/`，属于可恢复的临时备份，不是产品输入。没有删除
+用户 App Support、Keychain 或工作区数据。
 
-源项目的 `.agents/skills/intatis-skill-creator/` 已经复制到当前根目录，但当前 Agent 会话的 Skill
-注册表不会因为文件刚被复制就自动刷新。后续维护任务只能在会话实际暴露该 Skill 时调用它；目录存在
-本身不构成运行时能力证明。源 Git metadata、凭据、签名材料和浏览器会话仍按上述安全边界有意省略。
+## OpenSource Git 边界
 
-## 本次验证边界
+2026-08-17 已将迁移时被拍平的 26 个 `OpenSource/<project>` 恢复为父仓库 gitlink，并补齐
+`.gitmodules` 的公开 origin 与 `shallow = true`。identity hard cutover 不改变这些上游项目的名称、
+内容、commit SHA 或 provenance；第三方名称不属于 Egakium 自有 identity，不能做品牌替换。
 
-迁移当时只做了结构验证：核对源到目标的非敏感文件同步、历史文档快照、保留目录、敏感文件排除、
-Git 状态和 Markdown whitespace；没有运行 Swift build、Swift test、Xcode build、CEF build、App
-启动、真实 provider、签名、公证或发行验证。后续方案一原型已经单独运行定向 Swift tests 和
-`IntatisMac` arm64 Debug build，精确证据见 `docs/TESTING.md`；仍未运行 CEF build、真实 GUI/provider、
-签名、公证或发行验证。
+## 验证边界
+
+2026-08-18 hard cutover 已验证：
+
+- repo-owned source/path residue scan 对六种旧拼写返回零结果；
+- `swift package dump-package` 成功解析全新的 product/target/path graph；
+- `swift build` 成功，生成 `egakium` CLI 与全部 `Egakium*` Swift modules；
+- `xcodegen generate` 生成 `Egakium.xcodeproj`；
+- pinned official CEF Debug wrapper、`libEgakiumCEFHost.a` 与五个 `EgakiumMac Helper` 构建成功；
+- `EgakiumMac` ARM64 Debug unsigned build 成功并嵌入 CEF；
+- `EgakiumiOS` generic Simulator Debug unsigned build 成功；
+- 完整 `swift test` 的最终结果记录在 `docs/TESTING.md` 和本次交付报告中。
+
+这些验证不等于 Developer ID 签名、公证、staple、Gatekeeper、安装或旧用户数据迁移；后者明确不在
+本次 hard cutover 范围内。

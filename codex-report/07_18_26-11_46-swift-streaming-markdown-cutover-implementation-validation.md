@@ -1,4 +1,4 @@
-# Intatis SwiftStreamingMarkdown 生产切换、仓内 Vendoring 与验收报告
+# Egakium SwiftStreamingMarkdown 生产切换、仓内 Vendoring 与验收报告
 
 > 日期：2026-07-18
 >
@@ -8,7 +8,7 @@
 >
 > 上游 basis：Microsoft SwiftStreamingMarkdown `v0.6.0` / `c7b12f7b3d77caa188fd1fc056d0f7ce305ef5cd`
 >
-> 当前判定：**RELEASE NO-GO。renderer 实现切换、旧源码/旧 direct dependency 退出、仓内 vendoring、当前源码的 macOS/iOS Debug/Release build、两个 unsigned Archive 与六份 app bundle audit 已完成；事故后 vendored 包 strict Debug/Release 各 44/44、SharedUI `MessageRenderingTests` 21/21。可是 latest-build GUI/Computer Use 验收发生失控增长：Force Quit 显示主 `Intatis Renderer Validation` 实例为 129.63 GB application memory，系统诊断另记录采样 footprint 109.16 MB→803.30 MB。该轮验收为 `FAIL / ABORTED`，根因仍为 `UNKNOWN`。已落地 diff/layout/selection amplification-path 修复并通过无界面验证，但在受控单实例 GUI 复验通过前，当前工作树不可发布。**
+> 当前判定：**RELEASE NO-GO。renderer 实现切换、旧源码/旧 direct dependency 退出、仓内 vendoring、当前源码的 macOS/iOS Debug/Release build、两个 unsigned Archive 与六份 app bundle audit 已完成；事故后 vendored 包 strict Debug/Release 各 44/44、SharedUI `MessageRenderingTests` 21/21。可是 latest-build GUI/Computer Use 验收发生失控增长：Force Quit 显示主 `Egakium Renderer Validation` 实例为 129.63 GB application memory，系统诊断另记录采样 footprint 109.16 MB→803.30 MB。该轮验收为 `FAIL / ABORTED`，根因仍为 `UNKNOWN`。已落地 diff/layout/selection amplification-path 修复并通过无界面验证，但在受控单实例 GUI 复验通过前，当前工作树不可发布。**
 
 ## MODEL_CHECK_RESULT
 
@@ -16,18 +16,18 @@
 
 ## PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 两者一致，符合项目要求。
 - 工作树在 Markdown 工作开始前已有 per-agent inference profile、Goal/Cowork 等用户改动；本任务没有清理、回退、暂存或提交这些改动。
 
 ## 1. 最终结论
 
-这次迁移没有在 Intatis 内重写 Markdown renderer。当前产品边界是：
+这次迁移没有在 Egakium 内重写 Markdown renderer。当前产品边界是：
 
 ```text
 EventLog / projection raw String（唯一真值）
-  -> IntatisMessageContentView（唯一产品 facade）
+  -> EgakiumMessageContentView（唯一产品 facade）
      -> 仓内 Microsoft 派生包 DocumentView（可丢弃 rich projection）
      -> facade-lifetime raw Text projection（永久 plain-safe / pending / oversize 熔断）
 ```
@@ -35,11 +35,11 @@ EventLog / projection raw String（唯一真值）
 已经完成的核心结果：
 
 1. Microsoft SwiftStreamingMarkdown 的 parser integration 与原生 SwiftUI/TextKit 布局成为唯一 rich 路径。
-2. 完整可构建的派生包已存入 `Vendor/SwiftStreamingMarkdown`，根 `Package.swift` 使用相对仓内路径，不再依赖 `/private/tmp`，也不需要单独发布一个 Intatis 远端 fork。
-3. Microsoft MIT `LICENSE`、README、生产源码、测试、`Package.resolved` 与永久 patch/provenance ledger 一起进入仓内，由包含它们的 Intatis 根 Git revision 统一版本化。
+2. 完整可构建的派生包已存入 `Vendor/SwiftStreamingMarkdown`，根 `Package.swift` 使用相对仓内路径，不再依赖 `/private/tmp`，也不需要单独发布一个 Egakium 远端 fork。
+3. Microsoft MIT `LICENSE`、README、生产源码、测试、`Package.resolved` 与永久 patch/provenance ledger 一起进入仓内，由包含它们的 Egakium 根 Git revision 统一版本化。
 4. 旧 MarkdownUI、自有 cmark/math/code adapter、iosMath、highlight.js/HighlightSwift、NetworkImage、Shimmer、snapshot/macro 依赖与旧资源已经退出当前生产源码/依赖图。
-5. Chat、Code、Cowork 与 iOS Chat 仍只认识 `IntatisMessageContentView`，没有复制 renderer；CLI/headless 不链接 Apple UI renderer。
-6. Intatis 只保留 renderer-neutral 的 admission、revision、latest-only 调度、安全配置、主题映射和 raw fallback；没有新增 Markdown lexer、parser、AST rewriter、table layout、code grammar 或 TeX renderer。
+5. Chat、Code、Cowork 与 iOS Chat 仍只认识 `EgakiumMessageContentView`，没有复制 renderer；CLI/headless 不链接 Apple UI renderer。
+6. Egakium 只保留 renderer-neutral 的 admission、revision、latest-only 调度、安全配置、主题映射和 raw fallback；没有新增 Markdown lexer、parser、AST rewriter、table layout、code grammar 或 TeX renderer。
 7. Rich 默认开启；`plainSafe` 仍可通过设置或启动参数立即熔断，不迁移 session、不改写 EventLog。
 8. 事故后恢复了上游 `DocumentView` / 两平台 `ParagraphView` 的等值 diff 护栏，稳定宽度只触发一次 intrinsic-size 刷新，并把 rich selection ownership 从整棵 `DocumentView` 下沉到实际可选择的 paragraph/table/code leaf；这些是对高置信放大路径的最小修复，不是对最终根因的形式化证明。
 
@@ -48,10 +48,10 @@ EventLog / projection raw String（唯一真值）
 | 问题 | 结论 |
 |---|---|
 | 旧 renderer 是否已退出生产源码与 direct dependency 图 | **是** |
-| SwiftStreamingMarkdown 派生源码是否已进入 Intatis 仓库 | **是** |
+| SwiftStreamingMarkdown 派生源码是否已进入 Egakium 仓库 | **是** |
 | 当前工作树是否已经完成全部 release 验收 | **否；latest-build GUI/Computer Use 为 `FAIL / ABORTED`，整体 `NO-GO`** |
 
-供应链的原阻碍已经改变：**“必须先发布远端 immutable fork”不再是 blocker**。但未提交的工作树本身仍不是发行 identity；最终分发仍应指向一个包含 `Vendor/SwiftStreamingMarkdown`、许可证和 ledger 的确定 Intatis 根 commit/tag。
+供应链的原阻碍已经改变：**“必须先发布远端 immutable fork”不再是 blocker**。但未提交的工作树本身仍不是发行 identity；最终分发仍应指向一个包含 `Vendor/SwiftStreamingMarkdown`、许可证和 ledger 的确定 Egakium 根 commit/tag。
 
 此外，vendored 包的两个 parser dependency 仍是远端 exact pin：`swift-markdown 0.8.0` 与传递的 `swift-cmark 0.8.0`。首次无缓存解析仍需要从 GitHub 取得它们，所以当前方案是“renderer 派生源码仓内固定”，不是“整个依赖图完全离线”。
 
@@ -59,12 +59,12 @@ EventLog / projection raw String（唯一真值）
 
 ### 2.1 归属
 
-MIT 允许复制、修改、合并、发布和分发。Intatis 可以维护这份仓内派生源码，但不能把 Microsoft 原始代码表述成 Intatis 独立原创。当前做法是：
+MIT 允许复制、修改、合并、发布和分发。Egakium 可以维护这份仓内派生源码，但不能把 Microsoft 原始代码表述成 Egakium 独立原创。当前做法是：
 
 - 保留上游 Microsoft MIT `LICENSE`；
 - 在根 `NOTICE.md` 和 `ThirdPartyNotices/MarkdownRendering.md` 标明上游与修改关系；
-- 在 vendored 目录内永久保留 `INTATIS_PATCH_LEDGER.md`；
-- 将 Intatis 新增/修改部分描述为对 Microsoft v0.6.0 的派生维护，而不是重写或原创 renderer。
+- 在 vendored 目录内永久保留 `EGAKIUM_PATCH_LEDGER.md`；
+- 将 Egakium 新增/修改部分描述为对 Microsoft v0.6.0 的派生维护，而不是重写或原创 renderer。
 
 ### 2.2 精确上游 basis
 
@@ -101,8 +101,8 @@ Vendor/SwiftStreamingMarkdown
 - `du -sh` 约 628 KiB 的仓内文件系统占用；文件 payload 合计 375,629 bytes；
 - 包含 `Package.swift`、`Package.resolved`、`README.md`、Microsoft `LICENSE`；
 - 包含完整 `Sources/MarkdownText`；
-- 包含完整 `Tests/MarkdownTextTests`，包括 Intatis candidate matrix、first-release contracts、AppKit/UIKit layout 与 equality/selection 回归测试；
-- 包含永久 `INTATIS_PATCH_LEDGER.md`。
+- 包含完整 `Tests/MarkdownTextTests`，包括 Egakium candidate matrix、first-release contracts、AppKit/UIKit layout 与 equality/selection 回归测试；
+- 包含永久 `EGAKIUM_PATCH_LEDGER.md`。
 
 ### 2.4 明确排除内容
 
@@ -116,7 +116,7 @@ Vendor/SwiftStreamingMarkdown
 - 上游 agent/automation/CI metadata；
 - 与已经删除的 HighlightSwift、iosMath、Shimmer、snapshot/macro surface 对应的资源和测试快照。
 
-因此“放进我们的项目”在工程上表示：**由 Intatis 根仓库维护、版本化和分发经过审计的派生快照**；不表示删除上游归属，也不表示保留与产品无关的品牌/示例资产。
+因此“放进我们的项目”在工程上表示：**由 Egakium 根仓库维护、版本化和分发经过审计的派生快照**；不表示删除上游归属，也不表示保留与产品无关的品牌/示例资产。
 
 ## 3. Vendored 包的实现边界
 
@@ -167,24 +167,24 @@ public static func parse(
 
 这份派生包相对上游仍是非平凡 diff：生产 renderer/package source 的主要修改面是 39 个文件，约 269 insertions / 1,142 deletions；大量删除来自可选依赖、资源和 snapshot 清理。它是“尽量不接管 grammar/layout 的薄派生”，不是“无需维护的零 diff”。具体 patch groups 与删除条件以 vendored ledger 为准。
 
-## 4. Intatis 集成架构
+## 4. Egakium 集成架构
 
 ### 4.1 Renderer mode 与救援熔断
 
 稳定模式：
 
 ```text
-IntatisMessageRendererMode.microsoft
-IntatisMessageRendererMode.plainSafe
+EgakiumMessageRendererMode.microsoft
+EgakiumMessageRendererMode.plainSafe
 ```
 
 稳定入口：
 
 ```text
-UserDefaults: intatis.messageRendering.mode.v1
-macOS force plain:     -IntatisPlainSafeMessages
-macOS force Microsoft: -IntatisMicrosoftMarkdownMessages
-legacy rich override:  -IntatisRichTextMessages
+UserDefaults: egakium.messageRendering.mode.v1
+macOS force plain:     -EgakiumPlainSafeMessages
+macOS force Microsoft: -EgakiumMicrosoftMarkdownMessages
+legacy rich override:  -EgakiumRichTextMessages
 ```
 
 缺少偏好时默认 Microsoft；旧持久值 `rich` 映射到 Microsoft；未知值 fail closed 到 plain-safe；冲突启动参数由 plain-safe 胜出。macOS/iOS 设置使用同一持久键，iOS 另保留 `Settings.bundle` 预启动入口。
@@ -193,7 +193,7 @@ legacy rich override:  -IntatisRichTextMessages
 
 ### 4.2 Raw-first facade
 
-`IntatisMessageContentView` 的公开输入保持：
+`EgakiumMessageContentView` 的公开输入保持：
 
 ```text
 messageID / rawText / isComplete / policy / style
@@ -223,7 +223,7 @@ rich 固定预算：
 | completed-document cache | 0 |
 | paragraph native-view reuse cache | 0 |
 
-`IntatisLatestOnlyPermitScheduler` 只保存 Sendable key/generation/continuation/permit lifecycle/metrics，不保存 parser、document、result 或 arbitrary closure。
+`EgakiumLatestOnlyPermitScheduler` 只保存 Sendable key/generation/continuation/permit lifecycle/metrics，不保存 parser、document、result 或 arbitrary closure。
 
 ### 4.4 首版安全配置
 
@@ -241,9 +241,9 @@ rich 固定预算：
 
 已退出当前生产工作树的旧源码：
 
-- `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisRenderDocument.swift`
-- `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMathView.swift`
-- `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisCodeBlockView.swift`
+- `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumRenderDocument.swift`
+- `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMathView.swift`
+- `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumCodeBlockView.swift`
 
 已退出的旧 vendored 资源：
 
@@ -278,7 +278,7 @@ Unexpected: 0
 Exit:       0
 ```
 
-该结果替代旧报告中的 752/14/0 统计。事故后另一次全量尝试在既有 `IntatisToolsTests` 的 nested `sandbox-exec` / loopback 失败后进入无输出挂起并被人工中止，因此没有新的当前全量总数；不得把 755/14/0 冒充事故后完整 pass。事故后的 renderer 直接覆盖由 21/21 SharedUI focused、两组 44/44 vendor strict 与 current product build/archive 提供。
+该结果替代旧报告中的 752/14/0 统计。事故后另一次全量尝试在既有 `EgakiumToolsTests` 的 nested `sandbox-exec` / loopback 失败后进入无输出挂起并被人工中止，因此没有新的当前全量总数；不得把 755/14/0 冒充事故后完整 pass。事故后的 renderer 直接覆盖由 21/21 SharedUI focused、两组 44/44 vendor strict 与 current product build/archive 提供。
 
 ### 6.3 Vendored 包 strict macOS Debug / Release
 
@@ -305,18 +305,18 @@ vendored package 使用独立 `/private/tmp` scratch/module/config/security path
 
 测试过程出现 headless AppKit `com.apple.hiservices-xpcservice Connection Invalid` 环境日志，但相应 lifecycle/measurement tests 通过；这不是 compiler warning 或 test failure。`--skip-update` 仅产生 SwiftPM deprecation 提示，依赖实际从既有 cache 取得并按 `Package.resolved` 固定。
 
-### 6.4 Intatis Xcode build 状态
+### 6.4 Egakium Xcode build 状态
 
 以下是**仓内 vendoring 后**当前已确认结果：
 
 | 项目 | 状态 |
 |---|---|
-| IntatisMac macOS Debug build | **PASS** |
-| IntatisMac macOS Release build | **PASS** |
-| IntatisiOS iOS Simulator Debug build | **PASS** |
-| IntatisiOS iOS Simulator Release build | **PASS** |
-| IntatisMac macOS Release unsigned Archive | **PASS** |
-| IntatisiOS generic iOS Device Release unsigned Archive | **PASS** |
+| EgakiumMac macOS Debug build | **PASS** |
+| EgakiumMac macOS Release build | **PASS** |
+| EgakiumiOS iOS Simulator Debug build | **PASS** |
+| EgakiumiOS iOS Simulator Release build | **PASS** |
+| EgakiumMac macOS Release unsigned Archive | **PASS** |
+| EgakiumiOS generic iOS Device Release unsigned Archive | **PASS** |
 | SwiftStreamingMarkdown iOS Simulator test target `build-for-testing` | **PASS（compile-only，未启动 Simulator/test host）** |
 
 上述产物都在事故后修复的当前 `Vendor/SwiftStreamingMarkdown` 源码上重建。构建只有仓库既有的弃用/未使用结果警告，没有新的 renderer 编译错误；构建通过不能覆盖第 8 节的 GUI 资源事故。
@@ -326,13 +326,13 @@ vendored package 使用独立 `/private/tmp` scratch/module/config/security path
 固定 fixture：
 
 ```text
-Packages/IntatisSharedUI/Tests/Fixtures/incident-1249-sanitized-v1.json
+Packages/EgakiumSharedUI/Tests/Fixtures/incident-1249-sanitized-v1.json
 17 messages
 1,249 cumulative deltas
 SHA-256 fb548849d0b708d31e8c6d055805f29f5c09ee4c8306bf9adc537a48e95707f1
 ```
 
-正式 host 通过 local package dependency 引入当前 `IntatisSharedUI`，在真实 SwiftUI `NSWindow` 中实例化生产 `IntatisMessageContentView`，用 Release 构建按全局原顺序 1 ms 投递 1,249 deltas，每轮完成后观察 60 秒。协议为每种模式 5 次 cold + 20 次 replay，并保存 machine-readable event/process evidence。
+正式 host 通过 local package dependency 引入当前 `EgakiumSharedUI`，在真实 SwiftUI `NSWindow` 中实例化生产 `EgakiumMessageContentView`，用 Release 构建按全局原顺序 1 ms 投递 1,249 deltas，每轮完成后观察 60 秒。协议为每种模式 5 次 cold + 20 次 replay，并保存 machine-readable event/process evidence。
 
 冻结 interaction 门：
 
@@ -354,7 +354,7 @@ Plain formal 5 cold + 20 replay 全部 exit 0、1,249 次 facade ingress、17/17
 | peak / residual RSS delta max | 7.0469 / 6.8750 MiB | 6.9844 / 3.6094 MiB |
 | peak / residual footprint delta max | 5.5000 / 5.2813 MiB | 5.4219 / 5.1407 MiB |
 
-证据：`/private/tmp/intatis-facade-perf-results-lifecycle-final-foreground-plain-v2`；`summary.json` SHA-256 `086897059393b43c43632fb5f4b6b3c145370db8f2a8129d54e4e5e91ab9a1ee`。
+证据：`/private/tmp/egakium-facade-perf-results-lifecycle-final-foreground-plain-v2`；`summary.json` SHA-256 `086897059393b43c43632fb5f4b6b3c145370db8f2a8129d54e4e5e91ab9a1ee`。
 
 ### 7.2 Eager `VStack` 反例：保留为 NO-GO
 
@@ -366,7 +366,7 @@ Plain formal 5 cold + 20 replay 全部 exit 0、1,249 次 facade ingress、17/17
 - 25/25 final raw inputs 仍 exact，所有 process exit 0；
 - 失败来自 eager foreground materialization/update shape，而不是 raw identity 错误或 >50 ms 单次门。
 
-证据：`/private/tmp/intatis-facade-perf-results-lifecycle-final-foreground-microsoft-v1`；`summary.json` SHA-256 `0f7e1c8413f51af2df1a72795be306f2803da4c8936e96c403f96534779ea8c8`。
+证据：`/private/tmp/egakium-facade-perf-results-lifecycle-final-foreground-microsoft-v1`；`summary.json` SHA-256 `0f7e1c8413f51af2df1a72795be306f2803da4c8936e96c403f96534779ea8c8`。
 
 结论：**eager `VStack` = NO-GO**。未来不得用它替换生产列表，也不得把其数据伪装成当前 production-shaped 结果。
 
@@ -391,7 +391,7 @@ production-shaped LazyVStack; eager VStack evidence retained separately as NO-GO
 | peak / residual footprint delta max | 11.5782 / 11.3907 MiB | 11.4063 / 9.2813 MiB |
 | absolute peak / residual footprint max | 29.8758 / 29.7508 MiB | 33.1728 / 32.4540 MiB |
 
-证据：`/private/tmp/intatis-facade-perf-results-lifecycle-final-foreground-lazy-microsoft-v1`；`summary.json` SHA-256 `9aac0e154b415a9d0497e5d2c5cfc397aff3433b38959a35f21dae8d6d6458f8`。
+证据：`/private/tmp/egakium-facade-perf-results-lifecycle-final-foreground-lazy-microsoft-v1`；`summary.json` SHA-256 `9aac0e154b415a9d0497e5d2c5cfc397aff3433b38959a35f21dae8d6d6458f8`。
 
 这组 Lazy 数据是当前产品形态的正式本机 interaction 证据。RSS/footprint 仍属于 observational：尚未为低端目标设备书面冻结统一内存门，不能把 interaction pass 夸大为全资源预算 pass。
 
@@ -410,7 +410,7 @@ production-shaped LazyVStack; eager VStack evidence retained separately as NO-GO
 
 此前旧 trace 中 17 条 `.task(id: ViewRevision)` / multiple-updates-per-frame 告警已经由 lifecycle gate 修正；post-fix `target.stdout` 不再出现这些 pattern。trace 仍采样到真实 `DocumentView`、font 与 TextKit/layout 工作，因此不是悄悄回退 plain path 后得到的“零告警”。
 
-证据：`/private/tmp/intatis-facade-perf-results-lifecycle-final-foreground-xctrace-microsoft-v1`；`metrics.jsonl` SHA-256 `382cfefa457f164756f21609c40925a1402871eb6a67c4cd436ae47583df3b6b`；`target.stdout` SHA-256 `2295ada9e44046aaf94f63b185d3c61c821a39212db39c439e7530f397b82a49`。
+证据：`/private/tmp/egakium-facade-perf-results-lifecycle-final-foreground-xctrace-microsoft-v1`；`metrics.jsonl` SHA-256 `382cfefa457f164756f21609c40925a1402871eb6a67c4cd436ae47583df3b6b`；`target.stdout` SHA-256 `2295ada9e44046aaf94f63b185d3c61c821a39212db39c439e7530f397b82a49`。
 
 xctrace 未发现 >250 ms hang 不是不存在任何 UI 风险的形式化证明；它只关闭本次固定 workload 下的已知高频 lifecycle warning 与 observable hang pattern。
 
@@ -418,12 +418,12 @@ xctrace 未发现 >250 ms hang 不是不存在任何 UI 风险的形式化证明
 
 **状态：FAIL / ABORTED；RELEASE NO-GO。**
 
-latest-build 验收期间错误地同时保留了三个 `Intatis Renderer Validation` 实例。用户提供的 Force Quit 截图中，主实例显示 **129.63 GB application memory**，其余两个实例约为 49.4 MB 与 32.6 MB。这是 macOS Force Quit 的应用内存读数，不能换算或宣称为精确 RSS、footprint 或 byte count；三实例并存本身也是验收操作错误。
+latest-build 验收期间错误地同时保留了三个 `Egakium Renderer Validation` 实例。用户提供的 Force Quit 截图中，主实例显示 **129.63 GB application memory**，其余两个实例约为 49.4 MB 与 32.6 MB。这是 macOS Force Quit 的应用内存读数，不能换算或宣称为精确 RSS、footprint 或 byte count；三实例并存本身也是验收操作错误。
 
 系统 CPU diagnostic：
 
 ```text
-Path: /Library/Logs/DiagnosticReports/IntatisRendererValidation_2026-07-18-182732_MacBook-Pro.cpu_resource.diag
+Path: /Library/Logs/DiagnosticReports/EgakiumRendererValidation_2026-07-18-182732_MacBook-Pro.cpu_resource.diag
 Incident: FA228932-2C40-4AC2-A0C2-62EF41342B4A
 Window: 160 s
 CPU used: 90 s (about 56%)
@@ -446,8 +446,8 @@ Sampled footprint: 109.16 MB -> 803.30 MB
 无界面防护设施现已完成，但没有据此启动应用：
 
 - `RendererFixtureView` 改为一次只 materialize 一个 minimal/table/code/stream/incident/full-static stage；1,249-delta incident replay 需固定 fixture SHA、17 messages / 1,249 deltas 与唯一 message IDs 全部匹配，并且只在用户点击后开始；
-- Release validation build 仅在 `INTATIS_RENDERER_VALIDATION` compilation condition 下编入该 fixture，正常 Release 不因启动参数意外进入验证 UI；
-- `scripts/RendererValidationWatchdog.swift` 只允许固定 Intatis bundle ID、固定 fixture SHA、二进制 fixture marker 和调用方显式提供的 executable SHA 全部匹配的 build；没有 `--user-approved-gui` 时在 spawn 前 fail closed；
+- Release validation build 仅在 `EGAKIUM_RENDERER_VALIDATION` compilation condition 下编入该 fixture，正常 Release 不因启动参数意外进入验证 UI；
+- `scripts/RendererValidationWatchdog.swift` 只允许固定 Egakium bundle ID、固定 fixture SHA、二进制 fixture marker 和调用方显式提供的 executable SHA 全部匹配的 build；没有 `--user-approved-gui` 时在 spawn 前 fail closed；
 - watchdog 使用单独 process group、100 ms RSS/phys-footprint/CPU 采样、rolling/absolute CPU、wall time、实例数硬阈值，以及 TERM→KILL 和两次空进程组确认；evidence 目录与文件为 owner-only；
 - 8 个无 GUI self-test 全部通过：clean exit、wall fuse、RSS fuse、rolling CPU fuse、process-group kill、unexpected exit、telemetry fail-closed 与 lock contention，每例 `cleanupVerifiedTwice=true`；watchdog 以 `-warnings-as-errors` 编译成功；
 - 当前 Release validation app 构建成功，executable SHA-256 为 `1fe134ee434c06aa9c570eddaa929377f6d8f7d9e90fb33fbdb141cbc2e4533f`；fixture SHA-256 为 `fb548849d0b708d31e8c6d055805f29f5c09ee4c8306bf9adc537a48e95707f1`。缺少授权的完整 run command 返回 64，未进入 app launch。
@@ -470,7 +470,7 @@ Sampled footprint: 109.16 MB -> 803.30 MB
 - 根 `NOTICE.md` 与三份 `ThirdPartyNotices` 在六份 app 中均存在且 SHA-256 与仓库一致；source hash 分别为 `2bbe5c4aa7d91f655fc1db45a1b3d2c74016256f33526430e7cc89174b80bb2a`、`50ae1858f8b5c8af5526c91d744fe9b68942cf6a0284e502f22252ba5f22071d`、`95685740cb553ff3df7791ec96235ad5969f9abf2654130639a57e19bf4124bc`、`846183f2e712ef1c2f0df113a0693b7b407ba08f720afeedb0f17eba4567fca7`；
 - 每份 SwiftStreamingMarkdown resource bundle 恰有 38 个文件：1 个 `Info.plist` 与 37 个 `Localizable.strings`；
 - 旧 `highlight.min.js`、a11y CSS、TTF/OTF/Roboto、Copilot 文件名扫描为 0；app executable 的 MarkdownUI、NetworkImage、iosMath、HighlightSwift、旧 JS/CSS、Roboto/Copilot、Shimmer、SnapshotTesting 禁止字符串扫描为 0；
-- iOS Debug、Release 与 Archive 的 `Settings.bundle/Root.plist` 均使用 key `intatis.messageRendering.mode.v1`，values `plainSafe` / `microsoft`，default `microsoft`。
+- iOS Debug、Release 与 Archive 的 `Settings.bundle/Root.plist` 均使用 key `egakium.messageRendering.mode.v1`，values `plainSafe` / `microsoft`，default `microsoft`。
 
 该静态 audit 只证明制品/声明边界，不证明第 8 节的运行态资源问题已经关闭。
 
@@ -498,10 +498,10 @@ Markdown 迁移当前主要涉及：
 - `ThirdPartyNotices/MarkdownRendering.md`；
 - `ThirdPartyNotices/MathRendering.md`；
 - `ThirdPartyNotices/SyntaxHighlighting.md`；
-- `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMessageContentView.swift`；
-- `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMessageRendererMode.swift`；
-- `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisLatestOnlyPermitScheduler.swift`；
-- `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMicrosoftMarkdownPipeline.swift`；
+- `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMessageContentView.swift`；
+- `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMessageRendererMode.swift`；
+- `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumLatestOnlyPermitScheduler.swift`；
+- `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMicrosoftMarkdownPipeline.swift`；
 - renderer tests、fixture、settings 与 notice surface；
 - `scripts/RendererValidationWatchdog.swift`；
 - `docs/CURRENT_STATE.md`、`PROJECT_MAP.md`、`ARCHITECTURE.md`、`DO_NOT_BREAK.md`、`TESTING.md`、`NEXT_TARGET.md`；
@@ -516,29 +516,29 @@ Markdown 迁移当前主要涉及：
 - iOS 仍是 chat 子集；vendored renderer 没有引入 shell、Git 或 local-agent workspace 能力。
 - SwiftStreamingMarkdown 不能访问 PermissionEngine、CapabilityLease、WorkspaceLease、PathConfinement、SecretScanner、Mediator、durable tool execution 或 EventLog 写入。
 - 本轮没有更改 EventLog schema、Envelope、`seq`、ArtifactStore 或 provider request wire。
-- Microsoft 原始代码继续按 MIT 与 NOTICE 归属；Intatis 维护的是派生快照，不宣称独立原创。
+- Microsoft 原始代码继续按 MIT 与 NOTICE 归属；Egakium 维护的是派生快照，不宣称独立原创。
 
 ## 13. VALIDATION_RESULT
 
 ### 13.1 已通过
 
-- 路径/Git root：均为 `/Users/vita/Vitemis/Intatis`。
+- 路径/Git root：均为 `/Users/vita/Vitemis/Egakium`。
 - vendor inventory：108 files，约 628 KiB；无 nested `.git`、`.build`、`.swiftpm`、Examples 或 probe executable。
 - manifest：1 library product、1 regular target、1 test target、0 executable target。
 - 事故后 SharedUI focused：`MessageRenderingTests` 21/21，0 failures。
 - 事故前完整 SwiftPM 基线：755 tests，14 skipped，0 failures，0 unexpected，exit 0；事故后全量尝试进入既有 Tools nested-Seatbelt/loopback failures 后无输出挂起并人工中止，不能冒充当前 full pass。
 - vendor macOS strict Debug：44/44，0 failures，exit 0。
 - vendor macOS strict Release：44/44，0 failures，exit 0。
-- IntatisMac macOS Debug build：PASS。
-- IntatisMac macOS Release build：PASS。
-- IntatisiOS Simulator Debug build：PASS。
-- IntatisiOS Simulator Release build：PASS。
-- IntatisMac macOS Release unsigned Archive：PASS。
-- IntatisiOS generic Device Release unsigned Archive：PASS。
+- EgakiumMac macOS Debug build：PASS。
+- EgakiumMac macOS Release build：PASS。
+- EgakiumiOS Simulator Debug build：PASS。
+- EgakiumiOS Simulator Release build：PASS。
+- EgakiumMac macOS Release unsigned Archive：PASS。
+- EgakiumiOS generic Device Release unsigned Archive：PASS。
 - vendor iOS Simulator test target `build-for-testing`：PASS；compile-only，未启动 Simulator/test host。
 - 六份 current app bundle/notice/settings audit：PASS。
 - renderer watchdog 无 GUI self-test：8/8 PASS，所有 case 均二次确认 cleanup；`-warnings-as-errors` 编译 PASS。
-- `INTATIS_RENDERER_VALIDATION` Release validation app：PASS；fixture marker 与 executable/fixture SHA 静态核对 PASS；未启动 app。
+- `EGAKIUM_RENDERER_VALIDATION` Release validation app：PASS；fixture marker 与 executable/fixture SHA 静态核对 PASS；未启动 app。
 - Plain formal：5 cold + 20 replay，25/25 exact，interaction failures 0。
 - production-shaped Lazy Microsoft formal：5 cold + 20 replay，25/25 exact，interaction failures 0。
 - post-fix xctrace：17/17 exact，>250 ms potential-hang rows 0，旧 SwiftUI warning pattern 0。
@@ -568,7 +568,7 @@ Markdown 迁移当前主要涉及：
 
 当前：完整派生包已在 `Vendor/SwiftStreamingMarkdown`，根 manifest 使用相对路径。Microsoft license、patch ledger 和测试都随根仓版本化；**不再需要创建单独远端 fork**。
 
-仍需做的是把当前工作树形成一个经过审计的 Intatis 根 commit/tag；这是 release identity 工作，不是新建 fork 的前置条件。
+仍需做的是把当前工作树形成一个经过审计的 Egakium 根 commit/tag；这是 release identity 工作，不是新建 fork 的前置条件。
 
 ### 14.2 仍存在的远端依赖
 
@@ -597,11 +597,11 @@ Markdown 迁移当前主要涉及：
 
 接下来不需要再写 Markdown renderer，也不需要创建单独远端 fork。当前 build/archive/bundle gate 已关闭，唯一安全的下一步是：
 
-1. 在用户明确同意重新启动 GUI 后，只启动一个最新 `Intatis Renderer Validation` 子进程；父 watchdog 必须同时限制 wall time、RSS/footprint、CPU 与实例数，越界立即终止并保存采样，不允许出现第二个残留实例；
+1. 在用户明确同意重新启动 GUI 后，只启动一个最新 `Egakium Renderer Validation` 子进程；父 watchdog 必须同时限制 wall time、RSS/footprint、CPU 与实例数，越界立即终止并保存采样，不允许出现第二个残留实例；
 2. 先做 10–20 秒 minimal paragraph/table/code fixture，再逐阶段增加 selection、滚动、stream replacement；每阶段确认进程退出和残留实例为零，不能直接重放长 session；
 3. 只有资源曲线稳定后，才用 Computer Use 补 latest-build Rich/Plain、历史 Chat/Code/Cowork、code copy、selection/keyboard/accessibility 与 iOS app-content；任何阶段增长失控都保持 `NO-GO`；
 4. 如果受控 rerun 仍增长，采集 malloc stack logging/heap graph 与 signpost 后再定位最终 retaining edge；在证据出现前不要继续猜 parser 或 framework leak；
-5. GUI gate 通过后，再将当前工作树形成可追溯的 Intatis 根 revision，并复核相对 vendor 解析；真实 iOS 设备仍按用户方向另行恢复；
+5. GUI gate 通过后，再将当前工作树形成可追溯的 Egakium 根 revision，并复核相对 vendor 解析；真实 iOS 设备仍按用户方向另行恢复；
 6. 对可通用的 equality/layout/feature-profile patch 向 Microsoft 上游建 issue/PR；官方 release 覆盖 ledger 删除条件后再切回 immutable tag。
 
-这些 `FAIL / OPEN` gate 关闭前，当前工作树可以继续开发和无界面验证，但不能标记为最终可分发 release。发生 rich renderer 事故时直接切 `plainSafe`；不要恢复旧 MarkdownUI/iosMath/highlight.js 栈，也不要在 Intatis 内补写另一套 Markdown parser/layout。
+这些 `FAIL / OPEN` gate 关闭前，当前工作树可以继续开发和无界面验证，但不能标记为最终可分发 release。发生 rich renderer 事故时直接切 `plainSafe`；不要恢复旧 MarkdownUI/iosMath/highlight.js 栈，也不要在 Egakium 内补写另一套 Markdown parser/layout。

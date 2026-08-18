@@ -1,13 +1,13 @@
 # XcodeGen spec — generates the Xcode project that builds the real .app bundles.
 #
 #   brew install xcodegen      # one-time
-#   xcodegen generate          # creates Intatis.xcodeproj
-#   open Intatis.xcodeproj     # pick the IntatisMac or IntatisiOS scheme, then Run
+#   xcodegen generate          # creates Egakium.xcodeproj
+#   open Egakium.xcodeproj     # pick the EgakiumMac or EgakiumiOS scheme, then Run
 #
 # The App targets link the Swift Package products in this repo. The iOS app links
 # ONLY the chat subset (no Tools / Permission / AgentKernel / Cowork).
 
-name: Intatis
+name: Egakium
 
 options:
   bundleIdPrefix: com.Vita0818
@@ -20,14 +20,14 @@ options:
   postGenCommand: "sh scripts/hide-xcode-package-schemes.sh"
 
 packages:
-  Intatis:
+  Egakium:
     path: .
 
 settings:
   base:
     SWIFT_VERSION: "5.9"
-    MARKETING_VERSION: "0.2"
-    CURRENT_PROJECT_VERSION: "49"
+    MARKETING_VERSION: "0.4"
+    CURRENT_PROJECT_VERSION: "50"
     CODE_SIGN_STYLE: Automatic
     GENERATE_INFOPLIST_FILE: "NO"
     # To run on a device or archive for distribution, set your team:
@@ -36,13 +36,13 @@ settings:
 targets:
 
   # ---- macOS DeveloperID app: Chat / Code / Cowork + stdio/HTTP MCP client ----
-  IntatisMac:
+  EgakiumMac:
     type: application
     platform: macOS
     sources:
-      - Apps/IntatisMac/Sources
-      - Apps/IntatisMac/Resources
-      - path: Intatis.icon
+      - Apps/EgakiumMac/Sources
+      - Apps/EgakiumMac/Resources
+      - path: Egakium.icon
         buildPhase: resources
       - path: Apps/SharedResources
         buildPhase: resources
@@ -53,64 +53,82 @@ targets:
         buildPhase: resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.Vita0818.IntatisMac
-        # PRODUCT_NAME feeds generated CFBundleName. Keep every internal
-        # artifact name stable while exposing the Ekagium product name in UI.
-        PRODUCT_NAME: Ekagium
+        PRODUCT_BUNDLE_IDENTIFIER: com.Vita0818.EgakiumMac
+        # The hard cutover uses Egakium for the visible product, target,
+        # module, executable, wrapper, and bundle identity.
+        PRODUCT_NAME: Egakium
         PRODUCT_MODULE_NAME: "$(TARGET_NAME)"
         EXECUTABLE_NAME: "$(TARGET_NAME)"
         WRAPPER_NAME: "$(TARGET_NAME).app"
         # Let Xcode synthesize Info.plist (injects CFBundleExecutable etc.).
         GENERATE_INFOPLIST_FILE: "YES"
-        INFOPLIST_KEY_CFBundleDisplayName: Ekagium
+        INFOPLIST_KEY_CFBundleDisplayName: Egakium
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
-        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Ekagium contributors. See NOTICE.md."
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Ekagium uses the microphone to turn voice into editable message drafts."
-        ASSETCATALOG_COMPILER_APPICON_NAME: Intatis
-        CODE_SIGN_ENTITLEMENTS: Apps/IntatisMac/IntatisMac.DeveloperID.entitlements
+        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Egakium contributors. See NOTICE.md."
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Egakium uses the microphone to turn voice into editable message drafts."
+        ASSETCATALOG_COMPILER_APPICON_NAME: Egakium
+        CODE_SIGN_ENTITLEMENTS: Apps/EgakiumMac/EgakiumMac.DeveloperID.entitlements
         ENABLE_HARDENED_RUNTIME: "YES"
         ENABLE_RESOURCE_ACCESS_AUDIO_INPUT: "YES"
-        # The separately declared IntatisMacAppStore target is the only
+        # The accepted Canvas renderer is the pinned official CEF macOS ARM64
+        # distribution. Missing CEF products are a build failure; there is no
+        # alternate renderer link path.
+        ARCHS: arm64
+        ONLY_ACTIVE_ARCH: "NO"
+        SWIFT_OBJC_BRIDGING_HEADER: Apps/EgakiumMac/CEF/EgakiumMac-Bridging-Header.h
+        ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+        OTHER_LDFLAGS: "$(inherited) -ObjC -force_load $(SRCROOT)/build/egakium-cef-runtime/libEgakiumCEFHost.a $(SRCROOT)/build/egakium-cef-runtime/libcef_dll_wrapper/libcef_dll_wrapper.a -lc++ -lpthread -framework AppKit -framework Cocoa -framework IOSurface"
+        # The separately declared EgakiumMacAppStore target is the only
         # App-Store profile; do not turn this stdio-capable target into one by
         # swapping entitlements.
     dependencies:
-      - package: Intatis
-        product: IntatisCore
-      - package: Intatis
-        product: IntatisProtocol
-      - package: Intatis
-        product: IntatisProviders
-      - package: Intatis
-        product: IntatisConversation
-      - package: Intatis
-        product: IntatisArtifacts
-      - package: Intatis
-        product: IntatisMultimodal
-      - package: Intatis
-        product: IntatisSharedUI
-      - package: Intatis
-        product: IntatisTools
-      - package: Intatis
-        product: IntatisKnowledge
-      - package: Intatis
-        product: IntatisPermission
-      - package: Intatis
-        product: IntatisAgentKernel
-      - package: Intatis
-        product: IntatisSkills
-      - package: Intatis
-        product: IntatisCowork
-      - package: Intatis
-        product: IntatisMCP
-      - package: Intatis
-        product: IntatisMCPStdio
+      - package: Egakium
+        product: EgakiumCore
+      - package: Egakium
+        product: EgakiumProtocol
+      - package: Egakium
+        product: EgakiumProviders
+      - package: Egakium
+        product: EgakiumConversation
+      - package: Egakium
+        product: EgakiumArtifacts
+      - package: Egakium
+        product: EgakiumMultimodal
+      - package: Egakium
+        product: EgakiumSharedUI
+      - package: Egakium
+        product: EgakiumTools
+      - package: Egakium
+        product: EgakiumKnowledge
+      - package: Egakium
+        product: EgakiumPermission
+      - package: Egakium
+        product: EgakiumAgentKernel
+      - package: Egakium
+        product: EgakiumSkills
+      - package: Egakium
+        product: EgakiumCowork
+      - package: Egakium
+        product: EgakiumMCP
+      - package: Egakium
+        product: EgakiumMCPStdio
+    preBuildScripts:
+      - name: Prepare Official CEF Runtime
+        script: |
+          "$SRCROOT/scripts/prepare-cef-runtime.sh" "$CONFIGURATION"
+        basedOnDependencyAnalysis: false
+    postBuildScripts:
+      - name: Embed Official CEF Runtime
+        script: |
+          "$SRCROOT/scripts/embed-cef-runtime.sh" "$TARGET_BUILD_DIR/$WRAPPER_NAME" "$CONFIGURATION"
+        basedOnDependencyAnalysis: false
 
   # ---- macOS App Store: full UI, remote MCP HTTP only, no stdio linkage ----
-  IntatisMacAppStore:
+  EgakiumMacAppStore:
     type: application
     platform: macOS
     sources:
-      - Apps/IntatisMac/Sources
+      - Apps/EgakiumMac/Sources
       - path: Apps/SharedResources
         buildPhase: resources
       - path: NOTICE.md
@@ -120,50 +138,50 @@ targets:
         buildPhase: resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.Vita0818.IntatisMac
-        PRODUCT_NAME: Intatis
+        PRODUCT_BUNDLE_IDENTIFIER: com.Vita0818.EgakiumMac
+        PRODUCT_NAME: Egakium
         GENERATE_INFOPLIST_FILE: "YES"
-        INFOPLIST_KEY_CFBundleDisplayName: Intatis
+        INFOPLIST_KEY_CFBundleDisplayName: Egakium
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
-        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Intatis contributors. See NOTICE.md."
-        CODE_SIGN_ENTITLEMENTS: Apps/IntatisMac/IntatisMac.AppStore.entitlements
-        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) INTATIS_MAC_APP_STORE"
+        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Egakium contributors. See NOTICE.md."
+        CODE_SIGN_ENTITLEMENTS: Apps/EgakiumMac/EgakiumMac.AppStore.entitlements
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) EGAKIUM_MAC_APP_STORE"
     dependencies:
-      - package: Intatis
-        product: IntatisCore
-      - package: Intatis
-        product: IntatisProtocol
-      - package: Intatis
-        product: IntatisProviders
-      - package: Intatis
-        product: IntatisConversation
-      - package: Intatis
-        product: IntatisArtifacts
-      - package: Intatis
-        product: IntatisMultimodal
-      - package: Intatis
-        product: IntatisSharedUI
-      - package: Intatis
-        product: IntatisTools
-      - package: Intatis
-        product: IntatisPermission
-      - package: Intatis
-        product: IntatisAgentKernel
-      - package: Intatis
-        product: IntatisSkills
-      - package: Intatis
-        product: IntatisCowork
-      - package: Intatis
-        product: IntatisMCP
+      - package: Egakium
+        product: EgakiumCore
+      - package: Egakium
+        product: EgakiumProtocol
+      - package: Egakium
+        product: EgakiumProviders
+      - package: Egakium
+        product: EgakiumConversation
+      - package: Egakium
+        product: EgakiumArtifacts
+      - package: Egakium
+        product: EgakiumMultimodal
+      - package: Egakium
+        product: EgakiumSharedUI
+      - package: Egakium
+        product: EgakiumTools
+      - package: Egakium
+        product: EgakiumPermission
+      - package: Egakium
+        product: EgakiumAgentKernel
+      - package: Egakium
+        product: EgakiumSkills
+      - package: Egakium
+        product: EgakiumCowork
+      - package: Egakium
+        product: EgakiumMCP
 
   # ---- iOS app: chat-only SUBSET (deliberately no workspace stack) ----
-  IntatisiOS:
+  EgakiumiOS:
     type: application
     platform: iOS
     sources:
-      - Apps/IntatisiOS/Sources
-      - Apps/IntatisiOS/Resources
-      - path: Intatis.icon
+      - Apps/EgakiumiOS/Sources
+      - Apps/EgakiumiOS/Resources
+      - path: Egakium.icon
         buildPhase: resources
       - path: Apps/SharedResources
         buildPhase: resources
@@ -174,41 +192,40 @@ targets:
         buildPhase: resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.Vita0818.Intatis
-        # Match the user-facing brand without renaming the target, module,
-        # executable, or generated IntatisiOS.app build artifact.
-        PRODUCT_NAME: Ekagium
+        PRODUCT_BUNDLE_IDENTIFIER: com.Vita0818.Egakium
+        # The iOS subset uses the same Egakium identity end to end.
+        PRODUCT_NAME: Egakium
         PRODUCT_MODULE_NAME: "$(TARGET_NAME)"
         EXECUTABLE_NAME: "$(TARGET_NAME)"
         WRAPPER_NAME: "$(TARGET_NAME).app"
         TARGETED_DEVICE_FAMILY: "1,2"
         # Let Xcode synthesize Info.plist (injects CFBundleExecutable etc.).
         GENERATE_INFOPLIST_FILE: "YES"
-        INFOPLIST_KEY_CFBundleDisplayName: Ekagium
+        INFOPLIST_KEY_CFBundleDisplayName: Egakium
         INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Ekagium uses the microphone for voice input transcription."
-        ASSETCATALOG_COMPILER_APPICON_NAME: Intatis
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Egakium uses the microphone for voice input transcription."
+        ASSETCATALOG_COMPILER_APPICON_NAME: Egakium
     dependencies:
-      - package: Intatis
-        product: IntatisCore
-      - package: Intatis
-        product: IntatisProtocol
-      - package: Intatis
-        product: IntatisProviders
-      - package: Intatis
-        product: IntatisConversation
-      - package: Intatis
-        product: IntatisArtifacts
-      - package: Intatis
-        product: IntatisMultimodal
-      - package: Intatis
-        product: IntatisSharedUI
+      - package: Egakium
+        product: EgakiumCore
+      - package: Egakium
+        product: EgakiumProtocol
+      - package: Egakium
+        product: EgakiumProviders
+      - package: Egakium
+        product: EgakiumConversation
+      - package: Egakium
+        product: EgakiumArtifacts
+      - package: Egakium
+        product: EgakiumMultimodal
+      - package: Egakium
+        product: EgakiumSharedUI
 
 schemes:
-  IntatisMac:
+  EgakiumMac:
     build:
       targets:
-        IntatisMac: all
+        EgakiumMac: all
     run:
       config: Debug
     management:
@@ -216,10 +233,10 @@ schemes:
       orderHint: 0
       isShown: true
 
-  IntatisMacAppStore:
+  EgakiumMacAppStore:
     build:
       targets:
-        IntatisMacAppStore: all
+        EgakiumMacAppStore: all
     run:
       config: Debug
     management:
@@ -227,10 +244,10 @@ schemes:
       orderHint: 1
       isShown: true
 
-  IntatisiOS:
+  EgakiumiOS:
     build:
       targets:
-        IntatisiOS: all
+        EgakiumiOS: all
     run:
       config: Debug
     management:

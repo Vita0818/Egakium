@@ -1,20 +1,20 @@
 # VERSIONING
 
 文档状态：当前版本规则
-最近核对：2026-08-16
-产品版本：`0.2`
-构建号：`49`
+最近核对：2026-08-18
+产品版本：`0.4`
+构建号：`50`
 
 ## 唯一事实源
 
-Ekagium 的产品版本由根目录 `project.yml` 的两项全局设置唯一决定；Xcode target 与工程技术
-identity 仍沿用 `Intatis`：
+Egakium 的产品版本由根目录 `project.yml` 的两项全局设置唯一决定；Xcode target 与工程技术
+identity 统一使用 `Egakium`：
 
 - `MARKETING_VERSION`：用户可见的产品版本；
 - `CURRENT_PROJECT_VERSION`：单调递增的构建号。
 
 XcodeGen 生成的工程、macOS/iOS App 的最终 `Info.plist`、诊断导出和发行文件名都必须
-从这两个值派生。`Apps/IntatisMac/Info.plist` 与 `Apps/IntatisiOS/Info.plist` 当前不是
+从这两个值派生。`Apps/EgakiumMac/Info.plist` 与 `Apps/EgakiumiOS/Info.plist` 当前不是
 XcodeGen shipping target 的输入，但作为仓库参考文件也必须保持相同值，避免搜索和人工
 检查得到冲突答案。
 
@@ -24,10 +24,11 @@ Git commit 标题中的 `v0.x` 只记录里程碑，不是版本事实源；仓�
 
 ## 当前基线
 
-当前工作树的产品基线为 `v0.2 (49)`。导入的 Intatis 工作树此前依次记录过 `0.32 (32)`、
-`0.36 (36)`、`0.38 (38)`、`0.40 (40)` 与 `0.48 (48)`；2026-08-16 按用户决定把 Ekagium
-marketing version 设为 `0.2`，同时把构建号从 48 单调推进到 49。marketing version 可以按新产品线
-重新编号，构建号则继续保持单调增加，两者不要求数值相等。
+当前工作树的产品基线为 `v0.4 (50)`。历史业务基线曾依次记录过 `0.32 (32)`、`0.36 (36)`、
+`0.38 (38)`、`0.40 (40)` 与 `0.48 (48)`；2026-08-16 按用户决定把新产品线 marketing version
+设为 `0.2`，同时把构建号从 48 单调推进到 49；2026-08-18 用户进一步把 marketing version
+推进到 `0.4`，构建号同步单调推进到 50。marketing version 可以按产品线重新编号，构建号继续
+保持单调增加，两者不要求数值相等。
 
 ## 更新步骤
 

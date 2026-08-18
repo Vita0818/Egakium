@@ -1,10 +1,10 @@
-# Intatis 模型驱动知识库工具接线与实施设计
+# Egakium 模型驱动知识库工具接线与实施设计
 
 > 报告时间：2026-08-10 16:57（Asia/Singapore）
 > 最近修订：2026-08-11（真实 Agent/PDF、质量集、macOS bookmark 恢复与终端隔离验收）
 > 报告状态：**PRIMARY PRODUCT COMPLETION CONTRACT / 功能性实现与真实端到端验收已完成；推荐 reranker 未证明质量 uplift**
 > 审计基线：Git `0f98fe9`（提交标题 `v0.45`）
-> 工作区：`/Users/vita/Vitemis/Intatis`
+> 工作区：`/Users/vita/Vitemis/Egakium`
 
 ## 0. 文档效力
 
@@ -33,7 +33,7 @@
 用户只需在 Code 或 Cowork 中自然地说，例如：
 
 > 阅读当前项目的产品资料，自己整理内容并建立知识库。知识库放到
-> `/Volumes/TeamKnowledge/intatis-product`，完成后用它回答权限架构的关键约束。
+> `/Volumes/TeamKnowledge/egakium-product`，完成后用它回答权限架构的关键约束。
 
 产品应自行完成：
 
@@ -90,10 +90,10 @@ Knowledge 能力不可用，并停止在网络或文件副作用之前。不得�
   非法字段；existing-store update 同时 CAS
   store/snapshot；每次成功 search 强制 compatible query embedding、authorized candidate filter 和
   `rerank_applied=true` semantic reranker。
-- Publication：shipping snapshot 位于 `.intatis-rag-snapshots/`；旧 `snapshots/` 只允许持有 writer
+- Publication：shipping snapshot 位于 `.egakium-rag-snapshots/`；旧 `snapshots/` 只允许持有 writer
   authority 的 build/update 在 store lock 内原子迁移。只读打开不创建 store 基础设施；pointer 或迁移
   在 rename 后无法证明目录 durability 时返回 non-retryable `commit_uncertain`，不得自动重试。
-- Anti-bypass：`.intatis-rag-store.json`、`.intatis-rag-snapshots`、`.intatis-rag-host` 是所有
+- Anti-bypass：`.egakium-rag-store.json`、`.egakium-rag-snapshots`、`.egakium-rag-host` 是所有
   WorkspaceLease/managed terminal 的强制 deny floor；普通 file/patch/Git/process/terminal 不能直接
   改写或删除已发布库，只有 Knowledge module 内部的最小 projection 可进入 writer/Validator 流程。
 - 产品：Mac Code、Cowork exact `@main`、CLI Code/Cowork 已接线；宿主在广告工具或显示
@@ -106,7 +106,7 @@ Knowledge 能力不可用，并停止在网络或文件副作用之前。不得�
   的整仓 `swift test` 已完成 Tools 与 Skills 后，在既有 SharedUI async scheduler 测试进程中 7 分钟
   0% CPU/无新输出，人工中断为 130，不能记为全量通过；本轮直接相关定向 suites 全绿。所有未显式
   开启的 real-provider/browser/Git/document/Keychain opt-in 继续按设计跳过。
-- live gate：`INTATIS_REAL_KNOWLEDGE_SMOKE` 使用 `google/gemini-embedding-2`（1536 维）与
+- live gate：`EGAKIUM_REAL_KNOWLEDGE_SMOKE` 使用 `google/gemini-embedding-2`（1536 维）与
   `cohere/rerank-4-pro` 通过，provider 报告 embedding input/total token 7、rerank search unit 1；
   8-query quality run 的 dense baseline 为 MRR/nDCG@5/Recall@5 = 1.000/1.000/1.000，configured
   reranker 为 1.000/0.990/1.000，usage 为 embedding 343 token、reranker 8 search units；无 uplift。
@@ -182,7 +182,7 @@ cross-encoder 或等价的 dedicated rerank API。当前
 }
 ```
 
-可以直接合入现有 Intatis JSON/JSONC 的完整 shape 如下；URL、模型 ID 和环境变量名均由用户替换，
+可以直接合入现有 Egakium JSON/JSONC 的完整 shape 如下；URL、模型 ID 和环境变量名均由用户替换，
 示例不提供内置账号或默认服务：
 
 ```json
@@ -202,7 +202,7 @@ cross-encoder 或等价的 dedicated rerank API。当前
       }
     },
     "knowledge": {
-      "npm": "intatis:siliconflow-v1",
+      "npm": "egakium:siliconflow-v1",
       "options": {
         "baseURL": "https://your-knowledge-provider.example/v1",
         "apiKey": "{env:KNOWLEDGE_API_KEY}"
@@ -214,8 +214,8 @@ cross-encoder 或等价的 dedicated rerank API。当前
 ```
 
 若使用 `enabled_providers`，必须同时包含两个 role 引用的 provider。上例的
-`intatis:siliconflow-v1` 显式选择 OpenAI-compatible embedding 与 SiliconFlow v1 rerank；Cohere v2
-reranker 应放在独立 `intatis:cohere-v2` provider 下。Knowledge-only provider 的普通 inference
+`egakium:siliconflow-v1` 显式选择 OpenAI-compatible embedding 与 SiliconFlow v1 rerank；Cohere v2
+reranker 应放在独立 `egakium:cohere-v2` provider 下。Knowledge-only provider 的普通 inference
 `models` 可以为空；使用没有 reviewed default dimension 的 embedding 模型时，必须在对应 model 的
 `options.dimensions` 显式给出正整数维度。
 
@@ -263,7 +263,7 @@ OpenRouter rerank 的顶层 `usage.search_units` 会作为 provider-reported bil
 - model-facing 工具 schema 不包含 provider、model、endpoint、credential 或 backend；
 - Knowledge-only provider 可以不进入普通推理模型菜单，其普通 inference `models` 可为空；
 - credential 继续经 Keychain/env/file/auth/config reference 懒加载；
-- 配置原始 JSON/JSONC 的保真、优先级和 discovery 沿用当前 Intatis 规则；
+- 配置原始 JSON/JSONC 的保真、优先级和 discovery 沿用当前 Egakium 规则；
 - canonical encoder/decode 合同只使用 snake_case；不为两个 Knowledge role 增加未测试的
   camelCase alias。
 
@@ -343,7 +343,7 @@ store_path
 6. 调用期间以 RAII lease 成对持有 security scope；
 7. 每次执行前重验 root identity，目录被替换、移动或撤权时 fail closed。
 
-这不依赖 Mac App Store App Sandbox，但仍属于 Intatis 自有 capability 和路径安全边界。
+这不依赖 Mac App Store App Sandbox，但仍属于 Egakium 自有 capability 和路径安全边界。
 
 ### 5.3 CLI 行为
 
@@ -372,8 +372,8 @@ no-follow、跨进程锁与 read-merge-atomic-write。bookmark bytes 不得进�
 
 ```json
 {
-  "draft_path": ".intatis/knowledge-drafts/product",
-  "store_path": "/Volumes/TeamKnowledge/intatis-product",
+  "draft_path": ".egakium/knowledge-drafts/product",
+  "store_path": "/Volumes/TeamKnowledge/egakium-product",
   "expected_store_id": "kb_...",
   "expected_snapshot_id": "snap_..."
 }
@@ -424,8 +424,8 @@ replayPolicy: requires_manual_reconciliation after uncertain commit
 
 ```json
 {
-  "store_path": "/Volumes/TeamKnowledge/intatis-product",
-  "query": "Intatis 的三层权限分别做什么？",
+  "store_path": "/Volumes/TeamKnowledge/egakium-product",
+  "query": "Egakium 的三层权限分别做什么？",
   "limit": 8
 }
 ```
@@ -534,7 +534,7 @@ Knowledge tools unavailable: configure embedding_model and reranker_model.
 - App/runtime manager：session stop 时 drain build/search/provider/bookmark scope；
 - Chat/iOS：不注入。
 
-保持 `IntatisKnowledge -> IntatisTools` 依赖方向，不把具体 Knowledge 工具塞回
+保持 `EgakiumKnowledge -> EgakiumTools` 依赖方向，不把具体 Knowledge 工具塞回
 `ToolRegistry.standard(...)`。
 
 ## 10. 实施顺序
@@ -673,9 +673,9 @@ Gate：一个 turn 可安全查询两个 store，每次结果 `rerank_applied=tr
 
 ```text
 阅读当前项目 docs/ 中与架构、权限和测试有关的资料，自己整理内容并建立知识库。
-知识库请放到 /Volumes/TeamKnowledge/intatis-product。
+知识库请放到 /Volumes/TeamKnowledge/egakium-product。
 如果该目录尚未授权，按正常权限流程请求精确目录权限，不要要求我把它移动到当前工作区。
-建库完成后，使用这个知识库回答：Intatis 的三层权限分别承担什么职责？
+建库完成后，使用这个知识库回答：Egakium 的三层权限分别承担什么职责？
 最终答案只引用本轮检索得到的证据。
 ```
 
@@ -685,7 +685,7 @@ embedding 和 configured semantic reranker；外部目录使用 exact `Knowledge
 ### 12.2 使用已有外部库
 
 ```text
-请使用 /Users/example/Knowledge/intatis-product 中已有的知识库回答：
+请使用 /Users/example/Knowledge/egakium-product 中已有的知识库回答：
 为什么 Permission Reviewer 不能作为普通 agent 接收 send/delegate/message？
 你自己判断并调用必要的知识库工具，不要让我先挂载。
 ```
@@ -705,7 +705,7 @@ Knowledge/Workspace authority。
 
 ## 13. 完成定义
 
-只有以下条件**全部满足**，才可以写“Intatis 已完成模型驱动知识库 RAG 能力”：
+只有以下条件**全部满足**，才可以写“Egakium 已完成模型驱动知识库 RAG 能力”：
 
 1. 高级配置正式支持并保真 `embedding_model`、`reranker_model`；
 2. 两条 route 均有 exact resolver、provider adapter、credential/permission/timeout/cancel 合同；
@@ -738,14 +738,14 @@ Knowledge/Workspace authority。
 | 17 | **已完成** | fixture 覆盖 external build/restore/search/deny；macOS NSOpenPanel 首次 exact authorization、session bookmark 落盘及 App 重启后无重复弹窗均实测通过 |
 | 19 | **已完成（无 uplift）** | local retrieval/grounding 与真实 8-query baseline/rerank 指标、token/search-unit usage 已分别报告；configured reranker 的 nDCG@5 为 0.990，低于 dense 1.000 |
 
-因此 §13 的 1–20 条在当前定义范围内已经闭环，可以声明“Intatis 已完成模型驱动知识库 RAG 功能”。
+因此 §13 的 1–20 条在当前定义范围内已经闭环，可以声明“Egakium 已完成模型驱动知识库 RAG 功能”。
 该声明不包含“推荐 reranker 已证明提高质量”、大 corpus 性能/费用 ceiling、所有平台矩阵或现实真值证明。
 
 以下任何单项都不能作为完成声明：
 
 - library 能编译；
 - 一批 core tests 通过；
-- App target 链接 `IntatisKnowledge`；
+- App target 链接 `EgakiumKnowledge`；
 - capability enum 有相关名字；
 - Apple NaturalLanguage 本地向量可运行；
 - cosine/RRF 排序能输出结果；
@@ -804,4 +804,4 @@ Knowledge/Workspace authority。
 
 > **只有当用户能用自然语言指定当前工作区内或外部的知识库目录，Agent 能自行阅读整理并建库，
 > build/query 真正使用配置的 embedding 模型，search 真正使用配置的语义 reranker，并且整条链经过
-> exact 路径授权、durable execution 和 citation 重验时，Intatis 才能宣称完成知识库 RAG。**
+> exact 路径授权、durable execution 和 citation 重验时，Egakium 才能宣称完成知识库 RAG。**

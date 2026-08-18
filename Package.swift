@@ -1,36 +1,36 @@
 // swift-tools-version:5.9
 import PackageDescription
 
-// Intatis root SwiftPM manifest. Product versioning is owned by project.yml;
+// Egakium root SwiftPM manifest. Product versioning is owned by project.yml;
 // package comments below that mention early v0.x milestones describe when a
 // subsystem was introduced, not the current product version. See
 // docs/VERSIONING.md.
 
 let package = Package(
-    name: "Intatis",
+    name: "Egakium",
     platforms: [
         .macOS("26.0"),
         .iOS("26.0"),
     ],
     products: [
-        .library(name: "IntatisCore", targets: ["IntatisCore"]),
-        .library(name: "IntatisProtocol", targets: ["IntatisProtocol"]),
-        .library(name: "IntatisProviders", targets: ["IntatisProviders"]),
-        .library(name: "IntatisArtifacts", targets: ["IntatisArtifacts"]),
-        .library(name: "IntatisConversation", targets: ["IntatisConversation"]),
-        .library(name: "IntatisTools", targets: ["IntatisTools"]),
-        .library(name: "IntatisKnowledge", targets: ["IntatisKnowledge"]),
-        .library(name: "IntatisSkills", targets: ["IntatisSkills"]),
-        .library(name: "IntatisPermission", targets: ["IntatisPermission"]),
-        .library(name: "IntatisMCP", targets: ["IntatisMCP"]),
-        .library(name: "IntatisMCPStdio", targets: ["IntatisMCPStdio"]),
-        .library(name: "IntatisAgentKernel", targets: ["IntatisAgentKernel"]),
-        .library(name: "IntatisCowork", targets: ["IntatisCowork"]),
-        .library(name: "IntatisMultimodal", targets: ["IntatisMultimodal"]),
-        .library(name: "IntatisSharedUI", targets: ["IntatisSharedUI"]),
-        // The CLI IS a SwiftPM executable (no Xcode needed): `swift run intatis chat`.
-        .executable(name: "intatis", targets: ["IntatisCLI"]),
-        // The GUI apps (IntatisMac, IntatisiOS) are Xcode App targets, not SPM
+        .library(name: "EgakiumCore", targets: ["EgakiumCore"]),
+        .library(name: "EgakiumProtocol", targets: ["EgakiumProtocol"]),
+        .library(name: "EgakiumProviders", targets: ["EgakiumProviders"]),
+        .library(name: "EgakiumArtifacts", targets: ["EgakiumArtifacts"]),
+        .library(name: "EgakiumConversation", targets: ["EgakiumConversation"]),
+        .library(name: "EgakiumTools", targets: ["EgakiumTools"]),
+        .library(name: "EgakiumKnowledge", targets: ["EgakiumKnowledge"]),
+        .library(name: "EgakiumSkills", targets: ["EgakiumSkills"]),
+        .library(name: "EgakiumPermission", targets: ["EgakiumPermission"]),
+        .library(name: "EgakiumMCP", targets: ["EgakiumMCP"]),
+        .library(name: "EgakiumMCPStdio", targets: ["EgakiumMCPStdio"]),
+        .library(name: "EgakiumAgentKernel", targets: ["EgakiumAgentKernel"]),
+        .library(name: "EgakiumCowork", targets: ["EgakiumCowork"]),
+        .library(name: "EgakiumMultimodal", targets: ["EgakiumMultimodal"]),
+        .library(name: "EgakiumSharedUI", targets: ["EgakiumSharedUI"]),
+        // The CLI IS a SwiftPM executable (no Xcode needed): `swift run egakium chat`.
+        .executable(name: "egakium", targets: ["EgakiumCLI"]),
+        // The GUI apps (EgakiumMac, EgakiumiOS) are Xcode App targets, not SPM
         // products — SwiftPM cannot build a .app bundle, and iOS apps cannot be
         // built from SPM at all. See project.yml (XcodeGen) + README.
     ],
@@ -60,64 +60,64 @@ let package = Package(
     targets: [
         // MARK: Library targets (module == target)
         .target(
-            name: "IntatisCore",
-            path: "Packages/IntatisCore/Sources"
+            name: "EgakiumCore",
+            path: "Packages/EgakiumCore/Sources"
         ),
         .target(
-            name: "IntatisProtocol",
-            dependencies: ["IntatisCore"],
-            path: "Packages/IntatisProtocol/Sources"
+            name: "EgakiumProtocol",
+            dependencies: ["EgakiumCore"],
+            path: "Packages/EgakiumProtocol/Sources"
         ),
         .target(
-            name: "IntatisProviders",
+            name: "EgakiumProviders",
             dependencies: [
-                "IntatisCore", "IntatisProtocol",
+                "EgakiumCore", "EgakiumProtocol",
                 .product(
                     name: "Crypto",
                     package: "swift-crypto",
                     condition: .when(platforms: [.linux])
                 ),
             ],
-            path: "Packages/IntatisProviders/Sources"
+            path: "Packages/EgakiumProviders/Sources"
         ),
         .target(
-            name: "IntatisArtifacts",
-            dependencies: ["IntatisCore", "IntatisProtocol"],
-            path: "Packages/IntatisArtifacts/Sources"
+            name: "EgakiumArtifacts",
+            dependencies: ["EgakiumCore", "EgakiumProtocol"],
+            path: "Packages/EgakiumArtifacts/Sources"
         ),
         .target(
-            name: "IntatisConversation",
+            name: "EgakiumConversation",
             // ChatLoop drives a ChatProvider, so Conversation depends on Providers
             // (still tool-free — see ARCHITECTURE.md §3.4 / §4: iOS links this, not the kernel).
-            dependencies: ["IntatisCore", "IntatisProtocol", "IntatisProviders", "IntatisArtifacts"],
-            path: "Packages/IntatisConversation/Sources"
+            dependencies: ["EgakiumCore", "EgakiumProtocol", "EgakiumProviders", "EgakiumArtifacts"],
+            path: "Packages/EgakiumConversation/Sources"
         ),
         // v0.2 — Code: tools, deterministic permission gate, single-agent kernel.
         .target(
-            name: "IntatisPTYLauncher",
-            path: "Packages/IntatisPTYLauncher",
+            name: "EgakiumPTYLauncher",
+            path: "Packages/EgakiumPTYLauncher",
             publicHeadersPath: "include"
         ),
         .target(
-            name: "IntatisTools",
+            name: "EgakiumTools",
             dependencies: [
-                "IntatisCore", "IntatisProtocol", "IntatisPTYLauncher",
+                "EgakiumCore", "EgakiumProtocol", "EgakiumPTYLauncher",
                 .product(
                     name: "Crypto",
                     package: "swift-crypto",
                     condition: .when(platforms: [.linux])
                 ),
             ],
-            path: "Packages/IntatisTools/Sources"
+            path: "Packages/EgakiumTools/Sources"
         ),
         // OKF/Profile snapshots, deterministic validation, local embedding,
         // derived indexes, and the snapshot-bound search_knowledge tool.
         // No iOS app target links this product.
         .target(
-            name: "IntatisKnowledge",
+            name: "EgakiumKnowledge",
             dependencies: [
-                "IntatisCore", "IntatisProtocol", "IntatisTools",
-                "IntatisProviders", "IntatisPermission",
+                "EgakiumCore", "EgakiumProtocol", "EgakiumTools",
+                "EgakiumProviders", "EgakiumPermission",
                 .product(name: "Yams", package: "Yams"),
                 .product(
                     name: "Crypto",
@@ -125,7 +125,7 @@ let package = Package(
                     condition: .when(platforms: [.linux])
                 ),
             ],
-            path: "Packages/IntatisKnowledge",
+            path: "Packages/EgakiumKnowledge",
             exclude: ["Tests"],
             sources: ["Sources"],
             resources: [
@@ -133,12 +133,12 @@ let package = Package(
             ]
         ),
         .target(
-            name: "IntatisSkills",
+            name: "EgakiumSkills",
             dependencies: [
-                "IntatisCore", "IntatisProtocol", "IntatisTools",
-                "IntatisPermission",
+                "EgakiumCore", "EgakiumProtocol", "EgakiumTools",
+                "EgakiumPermission",
             ],
-            path: "Packages/IntatisSkills",
+            path: "Packages/EgakiumSkills",
             exclude: ["Tests"],
             sources: ["Sources"],
             resources: [
@@ -146,17 +146,17 @@ let package = Package(
             ]
         ),
         .target(
-            name: "IntatisPermission",
+            name: "EgakiumPermission",
             // Providers added in v0.3 for the model-backed reviewer (layer B).
-            dependencies: ["IntatisCore", "IntatisProtocol", "IntatisProviders"],
-            path: "Packages/IntatisPermission/Sources"
+            dependencies: ["EgakiumCore", "EgakiumProtocol", "EgakiumProviders"],
+            path: "Packages/EgakiumPermission/Sources"
         ),
         // Production remote MCP HTTP/OAuth requests use libcurl's
         // CURLOPT_RESOLVE socket binding on macOS and Linux. The iOS product
-        // does not link IntatisMCP.
+        // does not link EgakiumMCP.
         .target(
-            name: "IntatisCurlTransport",
-            path: "Packages/IntatisCurlTransport",
+            name: "EgakiumCurlTransport",
+            path: "Packages/EgakiumCurlTransport",
             publicHeadersPath: "include",
             linkerSettings: [
                 .linkedLibrary("curl"),
@@ -169,11 +169,11 @@ let package = Package(
         // app target; those layers inject event/artifact/inference services
         // through narrow interfaces.
         .target(
-            name: "IntatisMCP",
+            name: "EgakiumMCP",
             dependencies: [
-                "IntatisCore", "IntatisProtocol", "IntatisTools",
+                "EgakiumCore", "EgakiumProtocol", "EgakiumTools",
                 .target(
-                    name: "IntatisCurlTransport",
+                    name: "EgakiumCurlTransport",
                     condition: .when(platforms: [.macOS, .linux])
                 ),
                 .product(name: "MCP", package: "MCPClientSDK"),
@@ -183,23 +183,23 @@ let package = Package(
                     condition: .when(platforms: [.linux])
                 ),
             ],
-            path: "Packages/IntatisMCP/Sources"
+            path: "Packages/EgakiumMCP/Sources"
         ),
         // Linux-only kernel execution guard support for local MCP stdio.
         // The C shim is inert on Apple platforms; keeping it separate avoids
         // placing fork/ptrace/seccomp code in the portable client core.
         .target(
-            name: "IntatisMCPStdioGuard",
-            path: "Packages/IntatisMCPStdio/ExecutionGuard",
+            name: "EgakiumMCPStdioGuard",
+            path: "Packages/EgakiumMCPStdio/ExecutionGuard",
             publicHeadersPath: "include"
         ),
         // Local stdio process ownership is a separate linkage boundary so the
         // App Store target can remain remote-HTTP-only.
         .target(
-            name: "IntatisMCPStdio",
+            name: "EgakiumMCPStdio",
             dependencies: [
-                "IntatisMCP", "IntatisMCPStdioGuard",
-                "IntatisCore", "IntatisProtocol", "IntatisTools",
+                "EgakiumMCP", "EgakiumMCPStdioGuard",
+                "EgakiumCore", "EgakiumProtocol", "EgakiumTools",
                 .product(name: "MCP", package: "MCPClientSDK"),
                 .product(
                     name: "Crypto",
@@ -207,145 +207,145 @@ let package = Package(
                     condition: .when(platforms: [.linux])
                 ),
             ],
-            path: "Packages/IntatisMCPStdio/Sources"
+            path: "Packages/EgakiumMCPStdio/Sources"
         ),
         .target(
-            name: "IntatisAgentKernel",
+            name: "EgakiumAgentKernel",
             dependencies: [
-                "IntatisCore", "IntatisProtocol", "IntatisProviders",
-                "IntatisTools", "IntatisPermission", "IntatisConversation",
-                "IntatisArtifacts", "IntatisMCP", "IntatisSkills",
+                "EgakiumCore", "EgakiumProtocol", "EgakiumProviders",
+                "EgakiumTools", "EgakiumPermission", "EgakiumConversation",
+                "EgakiumArtifacts", "EgakiumMCP", "EgakiumSkills",
                 .product(
                     name: "Crypto",
                     package: "swift-crypto",
                     condition: .when(platforms: [.linux])
                 ),
             ],
-            path: "Packages/IntatisAgentKernel/Sources"
+            path: "Packages/EgakiumAgentKernel/Sources"
         ),
         // v0.3 — Cowork: multi-agent orchestration over a mediated message bus.
         .target(
-            name: "IntatisCowork",
+            name: "EgakiumCowork",
             dependencies: [
-                "IntatisCore", "IntatisProtocol", "IntatisProviders", "IntatisTools",
-                "IntatisPermission", "IntatisConversation", "IntatisAgentKernel",
-                "IntatisSkills",
+                "EgakiumCore", "EgakiumProtocol", "EgakiumProviders", "EgakiumTools",
+                "EgakiumPermission", "EgakiumConversation", "EgakiumAgentKernel",
+                "EgakiumSkills",
             ],
-            path: "Packages/IntatisCowork/Sources"
+            path: "Packages/EgakiumCowork/Sources"
         ),
         // v0.4 — Multimodal: image/video generation + transcription → artifacts.
         .target(
-            name: "IntatisMultimodal",
+            name: "EgakiumMultimodal",
             dependencies: [
-                "IntatisCore", "IntatisProtocol", "IntatisProviders",
-                "IntatisArtifacts", "IntatisConversation",
+                "EgakiumCore", "EgakiumProtocol", "EgakiumProviders",
+                "EgakiumArtifacts", "EgakiumConversation",
             ],
-            path: "Packages/IntatisMultimodal/Sources"
+            path: "Packages/EgakiumMultimodal/Sources"
         ),
         .target(
-            name: "IntatisSharedUI",
+            name: "EgakiumSharedUI",
             // Providers is needed because ChatViewModel drives ProviderRegistry.
             dependencies: [
-                "IntatisCore", "IntatisProtocol", "IntatisProviders",
-                "IntatisConversation", "IntatisArtifacts",
+                "EgakiumCore", "EgakiumProtocol", "EgakiumProviders",
+                "EgakiumConversation", "EgakiumArtifacts",
                 .product(
                     name: "SwiftStreamingMarkdown",
                     package: "SwiftStreamingMarkdown",
                     condition: .when(platforms: [.macOS, .iOS])
                 ),
             ],
-            path: "Packages/IntatisSharedUI/Sources"
+            path: "Packages/EgakiumSharedUI/Sources"
         ),
-        // v0.6 — CLI: Swift-native `intatis` command (chat + code agent), talks to
+        // v0.6 — CLI: Swift-native `egakium` command (chat + code agent), talks to
         // any OpenAI-compatible endpoint via env vars.
         .executableTarget(
-            name: "IntatisCLI",
+            name: "EgakiumCLI",
             dependencies: [
-                "IntatisCore", "IntatisProtocol", "IntatisProviders", "IntatisConversation",
-                "IntatisArtifacts", "IntatisTools", "IntatisPermission", "IntatisAgentKernel", "IntatisCowork",
-                "IntatisMCP", "IntatisMCPStdio", "IntatisSkills", "IntatisKnowledge",
+                "EgakiumCore", "EgakiumProtocol", "EgakiumProviders", "EgakiumConversation",
+                "EgakiumArtifacts", "EgakiumTools", "EgakiumPermission", "EgakiumAgentKernel", "EgakiumCowork",
+                "EgakiumMCP", "EgakiumMCPStdio", "EgakiumSkills", "EgakiumKnowledge",
                 .product(
                     name: "Crypto",
                     package: "swift-crypto",
                     condition: .when(platforms: [.linux])
                 ),
             ],
-            path: "Apps/intatis-cli/Sources"
+            path: "Apps/egakium-cli/Sources"
         ),
         // Development-only executable exercised by the pinned official MCP
         // client conformance runner. It is not a shipped product and contains
         // no MCP server implementation or server-facing API.
         .executableTarget(
-            name: "IntatisMCPConformanceClient",
+            name: "EgakiumMCPConformanceClient",
             dependencies: [
-                "IntatisMCP", "IntatisCore", "IntatisProtocol",
+                "EgakiumMCP", "EgakiumCore", "EgakiumProtocol",
                 .product(name: "MCP", package: "MCPClientSDK"),
             ],
-            path: "Packages/IntatisMCPConformanceClient/Sources"
+            path: "Packages/EgakiumMCPConformanceClient/Sources"
         ),
-        // GUI app targets (IntatisMac macOS app, IntatisiOS iOS app) are defined in
+        // GUI app targets (EgakiumMac macOS app, EgakiumiOS iOS app) are defined in
         // the Xcode project generated from project.yml — they link these library
         // products. The iOS app intentionally links only the subset.
 
         // MARK: Test targets (none depend on app targets; SharedUI tests run headlessly on macOS)
         .testTarget(
-            name: "IntatisCoreTests",
-            dependencies: ["IntatisCore"],
-            path: "Packages/IntatisCore/Tests"
+            name: "EgakiumCoreTests",
+            dependencies: ["EgakiumCore"],
+            path: "Packages/EgakiumCore/Tests"
         ),
         .testTarget(
-            name: "IntatisProtocolTests",
-            dependencies: ["IntatisProtocol", "IntatisCore"],
-            path: "Packages/IntatisProtocol/Tests"
+            name: "EgakiumProtocolTests",
+            dependencies: ["EgakiumProtocol", "EgakiumCore"],
+            path: "Packages/EgakiumProtocol/Tests"
         ),
         .testTarget(
-            name: "IntatisProvidersTests",
-            dependencies: ["IntatisProviders", "IntatisCore", "IntatisProtocol"],
-            path: "Packages/IntatisProviders/Tests"
+            name: "EgakiumProvidersTests",
+            dependencies: ["EgakiumProviders", "EgakiumCore", "EgakiumProtocol"],
+            path: "Packages/EgakiumProviders/Tests"
         ),
         .testTarget(
-            name: "IntatisArtifactsTests",
-            dependencies: ["IntatisArtifacts", "IntatisCore"],
-            path: "Packages/IntatisArtifacts/Tests"
+            name: "EgakiumArtifactsTests",
+            dependencies: ["EgakiumArtifacts", "EgakiumCore"],
+            path: "Packages/EgakiumArtifacts/Tests"
         ),
         .testTarget(
-            name: "IntatisConversationTests",
-            dependencies: ["IntatisConversation", "IntatisCore", "IntatisProtocol", "IntatisProviders"],
-            path: "Packages/IntatisConversation/Tests"
+            name: "EgakiumConversationTests",
+            dependencies: ["EgakiumConversation", "EgakiumCore", "EgakiumProtocol", "EgakiumProviders"],
+            path: "Packages/EgakiumConversation/Tests"
         ),
         .testTarget(
-            name: "IntatisToolsTests",
-            dependencies: ["IntatisTools", "IntatisCore"],
-            path: "Packages/IntatisTools/Tests"
+            name: "EgakiumToolsTests",
+            dependencies: ["EgakiumTools", "EgakiumCore"],
+            path: "Packages/EgakiumTools/Tests"
         ),
         .testTarget(
-            name: "IntatisKnowledgeTests",
+            name: "EgakiumKnowledgeTests",
             dependencies: [
-                "IntatisKnowledge", "IntatisCore", "IntatisProtocol",
-                "IntatisTools",
+                "EgakiumKnowledge", "EgakiumCore", "EgakiumProtocol",
+                "EgakiumTools",
             ],
-            path: "Packages/IntatisKnowledge/Tests",
+            path: "Packages/EgakiumKnowledge/Tests",
             resources: [
                 .copy("Fixtures"),
             ]
         ),
         .testTarget(
-            name: "IntatisSkillsTests",
+            name: "EgakiumSkillsTests",
             dependencies: [
-                "IntatisSkills", "IntatisCore", "IntatisProtocol", "IntatisTools",
+                "EgakiumSkills", "EgakiumCore", "EgakiumProtocol", "EgakiumTools",
             ],
-            path: "Packages/IntatisSkills/Tests"
+            path: "Packages/EgakiumSkills/Tests"
         ),
         .testTarget(
-            name: "IntatisPermissionTests",
-            dependencies: ["IntatisPermission", "IntatisCore", "IntatisProtocol", "IntatisProviders"],
-            path: "Packages/IntatisPermission/Tests"
+            name: "EgakiumPermissionTests",
+            dependencies: ["EgakiumPermission", "EgakiumCore", "EgakiumProtocol", "EgakiumProviders"],
+            path: "Packages/EgakiumPermission/Tests"
         ),
         .testTarget(
-            name: "IntatisMCPTests",
+            name: "EgakiumMCPTests",
             dependencies: [
-                "IntatisMCP", "IntatisMCPStdio", "IntatisCore",
-                "IntatisProtocol", "IntatisTools",
+                "EgakiumMCP", "EgakiumMCPStdio", "EgakiumCore",
+                "EgakiumProtocol", "EgakiumTools",
                 .product(name: "MCP", package: "MCPClientSDK"),
                 .product(
                     name: "Crypto",
@@ -353,55 +353,55 @@ let package = Package(
                     condition: .when(platforms: [.linux])
                 ),
             ],
-            path: "Packages/IntatisMCP/Tests"
+            path: "Packages/EgakiumMCP/Tests"
         ),
         .testTarget(
-            name: "IntatisCLITests",
+            name: "EgakiumCLITests",
             dependencies: [
-                "IntatisCLI", "IntatisAgentKernel",
-                "IntatisConversation", "IntatisCore",
-                "IntatisMCP", "IntatisProtocol",
+                "EgakiumCLI", "EgakiumAgentKernel",
+                "EgakiumConversation", "EgakiumCore",
+                "EgakiumMCP", "EgakiumProtocol",
             ],
-            path: "Apps/intatis-cli/Tests",
+            path: "Apps/egakium-cli/Tests",
             resources: [
                 .copy("Fixtures"),
             ]
         ),
         .testTarget(
-            name: "IntatisAgentKernelTests",
+            name: "EgakiumAgentKernelTests",
             dependencies: [
-                "IntatisAgentKernel", "IntatisCore", "IntatisProtocol", "IntatisProviders",
-                "IntatisTools", "IntatisPermission", "IntatisConversation",
-                "IntatisArtifacts", "IntatisMCP", "IntatisSkills", "IntatisKnowledge",
+                "EgakiumAgentKernel", "EgakiumCore", "EgakiumProtocol", "EgakiumProviders",
+                "EgakiumTools", "EgakiumPermission", "EgakiumConversation",
+                "EgakiumArtifacts", "EgakiumMCP", "EgakiumSkills", "EgakiumKnowledge",
                 .product(
                     name: "Crypto",
                     package: "swift-crypto",
                     condition: .when(platforms: [.linux])
                 ),
             ],
-            path: "Packages/IntatisAgentKernel/Tests"
+            path: "Packages/EgakiumAgentKernel/Tests"
         ),
         .testTarget(
-            name: "IntatisCoworkTests",
+            name: "EgakiumCoworkTests",
             dependencies: [
-                "IntatisCowork", "IntatisCore", "IntatisProtocol", "IntatisProviders",
-                "IntatisTools", "IntatisPermission", "IntatisConversation", "IntatisAgentKernel",
-                "IntatisSkills",
+                "EgakiumCowork", "EgakiumCore", "EgakiumProtocol", "EgakiumProviders",
+                "EgakiumTools", "EgakiumPermission", "EgakiumConversation", "EgakiumAgentKernel",
+                "EgakiumSkills",
             ],
-            path: "Packages/IntatisCowork/Tests"
+            path: "Packages/EgakiumCowork/Tests"
         ),
         .testTarget(
-            name: "IntatisMultimodalTests",
+            name: "EgakiumMultimodalTests",
             dependencies: [
-                "IntatisMultimodal", "IntatisCore", "IntatisProtocol", "IntatisProviders",
-                "IntatisArtifacts", "IntatisConversation",
+                "EgakiumMultimodal", "EgakiumCore", "EgakiumProtocol", "EgakiumProviders",
+                "EgakiumArtifacts", "EgakiumConversation",
             ],
-            path: "Packages/IntatisMultimodal/Tests"
+            path: "Packages/EgakiumMultimodal/Tests"
         ),
         .testTarget(
-            name: "IntatisSharedUITests",
-            dependencies: ["IntatisSharedUI"],
-            path: "Packages/IntatisSharedUI/Tests",
+            name: "EgakiumSharedUITests",
+            dependencies: ["EgakiumSharedUI"],
+            path: "Packages/EgakiumSharedUI/Tests",
             resources: [
                 .copy("Fixtures"),
             ]

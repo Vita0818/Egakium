@@ -1,4 +1,4 @@
-# Intatis Cowork 同 Session Per-Agent Inference Profile 调研报告
+# Egakium Cowork 同 Session Per-Agent Inference Profile 调研报告
 
 ## MODEL_CHECK_RESULT
 
@@ -6,8 +6,8 @@
 
 ## PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 两者一致，符合预期仓库根目录。
 - 报告创建前 `git status --short` 为空，没有需要避让的用户既有工作区改动。
 
@@ -20,7 +20,7 @@
 
 本轮修正后的结论是：
 
-> Intatis 要建设的不是“同一 session 内不同 agent 使用不同 model ID”，而是“同一持久 Cowork session 内，每个 agent 固定绑定一个可版本化、可恢复、可审计、受权限约束的完整推理请求配置与路由”。
+> Egakium 要建设的不是“同一 session 内不同 agent 使用不同 model ID”，而是“同一持久 Cowork session 内，每个 agent 固定绑定一个可版本化、可恢复、可审计、受权限约束的完整推理请求配置与路由”。
 
 这个配置至少需要同时区分：
 
@@ -39,15 +39,15 @@
 2. **产品层只有部分或接近先例。** OpenCode 最接近；Codex、Claude Code、Roo Code、Cline、Aider 各自覆盖了一部分。
 3. **没有在本轮检查的公开一手资料中找到端到端完整先例。** 尚未找到一个成熟产品同时实现：用户可见的持久 agent roster、每 agent 完整请求 profile、多 endpoint/wire、精确恢复、权限/数据出境审查、配置版本冻结和无秘密审计。
 
-所以这不是没有技术先例的功能，但 Intatis 要产品化的完整契约仍然跨得较大。准确的创新边界不是“第一个多模型多 agent”，而是：
+所以这不是没有技术先例的功能，但 Egakium 要产品化的完整契约仍然跨得较大。准确的创新边界不是“第一个多模型多 agent”，而是：
 
 > 把框架级的 per-agent model client/configuration，升级为本地持久 session 中的一等身份、路由、权限和恢复对象。
 
 ## 2. 问题定义与比较口径
 
-### 2.1 Intatis 所说的“同一 session”
+### 2.1 Egakium 所说的“同一 session”
 
-Intatis 的 Cowork session 具有比多数上游示例更强的语义：
+Egakium 的 Cowork session 具有比多数上游示例更强的语义：
 
 - 一个持久 `SessionID`；
 - 一个 append-only EventLog，负责审计与恢复；
@@ -131,7 +131,7 @@ OpenAI 的 hosted Responses multi-agent 文档明确说明：root agent 和 host
 
 这意味着不能笼统地说“OpenAI multi-agent 已经支持每 agent 独立模型”。必须区分：
 
-- **hosted multi-agent**：共享请求 model/tools，不满足 Intatis；
+- **hosted multi-agent**：共享请求 model/tools，不满足 Egakium；
 - **client-side Agents SDK**：每 Agent 可有完整 Model/client/settings，满足运行时差异化。
 
 ### 4.2 OpenAI Agents SDK：最强的完整运行时先例
@@ -173,7 +173,7 @@ SDK 的 RunState 测试还直接构造了两个绑定不同 FakeModel 和 settin
 
 来源：[ModelSettings](https://github.com/openai/openai-agents-python/blob/697a46c4baa268d78d31c44244144967e57786b9/src/agents/model_settings.py#L86-L200)。
 
-但它有两个对 Intatis 很重要的限制。
+但它有两个对 Egakium 很重要的限制。
 
 第一，run-level override 可以压过 agent：
 
@@ -189,7 +189,7 @@ run-level 非空 `model_settings` 也会覆盖 agent 对应字段。
 - [turn preparation](https://github.com/openai/openai-agents-python/blob/697a46c4baa268d78d31c44244144967e57786b9/src/agents/run_internal/turn_preparation.py#L134-L167)
 - [RunConfig](https://github.com/openai/openai-agents-python/blob/697a46c4baa268d78d31c44244144967e57786b9/src/agents/run_config.py#L211-L226)
 
-Intatis 不应让普通 session-wide UI selection 或 registry refresh 拥有这种无声覆盖权。
+Egakium 不应让普通 session-wide UI selection 或 registry refresh 拥有这种无声覆盖权。
 
 第二，Session/RunState 没有持久化完整 agent 配置。Agents SDK 支持多个 agent 使用同一 Session 历史，但 RunState 序列化当前 agent 时主要保存 name/identity；恢复时调用方必须重新提供完整 initial Agent graph，再从中解析引用。
 
@@ -232,7 +232,7 @@ AutoGen 的 `AssistantAgent` 持有完整 `ChatCompletionClient`，不是只保�
 
 来源：[BaseGroupChat state](https://github.com/microsoft/autogen/blob/027ecf0a379bcc1d09956d46d12d44a3ad9cee14/python/packages/autogen-agentchat/src/autogen_agentchat/teams/_group_chat/_base_group_chat.py)。
 
-结论：证明 per-agent full client/config 可组合，未解决 Intatis 所需的 revision-stable recovery。
+结论：证明 per-agent full client/config 可组合，未解决 Egakium 所需的 revision-stable recovery。
 
 ### 4.4 Google ADK：每 LlmAgent 独立 model/config，Session 不保存 agent graph
 
@@ -366,7 +366,7 @@ Cline SDK 的完整 CoreModelConfig 可包含 provider、model、base URL、head
 - [configured-agent config](https://github.com/cline/cline/blob/a41129a5dbda29c4e6b84968a2a798039ba32ab3/sdk/packages/core/src/extensions/tools/team/configured-agent-config.ts)
 - [父配置继承后局部覆盖](https://github.com/cline/cline/blob/a41129a5dbda29c4e6b84968a2a798039ba32ab3/sdk/packages/core/src/extensions/tools/team/configured-agent-tool.ts)
 
-这种“复制父配置，再只换 provider/model”的方式，如果下游没有再次按新 provider 归一化或过滤，可能把旧 provider 的 headers/options 带入新请求；本报告没有验证 Cline 最终 wire body 是否会清洗这些字段。Intatis 不应采用这种依赖下游补救的继承方式。
+这种“复制父配置，再只换 provider/model”的方式，如果下游没有再次按新 provider 归一化或过滤，可能把旧 provider 的 headers/options 带入新请求；本报告没有验证 Cline 最终 wire body 是否会清洗这些字段。Egakium 不应采用这种依赖下游补救的继承方式。
 
 #### Aider
 
@@ -416,15 +416,15 @@ OpenAI Agents SDK、AutoGen 和 Google ADK 已充分证明这些机制可行。
 
 因此，报告只能说“本轮没有找到”，不能绝对断言市场上不存在未公开实现或未纳入样本的产品。
 
-## 6. Intatis 当前实现审计
+## 6. Egakium 当前实现审计
 
 ### 6.1 已有基础
 
-Intatis 已经具备构建该能力的大部分底层零件。
+Egakium 已经具备构建该能力的大部分底层零件。
 
 #### ProviderEndpoint 已表达连接和 model-scoped options
 
-`Packages/IntatisProviders/Sources/Endpoints.swift:77` 的 `ProviderEndpoint` 包含：
+`Packages/EgakiumProviders/Sources/Endpoints.swift:77` 的 `ProviderEndpoint` 包含：
 
 - id；
 - baseURL；
@@ -435,13 +435,13 @@ Intatis 已经具备构建该能力的大部分底层零件。
 
 `ModelRef` 在同文件约第 179 行包含 endpoint + model。
 
-这说明 Intatis 已能在 provider catalog 中定义多个 endpoint，并按 model 携带任意 JSON 请求参数。
+这说明 Egakium 已能在 provider catalog 中定义多个 endpoint，并按 model 携带任意 JSON 请求参数。
 
 但目前 shipped `WireFormat` 只有 `.openai`。Anthropic/Gemini 仍只是扩展点，不能把“配置可解析”写成“线协议已支持”。
 
 #### ProviderRegistry 能按 ModelRef 解析 provider
 
-`Packages/IntatisProviders/Sources/ProviderRegistry.swift:96` 的 `agentProvider(for:)` 已能：
+`Packages/EgakiumProviders/Sources/ProviderRegistry.swift:96` 的 `agentProvider(for:)` 已能：
 
 - 根据 endpoint ID 查 ProviderEndpoint；
 - 懒加载 secret；
@@ -451,7 +451,7 @@ Intatis 已经具备构建该能力的大部分底层零件。
 
 #### AgentRequest 已表达一部分生成配置
 
-`Packages/IntatisProviders/Sources/ToolCalling.swift:65` 的 `AgentRequest` 包含：
+`Packages/EgakiumProviders/Sources/ToolCalling.swift:65` 的 `AgentRequest` 包含：
 
 - model；
 - messages；
@@ -463,15 +463,15 @@ Intatis 已经具备构建该能力的大部分底层零件。
 
 #### wire adapter 已有明确合并边界
 
-`Packages/IntatisProviders/Sources/OpenAIToolCalling.swift:304` 从 endpoint model options 开始构造请求，再写入 runtime model/messages/tools/stream/reasoning/max tokens。
+`Packages/EgakiumProviders/Sources/OpenAIToolCalling.swift:304` 从 endpoint model options 开始构造请求，再写入 runtime model/messages/tools/stream/reasoning/max tokens。
 
-`Packages/IntatisProviders/Sources/OpenAIWireProvider.swift:180` 会先移除 options 中的 model/messages/tools/stream，避免任意配置覆盖结构字段。
+`Packages/EgakiumProviders/Sources/OpenAIWireProvider.swift:180` 会先移除 options 中的 model/messages/tools/stream，避免任意配置覆盖结构字段。
 
 这套机制适合继续保留，只需把“从哪个 endpoint 和哪组 effective options 开始”改为 agent-owned profile resolution。
 
 #### AppConfig 已支持 opaque options 和 variants
 
-`Apps/IntatisMac/Sources/AppConfig.swift:648` 当前会：
+`Apps/EgakiumMac/Sources/AppConfig.swift:648` 当前会：
 
 1. 读取 model base requestOptions；
 2. 只对全局当前 selected provider/model；
@@ -483,14 +483,14 @@ Intatis 已经具备构建该能力的大部分底层零件。
 
 | 缺口 | 当前证据 | 后果 |
 |---|---|---|
-| Agent 只拥有 ModelID | `Packages/IntatisAgentKernel/Sources/Agent.swift:8-23` | 无法表达 endpoint、variant、reasoning revision |
-| Cowork provider resolver 忽略 agent | `Apps/IntatisMac/Sources/CoworkViewModel.swift:211-215` | 所有 agent 实际使用同一 session default provider |
-| 显式 reasoning 是 Orchestrator/AgentRuntime 级 | `Packages/IntatisCowork/Sources/Orchestrator.swift:301`、`:4601-4605` | 同一 endpoint/model 的不同 agent 无法拥有独立 thinking 设置；session-wide 显式 reasoningEffort 还会统一覆盖对应请求字段 |
-| variant 依赖全局 selected catalog | `Apps/IntatisMac/Sources/AppConfig.swift:648-658` | 同模型不同 variant 无法同时存在 |
-| registry 可热更新给 active VM | `Apps/IntatisMac/Sources/CoworkViewModel.swift:198-199`、`Apps/IntatisMac/Sources/IntatisMacRootView.swift:129-131` | 全局配置变化可能改变未来请求 |
-| attach/spawn 事件主要记录 model | `Packages/IntatisProtocol/Sources/CoworkEvents.swift:75-158` | replay 无法恢复 endpoint/options revision |
-| spawn 工具只接受可选 raw model | `Packages/IntatisCowork/Sources/CoordinatorTools.swift:15-31` | 模型身份过窄，也没有 route/egress identity |
-| TurnStats 只记录 model 字符串 | `Packages/IntatisProtocol/Sources/TurnStats.swift:15` | 成本、延迟和失败无法按 profile/connection 归因 |
+| Agent 只拥有 ModelID | `Packages/EgakiumAgentKernel/Sources/Agent.swift:8-23` | 无法表达 endpoint、variant、reasoning revision |
+| Cowork provider resolver 忽略 agent | `Apps/EgakiumMac/Sources/CoworkViewModel.swift:211-215` | 所有 agent 实际使用同一 session default provider |
+| 显式 reasoning 是 Orchestrator/AgentRuntime 级 | `Packages/EgakiumCowork/Sources/Orchestrator.swift:301`、`:4601-4605` | 同一 endpoint/model 的不同 agent 无法拥有独立 thinking 设置；session-wide 显式 reasoningEffort 还会统一覆盖对应请求字段 |
+| variant 依赖全局 selected catalog | `Apps/EgakiumMac/Sources/AppConfig.swift:648-658` | 同模型不同 variant 无法同时存在 |
+| registry 可热更新给 active VM | `Apps/EgakiumMac/Sources/CoworkViewModel.swift:198-199`、`Apps/EgakiumMac/Sources/EgakiumMacRootView.swift:129-131` | 全局配置变化可能改变未来请求 |
+| attach/spawn 事件主要记录 model | `Packages/EgakiumProtocol/Sources/CoworkEvents.swift:75-158` | replay 无法恢复 endpoint/options revision |
+| spawn 工具只接受可选 raw model | `Packages/EgakiumCowork/Sources/CoordinatorTools.swift:15-31` | 模型身份过窄，也没有 route/egress identity |
+| TurnStats 只记录 model 字符串 | `Packages/EgakiumProtocol/Sources/TurnStats.swift:15` | 成本、延迟和失败无法按 profile/connection 归因 |
 
 ### 6.3 当前 `profile` 已经有其他明确含义
 
@@ -512,7 +512,7 @@ Intatis 已经具备构建该能力的大部分底层零件。
 
 ### 6.4 当前 session 设置不是 agent-local 设置
 
-`Apps/IntatisMac/Sources/CoworkProjectSettings.swift:27-49` 当前保存：
+`Apps/EgakiumMac/Sources/CoworkProjectSettings.swift:27-49` 当前保存：
 
 - session default provider ID；
 - session default model ID；
@@ -573,9 +573,9 @@ Provider vendor、请求连接和实际物理上游不是同一概念。
 - 同一 endpoint 可以通过不同 body/query 参数选择路由；
 - 相同 model ID 可以出现在两个不同连接。
 
-因此建议使用 `InferenceConnectionID` 表示 Intatis 可以保证的请求目的地和协议边界，不使用含义模糊的 provider vendor 名称作为安全身份。
+因此建议使用 `InferenceConnectionID` 表示 Egakium 可以保证的请求目的地和协议边界，不使用含义模糊的 provider vendor 名称作为安全身份。
 
-如果 gateway 内部重新路由，Intatis通常只能证明：
+如果 gateway 内部重新路由，Egakium通常只能证明：
 
 - 请求发往哪个 connection/endpoint；
 - 发送了哪些安全可记录的 routing options；
@@ -809,8 +809,8 @@ credential value 与 route identity 应分开：
 
 - 至少按 `(agentID, inferenceProfileRevision)` 隔离；
 - endpoint/API surface/profile 改变时必须失效；
-- 不得把一个 Intatis session 共用一个上游 handle；
-- Intatis EventLog/ContextProjection 继续是 canonical history。
+- 不得把一个 Egakium session 共用一个上游 handle；
+- Egakium EventLog/ContextProjection 继续是 canonical history。
 
 ## 10. 权限、数据出境与秘密边界
 
@@ -1070,7 +1070,7 @@ ControlPlaneInferenceBindings
 
 ## PROJECT_AUDIT_SUMMARY
 
-本轮核对的 Intatis 关键链路包括：
+本轮核对的 Egakium 关键链路包括：
 
 - provider/endpoint/model/options：`Endpoints.swift`、`ProviderRegistry.swift`、`ToolCalling.swift`、`OpenAIWireProvider.swift`、`OpenAIToolCalling.swift`；
 - agent request：`Agent.swift`、`AgentRuntime.swift`、`AgentLoop.swift`；
@@ -1080,7 +1080,7 @@ ControlPlaneInferenceBindings
 
 当前事实是：
 
-- Intatis 已能在 catalog 中配置多个 endpoint、model options 和 variants；
+- Egakium 已能在 catalog 中配置多个 endpoint、model options 和 variants；
 - ProviderRegistry 已能按 ModelRef 解析 endpoint；
 - production Cowork 尚未按 agent 解析完整 inference binding；
 - reasoning/variant/provider resolution 仍存在 session/global coupling；

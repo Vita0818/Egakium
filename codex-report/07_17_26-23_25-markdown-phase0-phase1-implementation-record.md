@@ -1,4 +1,4 @@
-# Intatis Markdown Phase 0 / Phase 1 实施与验收记录
+# Egakium Markdown Phase 0 / Phase 1 实施与验收记录
 
 日期：2026-07-17  
 依据：`codex-report/07_17_26-22_16-swift-streaming-markdown-adoption-migration-report.md`
@@ -8,7 +8,7 @@
 本轮完成了报告建议的生产安全部分，并保持了报告的 cutover 门槛：
 
 - **Phase 0 已落地。** 无 renderer 偏好时默认 `plainSafe`；macOS/iOS 应用内设置、macOS 启动 override 与 iOS 系统 Settings 预启动入口共用同一稳定 key。plain-safe 不进入现役 Markdown/cache/parser/highlight/math/image 路径。
-- **Phase 1 已建立 exact-version 隔离 harness 并完成真实事故形态功能 smoke。** Microsoft `SwiftStreamingMarkdown` 没有加入 Intatis 主依赖图。
+- **Phase 1 已建立 exact-version 隔离 harness 并完成真实事故形态功能 smoke。** Microsoft `SwiftStreamingMarkdown` 没有加入 Egakium 主依赖图。
 - **Microsoft v0.6.0 生产接入仍为 NO-GO。** 本轮没有修改根 `Package.swift` / `Package.resolved`，没有删除旧 renderer，也没有把候选写入 NOTICE。
 - **旧栈完全替换尚未开始。** 这是有意遵守报告 Phase 2–5 的门，而不是遗漏实施。
 
@@ -19,16 +19,16 @@
 新增 renderer-neutral 类型：
 
 ```text
-IntatisMessageRendererMode.rich
-IntatisMessageRendererMode.plainSafe
+EgakiumMessageRendererMode.rich
+EgakiumMessageRendererMode.plainSafe
 ```
 
 固定配置面：
 
 ```text
-UserDefaults key: intatis.messageRendering.mode.v1
-macOS force plain: -IntatisPlainSafeMessages
-macOS force rich:  -IntatisRichTextMessages
+UserDefaults key: egakium.messageRendering.mode.v1
+macOS force plain: -EgakiumPlainSafeMessages
+macOS force rich:  -EgakiumRichTextMessages
 ```
 
 解析规则：
@@ -40,11 +40,11 @@ macOS force rich:  -IntatisRichTextMessages
 
 ### 冷启动与流式安全
 
-`IntatisMessageContentView` 在构造初始 document state 前读取 mode。plain-safe：
+`EgakiumMessageContentView` 在构造初始 document state 前读取 mode。plain-safe：
 
 - 不查询完成文档 rich cache；
 - 不构造 `Markdown` view；
-- task 直接发布 `.plain(displayText)`，不调用 `IntatisRenderDocumentWorker`；
+- task 直接发布 `.plain(displayText)`，不调用 `EgakiumRenderDocumentWorker`；
 - 保留原始 Unicode、空格与 CR/LF/CRLF bytes；
 - 只有空且未完成的消息显示 `…`。
 
@@ -57,7 +57,7 @@ rich 流式路径也新增 stale projection 门：已解析 document 的 `rawTex
 - macOS Settings：Rich Markdown / Plain text safe mode；立即持久化。
 - iOS 应用内 Settings：同一 key；文案明确 renderer 选择立即保存，Cancel 只丢弃 provider 临时编辑。
 - macOS override 生效时 Picker 仍可保存下次无 override 启动的模式，避免去掉救援参数后再次冻结。
-- iOS `Settings.bundle`：系统 Settings 中可在启动 Intatis 之前选择 `plainSafe` / `rich`，默认 `plainSafe`；rich 标记为 experimental。
+- iOS `Settings.bundle`：系统 Settings 中可在启动 Egakium 之前选择 `plainSafe` / `rich`，默认 `plainSafe`；rich 标记为 experimental。
 - DEBUG `RendererFixtureView`：显示当前 mode 与 launch override。
 
 ## Phase 1：Microsoft exact v0.6 隔离证据
@@ -94,16 +94,16 @@ three table-heavy messages: 517 / 207 / 235 deltas
 
 尚未完成报告规定的 Phase 1 性能协议：优化 Release 候选的 5 次 cold open、20 次 replay、每次 60 秒稳态、main-thread stall、parse p95/max、RSS、CPU settle、`1 running + 1 pending` backlog、基准 Mac 与低端真实 iPhone/iPad。因此隔离功能 smoke 不是 production performance GO。
 
-## 真实 Intatis Computer Use 验收
+## 真实 Egakium Computer Use 验收
 
 目标为当前问题 Cowork session。为避免在报告中泄露对话内容，只记录事件数量、hash、事件类型与 UI 状态。
 
 ### 救援与重启
 
-- `-IntatisPlainSafeMessages` 启动后，问题 session 约 1.8 秒进入可交互 Cowork shell；未见 loading indicator。
+- `-EgakiumPlainSafeMessages` 启动后，问题 session 约 1.8 秒进入可交互 Cowork shell；未见 loading indicator。
 - 向下滚动响应约 1.3 秒，向上滚动约 1.4 秒。
 - override 生效时，Settings 明确显示当前强制 Plain Safe；Picker 可先写 rich、再持久恢复 plain，而当前运行始终保持强制 plain。
-- 退出后确认 `com.Vita0818.IntatisMac` preference 为 `plainSafe`。
+- 退出后确认 `com.Vita0818.EgakiumMac` preference 为 `plainSafe`。
 - 不带任何 renderer 参数重启，问题 session 约 1.7 秒重新进入可交互状态；滚动约 1.2 秒。
 - 重启后的 Settings 显示 Plain selected、Rich unselected，且没有 launch override 文案。
 
@@ -143,10 +143,10 @@ renderer 切换本身没有写 EventLog。第二次 app 启动又追加了正常
 ```text
 MessageRendererModeTests: 10/10 passed
 MessageRenderingTests:     29/29 passed
-IntatisSharedUI target:    build passed
-IntatisMac Debug:          build passed
-IntatisiOS Simulator:      build passed (arm64 + x86_64)
-Settings.bundle plist:     lint OK and present in IntatisiOS.app
+EgakiumSharedUI target:    build passed
+EgakiumMac Debug:          build passed
+EgakiumiOS Simulator:      build passed (arm64 + x86_64)
+Settings.bundle plist:     lint OK and present in EgakiumiOS.app
 git diff --check:          see final workspace validation
 ```
 
@@ -166,7 +166,7 @@ git diff --check:          see final workspace validation
 8. Swift 6 language mode / complete strict-concurrency 构建失败；
 9. runtime feature flag 不能从 target graph 移除 HighlightSwift、iosMath/font 或品牌资源。
 
-因此本轮不更新 `NOTICE.md` / `ThirdPartyNotices`：没有新的 production dependency 或资源进入 Intatis。若后续采用 official tag 或极薄 fork，必须在同一个原子 cutover 中更新依赖、资源、NOTICE、测试和 docs。
+因此本轮不更新 `NOTICE.md` / `ThirdPartyNotices`：没有新的 production dependency 或资源进入 Egakium。若后续采用 official tag 或极薄 fork，必须在同一个原子 cutover 中更新依赖、资源、NOTICE、测试和 docs。
 
 ## 下一步
 

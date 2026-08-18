@@ -1,20 +1,20 @@
-# Codex Skill 生命周期与替换式历史压缩源码审计及 Intatis 对齐报告
+# Codex Skill 生命周期与替换式历史压缩源码审计及 Egakium 对齐报告
 
 ## 报告元数据
 
 - 审计日期：2026-07-28
-- Intatis 仓库：`/Users/vita/Vitemis/Intatis`
+- Egakium 仓库：`/Users/vita/Vitemis/Egakium`
 - 上游仓库：OpenAI Codex
 - 固定上游 commit：`bd2de422aa287b97b06ca6425a10935bcf1b3731`
 - 上游 commit 时间：2026-07-27T14:31:50Z
 - 上游 commit 标题：`Parse Claude and Cursor session records separately (#35623)`
-- 审计性质：公开源码行为审计、Intatis 差异分析、实施合同
+- 审计性质：公开源码行为审计、Egakium 差异分析、实施合同
 - 本报告不复制 Codex 的 compact prompt、Skill prompt、测试快照或大段源码；只记录公开行为、类型边界、控制流和验证要求。
 
 ## 执行结论
 
 六项批评中，真正应优先处理的不是“为 Skill 另造一套激活状态机”，而是审计
-开始时 Intatis 尚未完成的、Codex 式通用模型历史压缩与可恢复替换检查点。本轮
+开始时 Egakium 尚未完成的、Codex 式通用模型历史压缩与可恢复替换检查点。本轮
 已按后文边界完成稳定 Code conversation 与 Cowork `@main` 的本地 lifecycle
 主链，也完成了 catalog 自适应预算/计量和严格 MCP dependency preflight 的
 P1 受限范围；
@@ -35,12 +35,12 @@ Codex 没有为 Skill 建立 Session 级 activated ledger、TTL、卸载表或�
 
 因此，本轮建议排序为：
 
-- **P0（本轮已完成主链）**：实现 Intatis 的通用、durable、可恢复
+- **P0（本轮已完成主链）**：实现 Egakium 的通用、durable、可恢复
   replacement-history compaction，覆盖稳定 Code conversation 与 Cowork
   `@main`，并让长工具循环具备 mid-turn 压缩能力。
 - **P1（本轮已完成受限范围）**：补齐 Codex Core 的 Skill catalog 自适应
   预算、omission/truncation warning/metrics，以及 MCP-only Skill dependency
-  metadata 与 request-owned 缺失检测。Intatis 没有实现 Codex 的
+  metadata 与 request-owned 缺失检测。Egakium 没有实现 Codex 的
   Install/Continue-anyway、OAuth、外部配置写入和 runtime refresh。
 - **P2**：基于实测再决定是否引入动态 Skill 召回；同名冲突 UX、文件变化通知、
   任意二进制/语言包 preflight 和脚本路径便利化也属于 P2。
@@ -78,26 +78,26 @@ Codex 没有为 Skill 建立 Session 级 activated ledger、TTL、卸载表或�
 - `codex-rs/core/tests/suite/compact.rs`
 - `codex-rs/core/tests/suite/compact_remote.rs`
 
-### 1.2 Intatis 对照范围
+### 1.2 Egakium 对照范围
 
 本报告同时核对了当前工作树中的：
 
-- `Packages/IntatisSkills/Sources/SkillCatalogService.swift`
-- `Packages/IntatisSkills/Sources/SkillTypes.swift`
-- `Packages/IntatisSkills/Sources/SkillMCPDependencies.swift`
-- `Packages/IntatisSkills/Sources/SkillTools.swift`
-- `Packages/IntatisTools/Sources/MCPToolAvailabilitySnapshot.swift`
-- `Packages/IntatisAgentKernel/Sources/AgentRequestToolSnapshot.swift`
-- `Packages/IntatisMCP/Sources/MCPConnection.swift`
-- `Packages/IntatisMCP/Sources/MCPProductionRuntime.swift`
-- `Packages/IntatisSkills/Tests/IntatisSkillsTests.swift`
-- `Packages/IntatisAgentKernel/Sources/ContextBuilder.swift`
-- `Packages/IntatisAgentKernel/Sources/AgentModelHistoryProjector.swift`
-- `Packages/IntatisAgentKernel/Tests/SkillDurableActivationTests.swift`
-- `Packages/IntatisCowork/Sources/Orchestrator.swift`
-- `Apps/IntatisMac/Sources/CodeViewModel.swift`
-- `Apps/IntatisMac/Sources/CoworkViewModel.swift`
-- `Apps/intatis-cli/Sources/Interactive.swift`
+- `Packages/EgakiumSkills/Sources/SkillCatalogService.swift`
+- `Packages/EgakiumSkills/Sources/SkillTypes.swift`
+- `Packages/EgakiumSkills/Sources/SkillMCPDependencies.swift`
+- `Packages/EgakiumSkills/Sources/SkillTools.swift`
+- `Packages/EgakiumTools/Sources/MCPToolAvailabilitySnapshot.swift`
+- `Packages/EgakiumAgentKernel/Sources/AgentRequestToolSnapshot.swift`
+- `Packages/EgakiumMCP/Sources/MCPConnection.swift`
+- `Packages/EgakiumMCP/Sources/MCPProductionRuntime.swift`
+- `Packages/EgakiumSkills/Tests/EgakiumSkillsTests.swift`
+- `Packages/EgakiumAgentKernel/Sources/ContextBuilder.swift`
+- `Packages/EgakiumAgentKernel/Sources/AgentModelHistoryProjector.swift`
+- `Packages/EgakiumAgentKernel/Tests/SkillDurableActivationTests.swift`
+- `Packages/EgakiumCowork/Sources/Orchestrator.swift`
+- `Apps/EgakiumMac/Sources/CodeViewModel.swift`
+- `Apps/EgakiumMac/Sources/CoworkViewModel.swift`
+- `Apps/egakium-cli/Sources/Interactive.swift`
 - `docs/ARCHITECTURE.md`
 - `docs/CURRENT_STATE.md`
 - `docs/NEXT_TARGET.md`
@@ -112,16 +112,16 @@ Codex 没有为 Skill 建立 Session 级 activated ledger、TTL、卸载表或�
 **判定：核心风险属实，但“只是直接拼接并粗暴截字符串”的描述不准确。优先级：
 P1；向量检索本身为 P2。**
 
-审计开始时 Intatis 默认使用固定 8,000 字符；本轮已经按 pinned Codex Core
+审计开始时 Egakium 默认使用固定 8,000 字符；本轮已经按 pinned Codex Core
 预算语义改为使用 exact profile 的 canonical primary `contextWindowTokens`：
 Codex `context_window` 优先，缺失时可由显式 OpenCode `limit.context` 补位。
 primary 存在时 metadata budget 为
 `max(1, floor(primary × 2%))` approximate tokens；两者缺失或非法时才回退
 8,000 字符。不会按 model slug、`max_context_window` 或 compaction 窗口猜
 预算，也没有把 ext/skills 路径的额外 4k cap 混进 Core 合同。`limit.context`
-补位是 Intatis compatibility adapter，不应误写成 Codex Core 原始字段行为。
+补位是 Egakium compatibility adapter，不应误写成 Codex Core 原始字段行为。
 
-Intatis renderer 继续按 `system → admin → workspace → user → additional`
+Egakium renderer 继续按 `system → admin → workspace → user → additional`
 排序，计算最小条目成本，再公平分配 description；若最小条目也放不下，会省略
 后排 Skill 并输出 omitted marker。预算只计算 metadata 行，不包含 trusted
 developer envelope。冻结 snapshot 还保存 count-only
@@ -148,7 +148,7 @@ Codex 固定 commit 中已有 BM25、character n-gram、RRF 等便宜 selector�
 不改变真正 model-visible catalog。因此不能把它描述成已经上线的语义召回，
 也不能据此宣称官方已经解决大规模 Skill 可见性。
 
-Intatis 本轮已完成第一阶段预算、marker、warning 与 count-only metrics。下一
+Egakium 本轮已完成第一阶段预算、marker、warning 与 count-only metrics。下一
 合理顺序是先增加受控 host consumer，收集真实 catalog 条目数、omitted 数、
 实际激活命中和误召回数据；有实证后再做 bounded lexical/hybrid Top-K。没有
 规模与质量数据时不应直接引入 embedding/vector 基础设施。
@@ -158,7 +158,7 @@ Intatis 本轮已完成第一阶段预算、marker、warning 与 count-only metr
 **判定：属实；审计开始时是 P0。本轮已完成下述 bounded main path，不再列为
 未实施的当前最高优先级。**
 
-Intatis 的显式唯一 `$name` 正文是当前请求的 contextual fragment；模型主动调用
+Egakium 的显式唯一 `$name` 正文是当前请求的 contextual fragment；模型主动调用
 `activate_skill` 时，完整冻结正文通过普通 tool result 返回。对 Cowork 稳定
 `@main` 而言，有界 tool output 会进入 durable `model_history_item`，后续
 provider dispatch 可从 EventLog 重建它。在通用压缩落地前，大 Skill 正文会与
@@ -190,7 +190,7 @@ Skill 若包含 `scripts/`，模型仍通过普通 shell/exec 工具运行或修
 接受 sandbox、approval 和现有工具合同约束。官方 Skill 使用说明明确倾向复用
 脚本，但没有为它们提供免审批 runtime。
 
-Intatis 当前的 `activate_skill` / `read_skill_resource` 是受 snapshot 约束的读取
+Egakium 当前的 `activate_skill` / `read_skill_resource` 是受 snapshot 约束的读取
 工具；脚本执行仍应走现有 `exec_command` / `write_stdin` Managed Terminal，
 并经过：
 
@@ -210,7 +210,7 @@ Skill 根中的脚本不能仅因 Skill 被发现就获得执行权限。若未�
 
 **判定：原批评对当前实现的描述大部分不属实；可观测性与配置 UX 为 P2。**
 
-Intatis 的 `seenSkillFiles` 只按 canonical file path 去重，不按 Skill name 或
+Egakium 的 `seenSkillFiles` 只按 canonical file path 去重，不按 Skill name 或
 opaque ID 把不同来源互相覆盖。来自 workspace 与 user 的同名 Skill 会同时保留、
 获得不同 ID；显式 `$name` 遇到多义时拒绝整个显式激活，并要求用户消歧。它不是
 “全局同名项 first-seen 后静默压掉项目项”。
@@ -229,7 +229,7 @@ Codex 固定 commit 的合同相同：
 
 ### 2.5 环境依赖预检
 
-**判定：审计开始时 Intatis 缺口属实；本轮已完成更窄的 MCP-only P1。
+**判定：审计开始时 Egakium 缺口属实；本轮已完成更窄的 MCP-only P1。
 原批评要求的通用 `uv`/`gdb`/Python 包 preflight 仍超出 Codex 当前能力，属于
 P2。**
 
@@ -246,7 +246,7 @@ Codex 则从 `agents/openai.yaml` 读取 `dependencies.tools`，但当前正式�
 这不等于通用 OS/package preflight。Codex 没有用一套通用 schema 保证 `uv`、
 `gdb`、Python module、Xcode SDK 或任意二进制都已存在。
 
-Intatis 本轮增加了有界、严格的 `agents/openai.yaml`
+Egakium 本轮增加了有界、严格的 `agents/openai.yaml`
 `dependencies.tools` 子集，只接受 `type: mcp`、exact server ID，以及受限
 `stdio` 绝对 canonical executable 或无 credential/query/fragment 的 HTTPS
 locator。snapshot 只保存不可逆 locator fingerprint，machine metadata 按
@@ -265,7 +265,7 @@ assertion，因此 server 至少需要贡献一个可见 tool；低层 `.frozen`
 旧 generation 或无法形成 assertion 均 typed fail closed。raw endpoint、
 command、header、credential 和 query 不进入 model-visible availability。
 
-这不是 Codex dependency 全流程等价：Intatis 当前没有 Install/Continue
+这不是 Codex dependency 全流程等价：Egakium 当前没有 Install/Continue
 anyway、OAuth、外部配置写入或 runtime refresh，也没有通用 binary/package
 schema。若未来补这些外部变更，必须另行设计版本约束、可信来源、权限、durable
 admission、平台差异、离线行为和供应链审计，不能把 preflight 顺手扩成静默
@@ -276,7 +276,7 @@ admission、平台差异、离线行为和供应链审计，不能把 preflight 
 **判定：“必须重启对话或 Session 才能看到更新”不属实；P2 可补通知，不是
 运行阻塞项。**
 
-Intatis 当前没有 watcher，但 `SkillCatalogService.snapshot()` 本身不缓存。
+Egakium 当前没有 watcher，但 `SkillCatalogService.snapshot()` 本身不缓存。
 Code 每次 send、Cowork 每次 AgentInvocation、CLI 每次对应 invocation 都重新
 扫描并生成一个 immutable snapshot。正在运行的 invocation 继续使用原 snapshot，
 下一次 send/invocation 会看到磁盘变化。
@@ -289,7 +289,7 @@ Code 每次 send、Cowork 每次 AgentInvocation、CLI 每次对应 invocation �
 
 Codex app-server/TUI 另外有递归文件 watcher：本地变化经过约 10 秒节流后清除
 service cache，发送 `skills/changed`，后续 Turn 强制 reload；当前正在运行的
-Turn 仍不会被中途替换。Intatis 可在 P2 增加同类 UI 通知，但不得把 watcher
+Turn 仍不会被中途替换。Egakium 可在 P2 增加同类 UI 通知，但不得把 watcher
 事件直接注入正在采样的 invocation。
 
 ## 三、Codex 的真实 Skill 生命周期
@@ -320,7 +320,7 @@ prompt，但不会映射为真实用户 Turn item。压缩时，`collect_user_me
 ### 3.3 reload 生命周期
 
 Codex 的 service cache 与 watcher 只决定下一个 snapshot 是否重新发现；它们
-不改变当前 Turn。Intatis 当前“每次 invocation 新 snapshot”的语义已经满足
+不改变当前 Turn。Egakium 当前“每次 invocation 新 snapshot”的语义已经满足
 正确性，只缺 Codex 的缓存失效通知与 UI 反馈。
 
 ## 四、90% / 95% 与压缩触发
@@ -376,7 +376,7 @@ Codex 在 clone 的 history 上追加一个专用 summarization request，再调
 删除并重试；这里的 `remove_first_item` 维持 function call/output 配对语义，
 不能把 tool output 留成 orphan。原 live history 在成功前不被破坏。
 
-Intatis 不应复制上游 prompt 原文。应独立编写 summary 合同，要求保留目标、已
+Egakium 不应复制上游 prompt 原文。应独立编写 summary 合同，要求保留目标、已
 完成工作、重要决策、未解决项、约束、必要路径/标识、验证证据和下一步，同时
 禁止秘密、无关大段工具输出及虚构状态。
 
@@ -443,7 +443,7 @@ Codex 恢复时从新到旧扫描 rollout：
 消息，再与 checkpoint message 重建；旧 numeric window id 兼容迁移为
 `window_number`。这只是 legacy 路径，不应成为新写入格式。
 
-### 6.3 Intatis 必须保留的更强持久化合同
+### 6.3 Egakium 必须保留的更强持久化合同
 
 Codex 固定 commit 中存在一个不应照抄的缺陷：
 
@@ -453,7 +453,7 @@ Codex 固定 commit 中存在一个不应照抄的缺陷：
 
 这可能造成进程内 live history 已前进、rollout 却没有 checkpoint。
 
-Intatis 的 EventLog 是 canonical truth，因此必须采用更强顺序：
+Egakium 的 EventLog 是 canonical truth，因此必须采用更强顺序：
 
 1. 先构造并分配完整 canonical replacement item IDs；
 2. 将 compaction checkpoint、full world-state baseline 和 reference
@@ -463,7 +463,7 @@ Intatis 的 EventLog 是 canonical truth，因此必须采用更强顺序：
 5. append 失败时保留旧 live history，当前 compaction fail closed；
 6. 禁止下一次 provider request 使用未持久化的新历史。
 
-这不是偏离 Codex 的功能语义，而是为符合 Intatis 既有 EventLog 权威合同所必需
+这不是偏离 Codex 的功能语义，而是为符合 Egakium 既有 EventLog 权威合同所必需
 的安全加强。
 
 ## 七、已知上游弱点与测试证据边界
@@ -477,7 +477,7 @@ Intatis 的 EventLog 是 canonical truth，因此必须采用更强顺序：
 因此：
 
 - 不能把 Codex remote compaction 宣称为已被完整回归测试证明；
-- Intatis 不应在本地 checkpoint 合同未通过前默认启用 remote compact；
+- Egakium 不应在本地 checkpoint 合同未通过前默认启用 remote compact；
 - remote provider 返回必须严格校验 shape、item IDs 和 replacement persistence。
 
 ### 7.2 network skip
@@ -493,23 +493,23 @@ Intatis 的 EventLog 是 canonical truth，因此必须采用更强顺序：
 checkpoint 原子性、恢复和竞态。但它不能证明真实 provider 的 usage 精度、摘要
 质量、远程 compact wire 兼容性和长期网络行为。
 
-Intatis 的报告必须分开写：
+Egakium 的报告必须分开写：
 
 - 本地 deterministic contract：可以由 fake provider 证明；
 - 真实 provider/network matrix：未执行时必须写 `UNKNOWN`，不得由 fake test
   外推为通过。
 
-## 八、Intatis 当前差异
+## 八、Egakium 当前差异
 
-| 维度 | Intatis 当前状态 | Codex 固定 commit | 结论 |
+| 维度 | Egakium 当前状态 | Codex 固定 commit | 结论 |
 | --- | --- | --- | --- |
 | Skill catalog budget | canonical primary（`context_window`，缺失时显式 `limit.context`）的 2% UTF-8 approximate tokens；两者缺失时 8,000 characters；公平截断、marker、snapshot count metrics/warning | Core 为 raw primary `context_window` 约 2% token，缺失时 8,000 characters；ext/skills 另有 max+4k cap | 只对齐 2% 算术/8k fallback seam；输入归一、UTF-8 estimator、renderer/path alias 与 telemetry 不等价 |
-| Skill snapshot | 每次 send/AgentInvocation 全量冻结正文与 UTF-8 resources | Turn metadata snapshot；显式正文按需读取；app-server 有 cache/watcher | Intatis 更强冻结，不需改成中途 live mutation |
+| Skill snapshot | 每次 send/AgentInvocation 全量冻结正文与 UTF-8 resources | Turn metadata snapshot；显式正文按需读取；app-server 有 cache/watcher | Egakium 更强冻结，不需改成中途 live mutation |
 | Skill activation | 显式 `$name` contextual；模型可调用 `activate_skill` | Turn-scoped contextual injection/`skills.read` 路径 | 角色/工具形式不同，生命周期原则相同 |
 | Skill body history | `activate_skill` tool output 可进入稳定 Code conversation / Cowork `@main` durable model history | contextual Skill 进入普通 rollout | 两者都需要通用 compaction |
 | 历史压缩 | 审计开始时尚无；本轮已为稳定 Code conversation 与 Cowork `@main` 增加本地完整 v1 replacement item array checkpoint | pre/mid-turn、20k 用户消息、summary、checkpoint、resume | 生命周期主缺口已落地；arbitrary provider items/world state 仍不等价 |
-| canonical persistence | EventLog append-only、strict replay、可 fail closed | rollout append 失败可能只记录日志 | Intatis 必须保留更强原子持久化 |
-| dependency | 严格 `agents/openai.yaml` MCP-only metadata；request-owned agent-visible tool view 的 server+locator assertion，且 server 至少一项可见 tool | MCP dependency + prompt/install/config/OAuth/runtime refresh | 更窄、更严格的 Intatis preflight；外部变更流程故意未冒充等价 |
+| canonical persistence | EventLog append-only、strict replay、可 fail closed | rollout append 失败可能只记录日志 | Egakium 必须保留更强原子持久化 |
+| dependency | 严格 `agents/openai.yaml` MCP-only metadata；request-owned agent-visible tool view 的 server+locator assertion，且 server 至少一项可见 tool | MCP dependency + prompt/install/config/OAuth/runtime refresh | 更窄、更严格的 Egakium preflight；外部变更流程故意未冒充等价 |
 | reload | 下一 invocation 重新扫描；当前 invocation frozen | watcher 清 cache，下一 Turn reload；当前 Turn frozen | 不是重启 Session 问题 |
 | 同名冲突 | 不同 path 同名并存，`$name` 多义拒绝 | repo/user 同名并存；同 path first root | 无静默 name override；P2 做 UX |
 | script execution | 走 Managed Terminal 和现有权限链 | 走普通 exec/shell 与 sandbox/approval | 不建免审 Skill runtime |
@@ -570,7 +570,7 @@ bounded audit preview 或 transcript 反解析结果。
 
 ### 9.5 EventLog-first commit
 
-必须使用 Intatis 的原子 EventLog batch：
+必须使用 Egakium 的原子 EventLog batch：
 
 - item IDs 先分配；
 - checkpoint、world-state baseline、reference context 一次提交；
@@ -595,7 +595,7 @@ bounded audit preview 或 transcript 反解析结果。
 
 建议 P0 接线顺序：
 
-1. `IntatisAgentKernel` 共用 compaction state/algorithm；
+1. `EgakiumAgentKernel` 共用 compaction state/algorithm；
 2. Cowork 稳定 `@main` durable model history；
 3. Code 跨 send 历史；
 4. 所有长 AgentLoop 的 mid-turn compaction；
@@ -614,7 +614,7 @@ Chat 是否接入应另行评估，不能让本轮 Code/Cowork 修复扩大 iOS 
   `context_window` 优先，缺失时只允许显式 OpenCode `limit.context` 补位；
   两者缺失/非法时使用 8,000-character fallback，不按
   slug/max/compaction window 猜值，也不加入 ext/skills 的 4k cap；
-- 保留 Intatis 的 source 排序、公平 description 缩短与 omitted marker，并在
+- 保留 Egakium 的 source 排序、公平 description 缩短与 omitted marker，并在
   immutable snapshot 中增加 count-only catalog total/kept/omitted/truncated/
   rendered-cost metrics 和 warning；trusted envelope 不计入 metadata budget；
 - 增加可选、严格、有界的 `agents/openai.yaml` 子集，只支持 MCP dependency；
@@ -628,7 +628,7 @@ Chat 是否接入应另行评估，不能让本轮 Code/Cowork 修复扩大 iOS 
 
 本节没有完成的 Codex 部分是：catalog warning/metrics 尚无产品级 consumer，
 renderer 不是逐字节同构；MCP 没有 Install/Continue-anyway、OAuth、外部配置
-持久化或 runtime refresh。这些外部变更若后续实施，仍必须走 Intatis 现有权限
+持久化或 runtime refresh。这些外部变更若后续实施，仍必须走 Egakium 现有权限
 与 durable admission，不能静默扩大连接。
 
 ### 10.2 P2
@@ -687,9 +687,9 @@ Codex 根许可证为 Apache-2.0，仓库包含 NOTICE。本报告将本次使�
 - 不复制或逐行翻译 Rust 源码；
 - 不复制 compact prompt、Skill prompt、快照、产品文案、名称、Logo 或 UI 资产；
 - 不 vendor、链接或分发 Codex crate；
-- Intatis 的 Swift 类型、EventLog event、compactor、projector、恢复器和测试应
+- Egakium 的 Swift 类型、EventLog event、compactor、projector、恢复器和测试应
   独立实现；
-- Intatis 还会有意保留更强的 EventLog-first 原子持久化，不复制上游
+- Egakium 还会有意保留更强的 EventLog-first 原子持久化，不复制上游
   live-before-persist 缺陷。
 
 因此，本报告本身以及按上述边界进行的独立实现都不新增第三方分发物，
@@ -749,7 +749,7 @@ fixture 或文件，则必须重新分类为 `derived` / `vendored` / `dependenc
 
 ### 13.2 EventLog-first 安全加强
 
-Intatis 没有照抄 Codex 的 live-before-persist 顺序：
+Egakium 没有照抄 Codex 的 live-before-persist 顺序：
 
 - `appendModelHistoryCompaction` 在跨进程锁内重新扫描 complete-known history，
   拒绝 unknown future event、seq gap 与损坏记录；
@@ -766,7 +766,7 @@ Intatis 没有照抄 Codex 的 live-before-persist 顺序：
 - checkpoint 成功落盘后 `AgentLoop` 才把 live request history 换成
   replacement；append/CAS 失败时普通 provider dispatch 不会使用未持久化历史。
 
-当前 Intatis 没有与 Codex 同构的独立 `TurnContextItem` /
+当前 Egakium 没有与 Codex 同构的独立 `TurnContextItem` /
 `WorldStateItem(full|patch)` 事件。所需的本轮 canonical context 直接作为
 replacement 内的 typed contextual items 与 checkpoint 一起提交，因此这里是
 “一个 canonical checkpoint 事件”的原子提交，不是假称已经实现了不存在的三事件
@@ -807,9 +807,9 @@ batch。
 ### 13.5 主要写入位置
 
 - Protocol/EventLog：
-  `Packages/IntatisProtocol/Sources/ModelHistory.swift`、
+  `Packages/EgakiumProtocol/Sources/ModelHistory.swift`、
   `Envelope.swift`、`Event.swift`、
-  `Packages/IntatisConversation/Sources/EventLog.swift`
+  `Packages/EgakiumConversation/Sources/EventLog.swift`
 - Kernel：
   `AgentModelHistoryCompactor.swift`、`AgentModelHistoryProjector.swift`、
   `AgentModelHistoryWindowID.swift`、`AgentTokenEstimator.swift`、
@@ -819,16 +819,16 @@ batch。
   `ProviderRegistry.swift`、`ProviderErrorFormatting.swift`、
   `OpenAIToolCalling.swift`
 - 产品接线：
-  `Apps/IntatisMac/Sources/CodeViewModel.swift`、
-  `Apps/intatis-cli/Sources/Interactive.swift`、
+  `Apps/EgakiumMac/Sources/CodeViewModel.swift`、
+  `Apps/egakium-cli/Sources/Interactive.swift`、
   `MCPCLILiveCommands.swift`，以及 Cowork `Orchestrator.swift` /
   `CoordinatorTools.swift`
 - Skill catalog/MCP preflight：
-  `Packages/IntatisSkills/Sources/SkillTypes.swift`、
+  `Packages/EgakiumSkills/Sources/SkillTypes.swift`、
   `SkillCatalogService.swift`、`SkillMCPDependencies.swift`、`SkillTools.swift`、
-  `Packages/IntatisTools/Sources/MCPToolAvailabilitySnapshot.swift`、
-  `Packages/IntatisAgentKernel/Sources/AgentRequestToolSnapshot.swift`、
-  `Packages/IntatisMCP/Sources/MCPConnection.swift` 与
+  `Packages/EgakiumTools/Sources/MCPToolAvailabilitySnapshot.swift`、
+  `Packages/EgakiumAgentKernel/Sources/AgentRequestToolSnapshot.swift`、
+  `Packages/EgakiumMCP/Sources/MCPConnection.swift` 与
   `MCPProductionRuntime.swift`
 - 合同测试：
   Protocol、EventLog、projector、compactor、AgentLoop、Code fresh-loop replay、Skill
@@ -891,7 +891,7 @@ batch。
 | `AgentModelHistoryCompactorTests` | 13 | 13 | 0 | 0 | 0 |
 | `CodeModelHistoryCompactionTests` | 1 | 1 | 0 | 0 | 0 |
 | `ContextProjectionTests` | 20 | 20 | 0 | 0 | 0 |
-| `IntatisSkillsTests` | 19 | 19 | 0 | 0 | 0 |
+| `EgakiumSkillsTests` | 19 | 19 | 0 | 0 | 0 |
 | `SkillMCPDependencyTests` | 9 | 9 | 0 | 0 | 0 |
 | `ModelHistoryCompactionAgentLoopTests` | 12 | 12 | 0 | 0 | 0 |
 | `ModelHistoryCompactionEventLogTests` | 9 | 9 | 0 | 0 | 0 |
@@ -925,9 +925,9 @@ loop 的 durable-history replay contract，不是 process restart 证据。
   skipped、0 failures；
 - `swift build --disable-sandbox`：通过；
 - `xcodegen generate`：通过；
-- IntatisMac unsigned macOS Debug：通过；
-- IntatisMacAppStore unsigned macOS Debug：通过；
-- IntatisiOS generic Simulator Debug：通过；
+- EgakiumMac unsigned macOS Debug：通过；
+- EgakiumMacAppStore unsigned macOS Debug：通过；
+- EgakiumiOS generic Simulator Debug：通过；
 - `git diff --check`：通过。
 
 首次在 managed 外层 sandbox 内运行聚焦测试时，Swift compiler 因不能写
@@ -949,7 +949,7 @@ loop 的 durable-history replay contract，不是 process restart 证据。
 - production MCP connection-set→agent-visible availability builder，以及真实
   server 的 dependency match/mismatch、reconnect 与 endpoint rotation；
 - 多小时 soak、真实 600 秒 Cowork invocation；
-- Codex remote compact 等价 wire；Intatis 本轮没有启用 remote compact。
+- Codex remote compact 等价 wire；Egakium 本轮没有启用 remote compact。
 
 ### 14.4 兜底、严格限制与“假测试”审计
 
@@ -985,15 +985,15 @@ fail-closed、竞态和恢复 shape，不是“预写通过结论”的假测试
 
 ## 十五、未完成边界与不等价项
 
-本轮已完成 Skill 生命周期的主修复，但不能诚实地宣称 Intatis 已复制 Codex 的
+本轮已完成 Skill 生命周期的主修复，但不能诚实地宣称 Egakium 已复制 Codex 的
 全部线程运行时。明确剩余项如下：
 
-1. `body_after_prefix` 实验 scope 未实现；Intatis 当前只实现 Codex 默认的
+1. `body_after_prefix` 实验 scope 未实现；Egakium 当前只实现 Codex 默认的
    total scope。
 2. `comp_hash` 已进入 exact profile metadata/fingerprint，但“前后两轮两个非空
    hash 不同即强制用 previous model 先压缩、current model fallback”的切模流程
    尚未实现；切换为更小 context-window model 的 previous-model compact 亦未实现。
-3. Intatis 没有 Codex 同构的 `TurnContextItem`、reference-context lifecycle、
+3. Egakium 没有 Codex 同构的 `TurnContextItem`、reference-context lifecycle、
    full/patch world-state 与 rollback/fork rollout，因此也没有假造对应恢复测试。
    当前 mid-turn 所需 context 由 checkpoint 内 contextual replacement 保存。
 4. replacement schema 为未来结构化 provider item 留有字段，但 v1 projector
@@ -1019,7 +1019,7 @@ fail-closed、竞态和恢复 shape，不是“预写通过结论”的假测试
     E2E 尚未验证；通用 `uv`/`gdb`/Python/package prerequisite 也未实现。
 11. watcher/changed 通知、冲突 UI、durable enable/disable 与真实
     lexical/hybrid selector 评测仍是 P2；Codex 固定 commit 的 selector 仍是
-    shadow experiment，Intatis 没有用 embedding 伪装成已上线召回。
+    shadow experiment，Egakium 没有用 embedding 伪装成已上线召回。
 
 安全确认：
 

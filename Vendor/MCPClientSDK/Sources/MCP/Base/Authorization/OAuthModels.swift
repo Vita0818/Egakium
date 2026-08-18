@@ -1,4 +1,4 @@
-// Intatis modification: server-side bearer validation and protected-resource
+// Egakium modification: server-side bearer validation and protected-resource
 // publishing types are omitted from this client-only derivative. See PATCHES.md.
 
 import Foundation

@@ -1,4 +1,4 @@
-# Intatis Microsoft SwiftStreamingMarkdown 接入与旧渲染栈完整迁移报告
+# Egakium Microsoft SwiftStreamingMarkdown 接入与旧渲染栈完整迁移报告
 
 > 报告日期：2026-07-17
 >
@@ -16,8 +16,8 @@
 
 ## PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 两者一致，符合预期仓库根目录。
 - 报告创建前工作区已有大量 per-agent inference profile 相关改动，以及既有未跟踪报告；本报告没有覆盖、回退、整理或暂存这些用户改动。
 
@@ -30,26 +30,26 @@
 
 本报告建议正式采用以下方向：
 
-> **Intatis 不再拥有 Markdown renderer。Microsoft SwiftStreamingMarkdown 作为目标上游；Intatis 只保留消息 facade、流式背压、安全策略、主题映射和 raw plain-text 熔断。**
+> **Egakium 不再拥有 Markdown renderer。Microsoft SwiftStreamingMarkdown 作为目标上游；Egakium 只保留消息 facade、流式背压、安全策略、主题映射和 raw plain-text 熔断。**
 
 但这项决定不等于立即把官方 `v0.6.0` 写进生产 `Package.swift`。当前应作三个不同判断：
 
 | 判断 | 结论 |
 |---|---|
-| 是否继续扩写 Intatis 自有 Markdown/表格/代码/数学 renderer | **否** |
+| 是否继续扩写 Egakium 自有 Markdown/表格/代码/数学 renderer | **否** |
 | 是否把 Microsoft SwiftStreamingMarkdown 作为首选完整替代方案 | **是** |
 | 是否把官方 `v0.6.0` 原样直接进入生产包 | **否，暂不满足生产门槛** |
 
 当前推荐状态是 **conditional go**：
 
 1. 立即把“消息一定可见”与“是否富 Markdown”分离；raw selectable text 是永远可用的基线。
-2. 用隔离 harness 固定并验证 Microsoft 官方 `v0.6.0`，不污染 Intatis 主 SwiftPM 图。
+2. 用隔离 harness 固定并验证 Microsoft 官方 `v0.6.0`，不污染 Egakium 主 SwiftPM 图。
 3. 优先等待或贡献上游修复；必要时只维护依赖、资源和配置暴露层面的极薄 fork。
 4. 通过所有门槛后，在一个原子迁移中替换主依赖图、facade 内部实现、测试、fixture、NOTICE 与文档。
 5. 正式切换后，生产回退到 raw plain text，而不是继续内置旧 MarkdownUI renderer。
 6. 删除旧 MarkdownUI、自有 cmark/math/code adapter、vendored highlight.js 资源和对应旧测试，不永久维护双栈。
 
-这一方向符合项目的开源复用原则：把解析、排版、表格、原生文本和交互交给有专业团队维护的上游；Intatis 只保留不能外包的产品边界。
+这一方向符合项目的开源复用原则：把解析、排版、表格、原生文本和交互交给有专业团队维护的上游；Egakium 只保留不能外包的产品边界。
 
 ## 1. “先解决 Markdown 的有无”到底是什么意思
 
@@ -70,7 +70,7 @@ raw EventLog message
        no  -> selectable raw Text
 ```
 
-该契约已经有源码基础：`IntatisMessageContentView` 当前公开接收 `rawText`、`isComplete` 和 `policy`，并已有 `.plainText` 路径。后续只需把 plain-safe mode 提升为明确、集中、可立即切换的产品熔断，而不是再写另一套 renderer。
+该契约已经有源码基础：`EgakiumMessageContentView` 当前公开接收 `rawText`、`isComplete` 和 `policy`，并已有 `.plainText` 路径。后续只需把 plain-safe mode 提升为明确、集中、可立即切换的产品熔断，而不是再写另一套 renderer。
 
 ### 1.2 “Markdown 不可用”时必须保住什么
 
@@ -104,7 +104,7 @@ plain-safe mode 至少必须保证：
 
 当前公共入口是：
 
-`Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMessageContentView.swift`
+`Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMessageContentView.swift`
 
 公开输入保持 renderer-neutral：
 
@@ -120,11 +120,11 @@ style
 
 | 产品面 | 调用位置 | 迁移影响 |
 |---|---|---|
-| macOS Chat | `Apps/IntatisMac/Sources/IntatisChatScreen.swift` | 无需改变数据链路 |
-| iOS/shared Chat | `Packages/IntatisSharedUI/Sources/Views.swift` | 无需改变数据链路 |
-| Code | `Packages/IntatisSharedUI/Sources/CodeViews.swift` | 无需改变数据链路 |
+| macOS Chat | `Apps/EgakiumMac/Sources/EgakiumChatScreen.swift` | 无需改变数据链路 |
+| iOS/shared Chat | `Packages/EgakiumSharedUI/Sources/Views.swift` | 无需改变数据链路 |
+| Code | `Packages/EgakiumSharedUI/Sources/CodeViews.swift` | 无需改变数据链路 |
 | Cowork | 间接复用 `CodeItemRow` | 无需创建第四套路径 |
-| 离线 fixture | `Apps/IntatisMac/Sources/RendererFixtureView.swift` | 需要更新验证内容和标签 |
+| 离线 fixture | `Apps/EgakiumMac/Sources/RendererFixtureView.swift` | 需要更新验证内容和标签 |
 
 因此正式替换不需要修改：
 
@@ -140,10 +140,10 @@ style
 
 | 文件 | 当前行数 | 最终处置 |
 |---|---:|---|
-| `IntatisMessageContentView.swift` | 140 | 保留公开 facade，重写内部 |
-| `IntatisRenderDocument.swift` | 809 | 删除 |
-| `IntatisMathView.swift` | 296 | 删除 |
-| `IntatisCodeBlockView.swift` | 380 | 删除 |
+| `EgakiumMessageContentView.swift` | 140 | 保留公开 facade，重写内部 |
+| `EgakiumRenderDocument.swift` | 809 | 删除 |
+| `EgakiumMathView.swift` | 296 | 删除 |
+| `EgakiumCodeBlockView.swift` | 380 | 删除 |
 
 此外还有：
 
@@ -153,7 +153,7 @@ style
 - `NOTICE.md` 与三份 `ThirdPartyNotices` 中的旧渲染来源和许可证记录；
 - 多份 `docs/` 中已固化的旧架构、门限与验证说明。
 
-这说明只换表格不是正确终点。正确终点是上游接管完整 Markdown 显示栈，Intatis 不再维护其中任何 parser、layout、grammar 或 TeX renderer。
+这说明只换表格不是正确终点。正确终点是上游接管完整 Markdown 显示栈，Egakium 不再维护其中任何 parser、layout、grammar 或 TeX renderer。
 
 ### 2.3 当前卡死诊断的证据边界
 
@@ -202,11 +202,11 @@ style
 - macOS 14+；
 - 单一 library product：`SwiftStreamingMarkdown`。
 
-Intatis 当前 macOS 26 / iOS 26 deployment target 在系统版本上兼容。
+Egakium 当前 macOS 26 / iOS 26 deployment target 在系统版本上兼容。
 
 主要公开 API：
 
-| API | 用途 | Intatis 计划 |
+| API | 用途 | Egakium 计划 |
 |---|---|---|
 | `MarkdownView(text:config:listener:)` | 静态完整文档 convenience view | 用于隔离 harness 对照，不直接定为生产入口 |
 | `StreamedMarkdownView(source:config:listener:)` | 完整前缀快照流 convenience view | 用于隔离 harness 对照，不直接定为生产入口 |
@@ -232,12 +232,12 @@ Intatis 当前 macOS 26 / iOS 26 deployment target 在系统版本上兼容。
 - 没有 `StreamedMarkdownController` / `StreamedMarkdownView` 专项回归；
 - 四个 `TableViewTests` 被改名为 `skip_test...`，注释表明 CI 检测到真实失败；
 - README 性能图没有公开固定语料、硬件和可复跑数值；
-- sample 的更新速度远低于 Intatis 真实 1,249-delta session；
+- sample 的更新速度远低于 Egakium 真实 1,249-delta session；
 - macOS 支持在 2026-06-30 的 `v0.3.0` 才加入；
 - macOS link crash 与 paragraph layout/reuse 问题在 `v0.4.0` / `v0.5.0` 才修复；
 - strict concurrency 的字体/Sendable 问题仍有公开 [issue #124](https://github.com/microsoft/SwiftStreamingMarkdown/issues/124)。
 
-所以微软团队和生产来源提高了候选优先级，但不能替代 Intatis 自己的真实 session 验证。
+所以微软团队和生产来源提高了候选优先级，但不能替代 Egakium 自己的真实 session 验证。
 
 ## 4. 为什么这套表格实现值得优先验证
 
@@ -256,7 +256,7 @@ Microsoft [`TableView`](https://github.com/microsoft/SwiftStreamingMarkdown/blob
 - **不能仅凭源码宣称已经解决当前冻结**；
 - **必须用真实故障 session，叠加窗口 resize、横向滚动和 AttributeGraph 日志观察才能过门**；
 - **没有证据允许直接宣称永不冻结**；
-- **上游表格 snapshot tests 被跳过，Intatis 必须补真实 fixture**；
+- **上游表格 snapshot tests 被跳过，Egakium 必须补真实 fixture**；
 - **当前所有 cell 实际按 leading 对齐，README 所述列 alignment 尚未完整进入 renderable**；
 - **table copy/download 按钮只回调 listener，listener 缺失时会形成可见但无效果的控件**。
 
@@ -266,7 +266,7 @@ Microsoft [`TableView`](https://github.com/microsoft/SwiftStreamingMarkdown/blob
 
 当前根 manifest 与 Microsoft `v0.6.0` 有三组确定冲突：
 
-| 依赖 | Intatis 当前 | Microsoft v0.6.0 图 |
+| 依赖 | Egakium 当前 | Microsoft v0.6.0 图 |
 |---|---|---|
 | swift-cmark | exact `0.5.0` | 经 swift-markdown 解析到 `0.8.0` |
 | swift-snapshot-testing | exact `1.12.0` | exact `1.19.3` |
@@ -276,7 +276,7 @@ Microsoft [`TableView`](https://github.com/microsoft/SwiftStreamingMarkdown/blob
 
 直接结论：
 
-- 不能在 Intatis 主 `Package.swift` 中加一条依赖做长期双 renderer A/B；
+- 不能在 Egakium 主 `Package.swift` 中加一条依赖做长期双 renderer A/B；
 - 第一次真实性能验证必须使用隔离 package/app；
 - 正式迁移必须一次性删除旧 root constraints，再加入新上游图；
 - 生产回退依赖 raw plain text 和 Git/release rollback，而不是同一 binary 的旧 renderer。
@@ -300,14 +300,14 @@ Microsoft [issue #73](https://github.com/microsoft/SwiftStreamingMarkdown/issues
 
 [`LaTexPreProcessor`](https://github.com/microsoft/SwiftStreamingMarkdown/blob/v0.6.0/Sources/MarkdownText/Parser/LaTexPreProcessor.swift) 在 Markdown parse 之前对整个字符串做正则替换。它没有先识别 fenced code 或 inline code，因此代码内容里的 `\(...\)` 也可能被转换。
 
-这与 Intatis 当前明确要求“数学 delimiter 不得改写 code literal”冲突。
+这与 Egakium 当前明确要求“数学 delimiter 不得改写 code literal”冲突。
 
 可接受路线按优先级排序：
 
 1. 向上游贡献 code-aware LaTeX preprocessor；
 2. 等待上游 release；
 3. 过渡期使用公开的 `MarkdownParserImpl` + `MarkdownParseOption(latexMatchingRules: [])` + `RenderableDocument` + `DocumentView`，暂时关闭数学；
-4. 不允许在 Intatis 再写一套 Markdown/code-span parser。
+4. 不允许在 Egakium 再写一套 Markdown/code-span parser。
 
 第三项仍是调用上游公开 parser 和 renderer，不是自研 renderer。它以暂时失去数学显示换取代码内容绝对保真，直到上游修复。
 
@@ -315,7 +315,7 @@ Microsoft [issue #73](https://github.com/microsoft/SwiftStreamingMarkdown/issues
 
 Microsoft 固定的 [HighlightSwift revision `99c431b...`](https://github.com/appstefan/HighlightSwift/tree/99c431b38a1444a5fd6a4978307fbbefe3a7af53) 存在以下问题：
 
-- 内含 highlight.js 11.9.0，而 Intatis 当前审计的是 11.11.1；
+- 内含 highlight.js 11.9.0，而 Egakium 当前审计的是 11.11.1；
 - Microsoft 代码没有把 fenced language 交给 engine，而是使用自动识别；
 - 自动识别会扫描多个语言；
 - 没有单代码块最大字节数；
@@ -333,9 +333,9 @@ Microsoft `HighlightTaskManager` 使用共享 actor/单 JSContext，说明上游
 - 移除不采用且许可证不合适的主题；
 - 未知、超限、C/C++ 风险输入保持完整 plain code block。
 
-在这些能力完成前，宁可让 Microsoft CodeBlockView 显示完整可复制的纯文本代码，也不能继续捆绑旧 Intatis 高亮 adapter 形成半迁移。
+在这些能力完成前，宁可让 Microsoft CodeBlockView 显示完整可复制的纯文本代码，也不能继续捆绑旧 Egakium 高亮 adapter 形成半迁移。
 
-### 5.5 默认主题和图标不能直接成为 Intatis 资产
+### 5.5 默认主题和图标不能直接成为 Egakium 资产
 
 `v0.6.0` library target 会处理并打包：
 
@@ -345,12 +345,12 @@ Microsoft `HighlightTaskManager` 使用共享 actor/单 JSContext，说明上游
 
 默认 [`MarkdownRenderConfig`](https://github.com/microsoft/SwiftStreamingMarkdown/blob/v0.6.0/Sources/MarkdownText/Models/MarkdownRenderConfig.swift) 直接引用这些 Copilot 资源。
 
-即使 Intatis 运行时提供自定义颜色，这些资源仍可能进入 app bundle。根据 `OPEN_SOURCE_REUSE.md`，根 MIT 不自动授权 Intatis 使用第三方产品品牌、图标或 UI 资产。
+即使 Egakium 运行时提供自定义颜色，这些资源仍可能进入 app bundle。根据 `OPEN_SOURCE_REUSE.md`，根 MIT 不自动授权 Egakium 使用第三方产品品牌、图标或 UI 资产。
 
 生产采用必须二选一：
 
 1. 上游把默认资源中性化并允许调用方替换 action icons；或
-2. 极薄 fork 只移除品牌资源，改用 Intatis 自有语义颜色和 SF Symbols。
+2. 极薄 fork 只移除品牌资源，改用 Egakium 自有语义颜色和 SF Symbols。
 
 不能把 Copilot 主题换个变量名后继续分发，也不能把根 MIT 当成品牌授权。
 
@@ -379,25 +379,25 @@ Microsoft 根 manifest 写的是 Swift tools 5.9，但固定依赖中的 Highlig
 - 跨 block 连续拖选由“Select more text”modal 辅助，不等同原生整篇连续选择；
 - 表格 cell 本身不是逐字选择，整表复制依赖 listener；
 - table copy/download 需要真实实现或可配置隐藏，不能保留死按钮；
-- code copy 没有等价于当前 `intatisCodeCopyAction` 的公开 callback；应推动上游暴露动作或用 Computer Use 检查真实 pasteboard，不能为测试保留旧代码框；
+- code copy 没有等价于当前 `egakiumCodeCopyAction` 的公开 callback；应推动上游暴露动作或用 Computer Use 检查真实 pasteboard，不能为测试保留旧代码框；
 - accessibility 不能只看视觉：当前旧栈已有 display-math AX label，inline math VoiceOver 仍是已知未决项；替换时必须重新验证正文/代码/数学的 VoiceOver 输出、键盘焦点以及 copy/table action 可达性；
 - 图片是 experimental，remote 路径使用 `AsyncImage`，首轮必须 `.disabled`；
-- URL 最终通过 SwiftUI `openURL`，必须覆盖 Intatis 的 scheme allowlist；
+- URL 最终通过 SwiftUI `openURL`，必须覆盖 Egakium 的 scheme allowlist；
 - `BlockView` 使用普通 `VStack`，单条 200+ block 长文必须实测内存和布局成本。
 
 ### 5.8 删除旧实现时不能丢掉产品级资源预算
 
-Microsoft `v0.6.0` 的数学路径没有 Intatis 当前单公式约 32 KiB、每条消息 64 个公式及 bitmap/resource cap 一类的 admission budget；`BlockMathView` / `LatexViewProvider` 会把获准字符串交给 `MTMathUILabel`。代码高亮同样没有 Intatis 当前约 64 KiB 的输入上限。
+Microsoft `v0.6.0` 的数学路径没有 Egakium 当前单公式约 32 KiB、每条消息 64 个公式及 bitmap/resource cap 一类的 admission budget；`BlockMathView` / `LatexViewProvider` 会把获准字符串交给 `MTMathUILabel`。代码高亮同样没有 Egakium 当前约 64 KiB 的输入上限。
 
 因此“删除旧 809 行 cmark/math glue”不等于删除安全预算，但所有权必须划清：
 
-- Intatis 薄层只能在 parse 前执行不理解 Markdown 语法的整条消息 UTF-8 byte/line budget；
+- Egakium 薄层只能在 parse 前执行不理解 Markdown 语法的整条消息 UTF-8 byte/line budget；
 - code block byte cap、单公式 byte cap、公式数量和 math attachment/raster cost 必须由上游公开 admission API 实现，或由准备回馈上游的通用极薄 patch 实现；
-- 如果候选上游尚无这些 API，首版必须关闭 highlighting/math，不能在 Intatis 写 fenced-code/formula scanner 来恢复这些预算；
+- 如果候选上游尚无这些 API，首版必须关闭 highlighting/math，不能在 Egakium 写 fenced-code/formula scanner 来恢复这些预算；
 - 超出整条消息预算时完整回退 raw plain text；上游识别出的单块超限时显示完整 plain block；
 - 不用 timeout 冒充对同步 parser、JavaScriptCore 或 MathUILabel 的强制终止。
 
-这些是产品输入策略，不是授权 Intatis 重建 token、AST、代码或 TeX 识别层。
+这些是产品输入策略，不是授权 Egakium 重建 token、AST、代码或 TeX 识别层。
 
 ## 6. 目标架构
 
@@ -408,7 +408,7 @@ flowchart TD
     A["EventLog raw message\n唯一事实源"] --> B["Conversation / Code projection"]
     B --> C{"role + renderer policy"}
     C -->|user/system/special| D["现有纯文本或结构化卡片"]
-    C -->|assistant/agent| E["IntatisMessageContentView facade"]
+    C -->|assistant/agent| E["EgakiumMessageContentView facade"]
     E --> F{"Microsoft renderer 可用且输入获准?"}
     F -->|否| G["Selectable raw Text"]
     F -->|是| H["latest-only admission + generation state"]
@@ -416,7 +416,7 @@ flowchart TD
     I -.->|解析期间保留| G
     I --> J["RenderableDocument"]
     J --> K["Microsoft DocumentView"]
-    K --> L["Intatis theme/link/image/listener policy"]
+    K --> L["Egakium theme/link/image/listener policy"]
 ```
 
 任何 upstream AST、RenderableDocument、attributed string 或缓存都只是可丢弃 projection，不写回 EventLog。
@@ -428,18 +428,18 @@ flowchart TD
 | Markdown parse / AST | Microsoft + swift-markdown |
 | table/list/quote/heading/code layout | Microsoft |
 | AppKit/UIKit text view | Microsoft |
-| TeX parse/layout | Microsoft 的上游依赖；Intatis 不实现 |
-| syntax grammar/token classification | Microsoft 的上游依赖；Intatis 不实现 |
-| role policy | Intatis |
-| latest-only stream backpressure | Intatis 薄 adapter |
-| Intatis typography/colors | Intatis config mapping |
-| URL scheme policy | Intatis `OpenURLAction` |
-| Markdown image network policy | Intatis config，默认 disabled |
-| raw/plain熔断 | Intatis facade |
-| table copy/save product action | Intatis listener 或上游可配置隐藏 |
-| EventLog/selection of source text | Intatis |
+| TeX parse/layout | Microsoft 的上游依赖；Egakium 不实现 |
+| syntax grammar/token classification | Microsoft 的上游依赖；Egakium 不实现 |
+| role policy | Egakium |
+| latest-only stream backpressure | Egakium 薄 adapter |
+| Egakium typography/colors | Egakium config mapping |
+| URL scheme policy | Egakium `OpenURLAction` |
+| Markdown image network policy | Egakium config，默认 disabled |
+| raw/plain熔断 | Egakium facade |
+| table copy/save product action | Egakium listener 或上游可配置隐藏 |
+| EventLog/selection of source text | Egakium |
 
-### 6.3 `IntatisMessageContentView` 公开 API 保持不变
+### 6.3 `EgakiumMessageContentView` 公开 API 保持不变
 
 正式实现不应让业务页面认识 Microsoft 类型。现有 facade 的输入签名保持不变，内部按状态选择：
 
@@ -466,7 +466,7 @@ policy == richText && renderer admitted
 
 ### 6.4 生产建议使用受控上游状态机，而非直接把 convenience view 当黑盒
 
-`MarkdownView` 初始持有 empty document，不能天然保证 Intatis 所需的 raw-first paint；其 controller 在初始化时捕获 config，后续 task 主要随 text 变化。`StreamedMarkdownView` 同样要求 source identity 稳定，不能在 SwiftUI `body` 更新时反复创建 source。主题、字体、消息身份或 config revision 变化必须显式失效和重建。
+`MarkdownView` 初始持有 empty document，不能天然保证 Egakium 所需的 raw-first paint；其 controller 在初始化时捕获 config，后续 task 主要随 text 变化。`StreamedMarkdownView` 同样要求 source identity 稳定，不能在 SwiftUI `body` 更新时反复创建 source。主题、字体、消息身份或 config revision 变化必须显式失效和重建。
 
 因此首轮生产接入建议使用上游公开的 `MarkdownParserImpl`、`MarkdownParseOption`、`RenderableDocument` 和 `DocumentView`，组成一个极薄状态机：
 
@@ -484,7 +484,7 @@ raw projection
 
 上游 [`StreamedMarkdownView`](https://github.com/microsoft/SwiftStreamingMarkdown/blob/v0.6.0/Sources/MarkdownText/StreamedMarkdownView.swift) 的每次 emission 都是完整累计文本，并且每次重新 `Document(parsing:)`。它不是增量 AST，也没有 throttle、debounce 或 `.bufferingNewest(1)`。
 
-Intatis 薄 source adapter 必须：
+Egakium 薄 source adapter 必须：
 
 - 接收 projection 给出的最新完整 `rawText`，不直接接收单 delta；
 - `AsyncStream(bufferingPolicy: .bufferingNewest(1))`；
@@ -495,7 +495,7 @@ Intatis 薄 source adapter 必须：
 - 永远不在 adapter 中 parse Markdown；
 - ingress 队列可证明最大只有一个未消费快照。
 
-这不是自研 renderer，而是把上游所需的完整快照协议与 Intatis 的高密度 delta 流安全连接起来。
+这不是自研 renderer，而是把上游所需的完整快照协议与 Egakium 的高密度 delta 流安全连接起来。
 
 `AsyncStream.bufferingNewest(1)` 只约束 ingress，不能自动约束 parser task 队列。解析层必须使用单一消费泵，不能每收到一个 snapshot 就再启动一个 task：每条活动消息最多允许 **1 个 running parse + 1 个可被覆盖的 pending latest snapshot**；最终 snapshot 必须覆盖 pending 并在 running 结束后得到处理。跨多条消息还需使用 session/process 级有界 parse scheduler，防止打开长历史时每个 cell 同时启动同步解析；具体并发上限由 Phase 1 数据决定。
 
@@ -508,7 +508,7 @@ Intatis 薄 source adapter 必须：
 - 使用完整 `MarkdownRenderConfig` initializer，不链式依赖有 imageConfig 转发缺陷的 builders；
 - `shouldAnimateText: false`；
 - `imageConfig: .disabled`；
-- Intatis system semantic fonts/colors；
+- Egakium system semantic fonts/colors；
 - 不引用 Microsoft/Copilot default theme；
 - 明确 text selection background；
 - code highlighting 默认 disabled，直到安全策略通过；
@@ -535,7 +535,7 @@ Intatis 薄 source adapter 必须：
 
 1. 已发布上游 API；
 2. 已合并、等待 release 的上游修复；
-3. 由 Intatis 提交并希望上游接受的通用 PR；
+3. 由 Egakium 提交并希望上游接受的通用 PR；
 4. 临时极薄 fork；
 5. 如果 fork 必须拥有 renderer 核心，停止并重新选型，而不是继续扩张。
 
@@ -558,10 +558,10 @@ Intatis 薄 source adapter 必须：
 
 - 重写 `Document(parsing:)` 或 CommonMark grammar；
 - 自己维护另一套 Markdown AST；
-- 分叉 TableLayout 算法形成 Intatis 专用 renderer；
+- 分叉 TableLayout 算法形成 Egakium 专用 renderer；
 - fork highlight.js grammar；
 - fork iosMath TeX parser/layout；
-- 复制整仓源码到 Intatis 的 `Packages/`；
+- 复制整仓源码到 Egakium 的 `Packages/`；
 - 保留没有 upstream issue/PR 的长期私有行为；
 - 跟随浮动 `main`。
 
@@ -575,7 +575,7 @@ Intatis 薄 source adapter 必须：
 - 对应回归；
 - 哪个官方 release 可以删除该 patch。
 
-一旦官方 release 吸收全部必要 patch，`Package.swift` 必须切回 Microsoft 官方 exact tag。极薄 fork 是临时供应链桥，不是 Intatis 的新 renderer 产品。
+一旦官方 release 吸收全部必要 patch，`Package.swift` 必须切回 Microsoft 官方 exact tag。极薄 fork 是临时供应链桥，不是 Egakium 的新 renderer 产品。
 
 ## 8. 分阶段迁移路线
 
@@ -585,7 +585,7 @@ Intatis 薄 source adapter 必须：
 
 建议改动：
 
-- 在 `IntatisMessageContentView` 上方建立集中 renderer mode；
+- 在 `EgakiumMessageContentView` 上方建立集中 renderer mode；
 - 支持 `plainSafe`；
 - renderer mode 必须在历史消息 view 构造前可读，并提供无需先打开故障 session 的持久设置或启动参数；
 - rich renderer 未完成、解析中、失败或被禁用时都先显示 raw `Text`；
@@ -605,7 +605,7 @@ Phase 0 通过门：
 
 ### Phase 1：建立隔离 Microsoft harness
 
-**目标：** 在不修改 Intatis 主依赖图的前提下验证官方 `v0.6.0` 的真实行为。
+**目标：** 在不修改 Egakium 主依赖图的前提下验证官方 `v0.6.0` 的真实行为。
 
 做法：
 
@@ -638,7 +638,7 @@ Phase 1 go/no-go：
 
 - 如果表格仍冻结、parser input 被改写、backlog 超界，或任何已冻结数值预算失败，停止生产接入并向上游报告；
 - 如果主要问题只属于已列的配置/依赖/品牌 patch，进入 Phase 2；
-- 不在 Intatis 内用自有布局绕过失败。
+- 不在 Egakium 内用自有布局绕过失败。
 
 ### Phase 2：关闭上游生产阻断项
 
@@ -654,7 +654,7 @@ Phase 1 go/no-go：
 6. code copy 可由公开行为验证或有公开 callback；
 7. Swift 6.2 transitive manifest 的双平台和 headless resolution；
 8. config/theme identity、message/source generation 与缓存正确性；
-9. Intatis syntax-agnostic whole-message budget，以及由上游提供的 code/math/attachment budgets；若后者不存在则关闭对应 feature；
+9. Egakium syntax-agnostic whole-message budget，以及由上游提供的 code/math/attachment budgets；若后者不存在则关闭对应 feature；
 10. 单一消费泵、`1 running + 1 replaceable pending` 和同步工作不可强停时的 fail-before-start 策略；
 11. 完成态 cache 的 count/cost/eviction 与 attachment 成本边界；
 12. VoiceOver、AX label、键盘焦点和 copy/table action 可达性合同。
@@ -669,7 +669,7 @@ Phase 2 通过门：
 
 - 依赖/资源许可证清单完成；
 - 所有本地 patch 有 upstream issue/PR 和删除计划；
-- 没有 Intatis 专用 parser/layout 分叉；
+- 没有 Egakium 专用 parser/layout 分叉；
 - 隔离 harness 全矩阵通过。
 
 ### Phase 3：准备原子生产切换
@@ -679,11 +679,11 @@ Phase 2 通过门：
 同一个受审改动应包含：
 
 1. 根 `Package.swift` 删除五个旧 direct constraints；
-2. 加入 Microsoft official exact tag 或极薄 fork exact revision；`IntatisSharedUI` 只通过 `.product(..., condition: .when(platforms: [.macOS, .iOS]))` 链接 Apple renderer product；
+2. 加入 Microsoft official exact tag 或极薄 fork exact revision；`EgakiumSharedUI` 只通过 `.product(..., condition: .when(platforms: [.macOS, .iOS]))` 链接 Apple renderer product；
 3. 更新 `Package.resolved`；
-4. 重写 `IntatisMessageContentView` 内部，并把源文件 guard 改为 `canImport(SwiftUI)` + `canImport(SwiftStreamingMarkdown)`，使 CLI/Linux/headless 不编译 Apple renderer；
+4. 重写 `EgakiumMessageContentView` 内部，并把源文件 guard 改为 `canImport(SwiftUI)` + `canImport(SwiftStreamingMarkdown)`，使 CLI/Linux/headless 不编译 Apple renderer；
 5. 新增 latest-only source、受控 render state、config/listener 薄 adapter；
-6. 删除旧 `IntatisRenderDocument` / `IntatisMathView` / `IntatisCodeBlockView`；
+6. 删除旧 `EgakiumRenderDocument` / `EgakiumMathView` / `EgakiumCodeBlockView`；
 7. 删除三个旧 highlight.js/CSS resources；
 8. 重写 `MessageRenderingTests` 为上游集成契约，并移除旧 `canImport(MarkdownUI/iosMath)` 整文件 gate；
 9. 更新 `RendererFixtureView`；
@@ -691,19 +691,19 @@ Phase 2 通过门：
 
 不能把 package 变更和旧源码删除拆成会让默认分支不可构建的多个合并步骤。可以在迁移分支中分 commit 审阅，但进入共享主线时必须是可构建的原子状态。
 
-### Phase 4：Intatis 生产集成验证
+### Phase 4：Egakium 生产集成验证
 
-**目标：** 证明 Microsoft 路径在真实 Intatis shell、真实 projection 更新频率和真实 session 生命周期中成立。
+**目标：** 证明 Microsoft 路径在真实 Egakium shell、真实 projection 更新频率和真实 session 生命周期中成立。
 
 自动验证至少包括：
 
 - 新 renderer focused unit/integration tests；
-- `swift build --target IntatisSharedUI`；
+- `swift build --target EgakiumSharedUI`；
 - full `swift test`，环境型失败单独归类；
 - 核对 renderer tests 的实际 discovery/执行数量，不能只看命令 exit 0；
-- IntatisMac macOS Debug build；
-- IntatisiOS Simulator Debug build；
-- IntatisMac 与 IntatisiOS 的优化 Release/Archive 构建，并以最终 archive/artifact 做资源、许可证和性能审计；
+- EgakiumMac macOS Debug build；
+- EgakiumiOS Simulator Debug build；
+- EgakiumMac 与 EgakiumiOS 的优化 Release/Archive 构建，并以最终 archive/artifact 做资源、许可证和性能审计；
 - 至少一台项目定义的低端支持档位 iOS 真机完成性能、VoiceOver、字体和 attachment 验收；
 - Linux/headless SwiftPM resolution/build；
 - `Package.resolved` 与二进制资源审计；
@@ -732,7 +732,7 @@ Phase 4 通过门：
 - parser work 可证明最多 1 running + 1 replaceable pending，session 级 scheduler 并发不超已定上限；
 - 送入 parser 的最终 UTF-8 snapshot 与 EventLog/projection String 完全一致；富视图按 Markdown 语义验收，raw/plain 与明确 copy/export 动作另行做字节/换行保真验收；
 - remote images 默认零请求；
-- URL 只经 Intatis policy 打开；
+- URL 只经 Egakium policy 打开；
 - plain-safe mode 在任何 renderer failure 下都可用。
 
 ### Phase 5：生产切换与旧栈彻底退出
@@ -763,7 +763,7 @@ after:  microsoft rich | plain-safe
 
 这时旧实现只存在于 Git history 和历史报告，不存在于当前生产 target。
 
-“旧栈退出”不要求 `Package.resolved` 完全看不到 `swift-cmark`、iosMath 或高亮组件；它们可能仍是 Microsoft 的传递依赖。完成标准是 Intatis 不再直接 pin、import、桥接或维护旧引擎，并且最终传递资源通过许可证与 bundle 审计。
+“旧栈退出”不要求 `Package.resolved` 完全看不到 `swift-cmark`、iosMath 或高亮组件；它们可能仍是 Microsoft 的传递依赖。完成标准是 Egakium 不再直接 pin、import、桥接或维护旧引擎，并且最终传递资源通过许可证与 bundle 审计。
 
 ### Phase 6：发布、上游回归与 fork 退出
 
@@ -788,10 +788,10 @@ after:  microsoft rich | plain-safe
 
 | 文件 | 动作 | 说明 |
 |---|---|---|
-| `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMessageContentView.swift` | 保留并重写 | facade 签名、role policy、plain fallback、link policy 保持 |
-| `Apps/IntatisMac/Sources/RendererFixtureView.swift` | 更新 | 使用事故输入、流式 replay、Microsoft 行为和 plain-safe mode |
-| `Apps/IntatisMac/Sources/IntatisMacApp.swift` | 原则上保留 | 继续使用 `-IntatisRendererFixture` 分支；若入口必须调整，只做局部编辑，避免覆盖当前 inference 工作改动 |
-| `Packages/IntatisSharedUI/Tests/MessageRenderingTests.swift` | 重写 | 从旧实现细节转成上游集成契约 |
+| `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMessageContentView.swift` | 保留并重写 | facade 签名、role policy、plain fallback、link policy 保持 |
+| `Apps/EgakiumMac/Sources/RendererFixtureView.swift` | 更新 | 使用事故输入、流式 replay、Microsoft 行为和 plain-safe mode |
+| `Apps/EgakiumMac/Sources/EgakiumMacApp.swift` | 原则上保留 | 继续使用 `-EgakiumRendererFixture` 分支；若入口必须调整，只做局部编辑，避免覆盖当前 inference 工作改动 |
+| `Packages/EgakiumSharedUI/Tests/MessageRenderingTests.swift` | 重写 | 从旧实现细节转成上游集成契约 |
 | `Package.swift` | 原子替换依赖 | 不保留双 renderer；product 继续只对 macOS/iOS 条件链接 |
 | `Package.resolved` | 更新 | 固定最终 exact graph |
 
@@ -799,21 +799,21 @@ after:  microsoft rich | plain-safe
 
 可以把以下职责放在一个或少量小文件中：
 
-- `IntatisMarkdownAdapter.swift`：config、listener、renderer mode、syntax-agnostic whole-message admission；
-- `IntatisStreamingMarkdownSource.swift`：latest-only complete snapshots；
-- `IntatisMarkdownRenderState.swift`：raw-first、generation、parse/publish/cancel 生命周期；
+- `EgakiumMarkdownAdapter.swift`：config、listener、renderer mode、syntax-agnostic whole-message admission；
+- `EgakiumStreamingMarkdownSource.swift`：latest-only complete snapshots；
+- `EgakiumMarkdownRenderState.swift`：raw-first、generation、parse/publish/cancel 生命周期；
 
 文件名可在实施时调整，但职责不得扩展到解析或布局。
 
 ### 9.3 最终删除
 
 ```text
-Packages/IntatisSharedUI/Sources/MessageRendering/IntatisRenderDocument.swift
-Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMathView.swift
-Packages/IntatisSharedUI/Sources/MessageRendering/IntatisCodeBlockView.swift
-Packages/IntatisSharedUI/Sources/MessageRendering/Resources/highlight.min.js
-Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-light.css
-Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
+Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumRenderDocument.swift
+Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMathView.swift
+Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumCodeBlockView.swift
+Packages/EgakiumSharedUI/Sources/MessageRendering/Resources/highlight.min.js
+Packages/EgakiumSharedUI/Sources/MessageRendering/Resources/a11y-light.css
+Packages/EgakiumSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 ```
 
 如果 `MessageRendering/Resources` 变空，还要删除 `Package.swift` 的 `.process("MessageRendering/Resources")`。
@@ -830,7 +830,7 @@ Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 - iOS 的 Tools/Permission/AgentKernel/Cowork 排除边界；
 - `project.yml` 的 app product 依赖结构。
 
-`project.yml` 当前 app 只链接 `IntatisSharedUI`，通常不需要直接声明 Microsoft package。若实际 XcodeGen resolution 证明需要变更，只做生成工程所必需的最小修改。
+`project.yml` 当前 app 只链接 `EgakiumSharedUI`，通常不需要直接声明 Microsoft package。若实际 XcodeGen resolution 证明需要变更，只做生成工程所必需的最小修改。
 
 ### 9.5 权威文档更新
 
@@ -851,7 +851,7 @@ Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 
 ## 10. 新测试契约
 
-旧测试的大量断言绑定 Intatis 自有 cmark/math/highlight adapter，不能原封不动证明 Microsoft renderer。
+旧测试的大量断言绑定 Egakium 自有 cmark/math/highlight adapter，不能原封不动证明 Microsoft renderer。
 
 ### 10.1 必须保留的产品契约
 
@@ -881,7 +881,7 @@ Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 | Code fidelity | code 内数学 delimiter | 字面量不被改写 |
 | Highlight | C/C++、未知语言、超限 | 完整 plain code，可复制 |
 | Images | http/https/file/data | 默认不发请求 |
-| Links | allowlisted 与非法 scheme | 只经 Intatis OpenURLAction |
+| Links | allowlisted 与非法 scheme | 只经 Egakium OpenURLAction |
 | Theme | Light/Dark 来回切换 | 字体/颜色无旧 config 残留 |
 | Cache | source/config/renderer revision、memory pressure、cost 压力 | key 正确失效，entry/cost 不越界，LRU 可观察 |
 | Lifecycle | 打开/关闭同 session 20–30 次 | tasks 结束；peak/residual RSS 落在冻结预算内 |
@@ -920,7 +920,7 @@ Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 
 迁移验收必须同时证明：
 
-- 新测试 import 的是最终 Microsoft product 或 Intatis adapter；
+- 新测试 import 的是最终 Microsoft product 或 Egakium adapter；
 - test discovery 清单中能看到新的 renderer contract tests；
 - CI 记录实际执行数和关键测试名称；
 - 不允许用整文件 `canImport` 把生产依赖缺失变成静默 skip；
@@ -1015,7 +1015,7 @@ Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 - 三个旧 renderer 源文件和三个旧 resources 已删除；
 - 旧 implementation-specific tests 已删除或重写；
 - NOTICE/ThirdPartyNotices/docs 已更新；
-- app artifact 不含 Intatis 旧 vendored highlight.js/CSS、MarkdownUI/NetworkImage 资源或旧 `kostub/iosMath` 直连产物；
+- app artifact 不含 Egakium 旧 vendored highlight.js/CSS、MarkdownUI/NetworkImage 资源或旧 `kostub/iosMath` 直连产物；
 - Chat、Code、Cowork、iOS 仍只通过同一 facade；
 - 旧 session 无迁移即可读取；
 - rollback 不依赖把旧栈重新编译进 binary。
@@ -1030,11 +1030,11 @@ Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 2. 第一版生产 cutover 是否允许暂时关闭数学；
 3. 第一版是否允许代码块先保持完整纯文本、不着色；
 4. table download 应隐藏、复制 Markdown，还是导出文件；
-5. “Select more text”modal 是否满足 Intatis 的整篇选择体验；
+5. “Select more text”modal 是否满足 Egakium 的整篇选择体验；
 6. Microsoft 下一个 release 是否会升级 swift-markdown；
 7. Microsoft/HighlightSwift 是否愿意接收 highlighter policy 与主题清理 PR；
 8. Copilot 资产能否在官方 package 中中性化；
-9. strict concurrency issue #124 对 Intatis Xcode 26 warnings/errors 的实际影响；
+9. strict concurrency issue #124 对 Egakium Xcode 26 warnings/errors 的实际影响；
 10. Equatable macro/swift-syntax 对 clean build 时间和 binary graph 的影响；
 11. Linux/headless resolver 是否具备 Swift 6.2 manifest 解析能力；
 12. 当前事故 session 的脱敏 replay fixture 应存在哪里，才能可复现又不泄漏私密内容。
@@ -1072,13 +1072,13 @@ Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 - [HighlightSwift exact revision](https://github.com/appstefan/HighlightSwift/tree/99c431b38a1444a5fd6a4978307fbbefe3a7af53)
 - [iosMath fork exact revision](https://github.com/junyan72/iosMath/tree/ba9ab7729b151329c54fd895a7c1859981d9484c)
 
-### Intatis 本地依据
+### Egakium 本地依据
 
 - `Package.swift`
 - `Package.resolved`
-- `Packages/IntatisSharedUI/Sources/MessageRendering/`
-- `Packages/IntatisSharedUI/Tests/MessageRenderingTests.swift`
-- `Apps/IntatisMac/Sources/RendererFixtureView.swift`
+- `Packages/EgakiumSharedUI/Sources/MessageRendering/`
+- `Packages/EgakiumSharedUI/Tests/MessageRenderingTests.swift`
+- `Apps/EgakiumMac/Sources/RendererFixtureView.swift`
 - `NOTICE.md`
 - `ThirdPartyNotices/MarkdownRendering.md`
 - `ThirdPartyNotices/SyntaxHighlighting.md`
@@ -1094,15 +1094,15 @@ Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 
 ## PROJECT_AUDIT_SUMMARY
 
-- Intatis 当前已经有单一 renderer facade，适合完整替换而无需改动业务链路。
+- Egakium 当前已经有单一 renderer facade，适合完整替换而无需改动业务链路。
 - raw EventLog text 已经是唯一事实源，天然允许 renderer replacement 和 plain-safe fallback。
 - 当前旧栈约 1,625 行生产 adapter、462 行专项测试和 129,157 bytes vendored resources。
 - 当前五个 root renderer dependencies 与 Microsoft graph 不能安全并排解析。
 - Microsoft 的表格 layout 不复用当前最可疑的 anchor-preference 机制，但仍有 `scrollWidth` 驱动的 layout/state 反馈，必须用事故 session 实测。
-- Microsoft 的流式入口仍是完整快照全量重解析，Intatis 必须做 latest-only backpressure。
-- Microsoft 的高层 convenience views 不天然提供 Intatis 所需的 raw-first/config identity 契约，首轮生产应优先采用公开低层 API 构建薄状态机。
+- Microsoft 的流式入口仍是完整快照全量重解析，Egakium 必须做 latest-only backpressure。
+- Microsoft 的高层 convenience views 不天然提供 Egakium 所需的 raw-first/config identity 契约，首轮生产应优先采用公开低层 API 构建薄状态机。
 - 官方 `v0.6.0` 仍存在底层依赖、LaTeX fidelity、高亮安全/许可证、品牌资源和测试成熟度门。
-- 正确迁移面集中在 `IntatisSharedUI/MessageRendering`、根 package graph、fixture/tests、NOTICE 和 docs。
+- 正确迁移面集中在 `EgakiumSharedUI/MessageRendering`、根 package graph、fixture/tests、NOTICE 和 docs。
 - Chat/Code/Cowork/EventLog/provider/permission/Cowork 编排不应被本次迁移改变。
 
 ## DOCS_CONTENT_SUMMARY
@@ -1123,7 +1123,7 @@ Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 
 - raw EventLog message 是唯一真值；
 - assistant/agent 与 user/system/special card 的角色边界不能扩大；
-- 不在 Intatis 内重写 Markdown parser、code grammar 或 TeX engine；
+- 不在 Egakium 内重写 Markdown parser、code grammar 或 TeX engine；
 - remote Markdown image 默认阻断，链接 scheme 受限；
 - 上游依赖、资产、字体和传递资源必须逐项审计；
 - 不复制第三方品牌/UI 资产；
@@ -1137,7 +1137,7 @@ Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 
 - 已执行 `pwd`、`git rev-parse --show-toplevel`、`git status --short`。
 - 已检查现有 `codex-report/` 命名和结构。
-- 已核对 Intatis 当前 `Package.swift`、renderer 源码、fixture、测试、NOTICE 与 ThirdPartyNotices。
+- 已核对 Egakium 当前 `Package.swift`、renderer 源码、fixture、测试、NOTICE 与 ThirdPartyNotices。
 - 已核对 Microsoft `v0.6.0` exact checkout、公开 API、stream/parser/table/config/code/math 实现、依赖图、测试和 CI 结果。
 - 已通过 swiftlang 官方 `swift-markdown 0.7.3` manifest 复核其 Swift tools 6.2 解析门槛。
 - 已核对 HighlightSwift exact revision 中的 highlight.js 版本与 CC BY-SA `nnfx` 主题声明。
@@ -1149,7 +1149,7 @@ Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 ## UNCERTAINTIES
 
 - 当前问题 session 的完整 Instruments 采样尚未形成可归档证据；Markdown 表格路径是高置信嫌疑，不写成百分之百根因。
-- 本轮没有证明 Microsoft renderer 在 Intatis 真实 1,249-delta replay 下达到性能门槛。
+- 本轮没有证明 Microsoft renderer 在 Egakium 真实 1,249-delta replay 下达到性能门槛。
 - `v0.6.0` 的本地 malformed-row guard 与 `swift-markdown 0.8.0` 正式修复之间的剩余组合风险需要真实 corpus 验证。
 - Microsoft 后续 tag 是否接受/包含依赖升级、code-aware LaTeX、高亮策略和资源中性化目前 `UNKNOWN`。
 - 公开仓库非常新，不能由 Microsoft 品牌推导出 macOS 长期稳定性。
@@ -1163,7 +1163,7 @@ Packages/IntatisSharedUI/Sources/MessageRendering/Resources/a11y-dark.css
 下一步建议只实施 **Phase 0 + Phase 1**：
 
 1. 给现有 facade 建立可验证的 plain-safe mode，先让问题 session 永远可打开；
-2. 建立与 Intatis 根 SwiftPM 图隔离的 Microsoft exact-version harness；
+2. 建立与 Egakium 根 SwiftPM 图隔离的 Microsoft exact-version harness；
 3. 用当前事故 session 的脱敏 fixture、1,249 delta replay、Computer Use 和 Instruments 得到 go/no-go 证据；
 4. 不修改主 `Package.swift`，不删除旧栈，不创建长期 fork，直到隔离验收完成；
 5. 验收后再决定等待 official tag，还是建立只含已列允许 patch 的极薄 fork。

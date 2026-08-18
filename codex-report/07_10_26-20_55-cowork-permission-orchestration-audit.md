@@ -6,8 +6,8 @@ GPT-5。
 
 ## PATH_CHECK_RESULT
 
-- 当前目录：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- 当前目录：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 两者一致，符合项目要求。
 
 ## FILES_WRITTEN
@@ -15,7 +15,7 @@ GPT-5。
 - 报告：`codex-report/07_10_26-20_55-cowork-permission-orchestration-audit.md`
 - 特殊审查控制面：`PermissionReviewControlPlane.swift`、`AgentPermissionResponder.swift`、`Orchestrator.swift`、GUI/CLI Cowork 接入与 `PermissionReview.swift`
 - 通用执行与恢复边界：`AgentLoop.swift`、`AgentExecutionBudget.swift`、`EventLog.swift`、`Leases.swift`、`ToolExecution.swift`、`PathConfinement.swift`、`ShellGit.swift` 及相关结构化 process/browser/document runner
-- 回归：`PermissionReviewControlPlaneTests.swift`、`AutomaticPermissionReviewTests.swift`、`OrchestrationReliabilityTests.swift`、`AgentLoopPolicyTests.swift`、`WorkspaceLeaseTests.swift`、`PathConfinementTests.swift`、`IntatisToolsTests.swift` 及协议/投影兼容测试
+- 回归：`PermissionReviewControlPlaneTests.swift`、`AutomaticPermissionReviewTests.swift`、`OrchestrationReliabilityTests.swift`、`AgentLoopPolicyTests.swift`、`WorkspaceLeaseTests.swift`、`PathConfinementTests.swift`、`EgakiumToolsTests.swift` 及协议/投影兼容测试
 - 项目说明：`docs/CURRENT_STATE.md`、`docs/PROJECT_MAP.md`、`docs/ARCHITECTURE.md`、`docs/DO_NOT_BREAK.md`、`docs/TESTING.md`、`docs/NEXT_TARGET.md`、`docs/COWORK_PRINCIPLES.md`
 
 > 仓库在本轮开始时已有大量用户未提交改动；上面只归纳本次权限/编排修复直接涉及的文件组，未覆盖、回退或清理其他改动。第 2 节起的原始 finding 文字保留作根因记录，不代表当前实现仍未修复。
@@ -42,11 +42,11 @@ Per-agent provider/model routing 仍按原报告结论保留为未来通用 feat
 
 ## REMEDIATION_VERIFICATION
 
-- 已通过（最终动态回归）：`PermissionReviewControlPlaneTests` 17/17、`AutomaticPermissionReviewTests` 12/12、`OrchestrationReliabilityTests` 28/28、`AgentLoopPolicyTests` 14/14、`WorkspaceLeaseTests` 4/4；`swift test --skip IntatisToolsTests` 共 401 项、0 failure。
-- 已通过（构建）：IntatisMac Debug、IntatisiOS generic Simulator Debug（arm64 + x86_64）与 `intatis` CLI product build。
+- 已通过（最终动态回归）：`PermissionReviewControlPlaneTests` 17/17、`AutomaticPermissionReviewTests` 12/12、`OrchestrationReliabilityTests` 28/28、`AgentLoopPolicyTests` 14/14、`WorkspaceLeaseTests` 4/4；`swift test --skip EgakiumToolsTests` 共 401 项、0 failure。
+- 已通过（构建）：EgakiumMac Debug、EgakiumiOS generic Simulator Debug（arm64 + x86_64）与 `egakium` CLI product build。
 - 已通过（静态与分阶段证据）：生产 GUI/CLI 均从 `Orchestrator.runtime` 获取 session writer lease；生产 registry 无 `RunShellTool` / `run_shell`；关键 permission/tool execution 事件为强制持久化；raw-shell target 编译及前序独立真实 macOS confinement smoke 覆盖 workspace 外/符号链接拒绝、默认断网、cancel/timeout 和双流大输出。
 - 已通过（独立只读复核）：最新快照未发现仍会阻止 `fixed` 的 P0/P1；复核覆盖 reviewer queue/durable verdict/quarantine、原子启停与恢复清理、AgentLoop 三次 root identity 复核、非可重放恢复、EventLog writer lease/seq CAS 及 Seatbelt/bwrap fail-closed。
-- 环境限制：最终 `IntatisToolsTests` 在当前外层受限环境中完成编译与发现，但需要嵌套 `sandbox-exec` 或 loopback 的运行项会被宿主 sandbox 拒绝；修正测试夹具对 `/usr/bin/git` / `/usr/bin/python3` 的 `xcrun` 依赖后，外部运行审批额度又已耗尽，未能重跑最后三项 process/Git 窄回归。没有发现对应源码断言失败，且相关 target、测试 bundle 与三端产品均可编译。
+- 环境限制：最终 `EgakiumToolsTests` 在当前外层受限环境中完成编译与发现，但需要嵌套 `sandbox-exec` 或 loopback 的运行项会被宿主 sandbox 拒绝；修正测试夹具对 `/usr/bin/git` / `/usr/bin/python3` 的 `xcrun` 依赖后，外部运行审批额度又已耗尽，未能重跑最后三项 process/Git 窄回归。没有发现对应源码断言失败，且相关 target、测试 bundle 与三端产品均可编译。
 - 仍需真实环境验证：真实 provider/key 与 GUI 人工流程、Linux bwrap、真实浏览器/设备和长时间 crash/recovery 压力矩阵。
 - 原问题不再可达的静态证据：模型可见工具注册表不再注册 `run_shell`；自动 allow 必须在 `permission_review_settled` 成功后返回；工具执行必须先写 `tool_execution_prepared`；未决非可重放副作用在恢复时进入人工对账而非自动重放。
 - 合法行为保留证据：结构化 Git/browser/document 工具仍在各自 capability 下注册；普通 read-only 恢复仍可重排；人工 permission fallback、GUI/CLI session 启动与旧 JSONL 可选字段兼容路径保留。
@@ -95,9 +95,9 @@ Reviewer 基于不完整权限事实给出 allow
 
 主要证据：
 
-- `Apps/IntatisMac/Sources/CoworkViewModel.swift:179-207`
-- `Apps/intatis-cli/Sources/Interactive.swift:253-296`
-- `Packages/IntatisCowork/Sources/Orchestrator.swift:430-511`
+- `Apps/EgakiumMac/Sources/CoworkViewModel.swift:179-207`
+- `Apps/egakium-cli/Sources/Interactive.swift:253-296`
+- `Packages/EgakiumCowork/Sources/Orchestrator.swift:430-511`
 
 ### 3.2 决策流程
 
@@ -122,9 +122,9 @@ allow / deny / ask_user
 
 主要证据：
 
-- `Packages/IntatisPermission/Sources/DeterministicPolicyGate.swift:11-110`
-- `Packages/IntatisPermission/Sources/PermissionEngine.swift:21-41`
-- `Packages/IntatisCowork/Sources/AgentPermissionResponder.swift:30-77`
+- `Packages/EgakiumPermission/Sources/DeterministicPolicyGate.swift:11-110`
+- `Packages/EgakiumPermission/Sources/PermissionEngine.swift:21-41`
+- `Packages/EgakiumCowork/Sources/AgentPermissionResponder.swift:30-77`
 
 ### 3.3 Reviewer 当前可见上下文
 
@@ -139,8 +139,8 @@ Reviewer 当前会收到：
 
 主要证据：
 
-- `Packages/IntatisCowork/Sources/AgentPermissionResponder.swift:37-49`
-- `Packages/IntatisCowork/Sources/AgentPermissionResponder.swift:98-149`
+- `Packages/EgakiumCowork/Sources/AgentPermissionResponder.swift:37-49`
+- `Packages/EgakiumCowork/Sources/AgentPermissionResponder.swift:98-149`
 
 ## 4. Reviewer 特殊问题清单
 
@@ -156,7 +156,7 @@ Reviewer 当前会收到：
 - provider 若不响应 cancellation，permission wait 可能长期悬挂；
 - reviewer 的运行状态不能通过统一任务投影解释。
 
-证据：`Packages/IntatisCowork/Sources/AgentPermissionResponder.swift:30-77`。
+证据：`Packages/EgakiumCowork/Sources/AgentPermissionResponder.swift:30-77`。
 
 Reviewer 不应改成普通 AgentLoop，因为主任务会同步等待其结果；若普通 scheduler 并发上限为 1，main 占着唯一执行槽等待 reviewer，会形成死锁。正确方式是建立独立的 control-plane executor。
 
@@ -164,7 +164,7 @@ Reviewer 不应改成普通 AgentLoop，因为主任务会同步等待其结果�
 
 构建 requester scoped context 时，当前明确传入 `taskContract: nil`：
 
-- `Packages/IntatisCowork/Sources/AgentPermissionResponder.swift:223-237`
+- `Packages/EgakiumCowork/Sources/AgentPermissionResponder.swift:223-237`
 
 `PermissionRequestPayload` 也没有携带完整的当前任务与租约证据。因此 reviewer 无法稳定知道：
 
@@ -182,8 +182,8 @@ Reviewer 不应改成普通 AgentLoop，因为主任务会同步等待其结果�
 
 `recordReview` 使用 `try?` 写入 `.permissionReview`。即使审查记录落盘失败，解析得到的 `allow` 仍会返回给原 Agent：
 
-- `Packages/IntatisCowork/Sources/AgentPermissionResponder.swift:65-74`
-- `Packages/IntatisCowork/Sources/AgentPermissionResponder.swift:85-95`
+- `Packages/EgakiumCowork/Sources/AgentPermissionResponder.swift:65-74`
+- `Packages/EgakiumCowork/Sources/AgentPermissionResponder.swift:85-95`
 
 这使 reviewer 的决策不能作为可靠审计事实。对于自动批准路径，要求应当是：review request 和 reviewer verdict 均成功持久化后，原工具才允许进入执行阶段。
 
@@ -191,7 +191,7 @@ Reviewer 不应改成普通 AgentLoop，因为主任务会同步等待其结果�
 
 GUI 调用 `enableAutomaticPermissionReview` 后丢弃返回结果；失败时会自动退回人工 responder，但用户未必能清楚知道当前 session 是否处于自动审查模式：
 
-- `Apps/IntatisMac/Sources/CoworkViewModel.swift:345-365`
+- `Apps/EgakiumMac/Sources/CoworkViewModel.swift:345-365`
 
 CLI 会明确输出成功或失败状态，因此 GUI/CLI 行为在可观察性上不一致。
 
@@ -266,13 +266,13 @@ requested
 
 `RunShellTool` 没有实现 `touchedPaths`，因此使用 Tool 默认的空路径列表。WorkspaceLease 与 DeterministicPolicyGate 看不到命令实际会访问哪些文件：
 
-- `Packages/IntatisTools/Sources/ShellGit.swift:41-58`
-- `Packages/IntatisTools/Sources/ToolProtocol.swift:164-173`
-- `Packages/IntatisAgentKernel/Sources/AgentLoop.swift:332-361`
+- `Packages/EgakiumTools/Sources/ShellGit.swift:41-58`
+- `Packages/EgakiumTools/Sources/ToolProtocol.swift:164-173`
+- `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift:332-361`
 
 最终执行直接调用 `/bin/sh -c`，没有 OS 级文件系统或网络沙箱：
 
-- `Packages/IntatisTools/Sources/ShellGit.swift:17-32`
+- `Packages/EgakiumTools/Sources/ShellGit.swift:17-32`
 
 字符串黑名单无法可靠识别 Python、Ruby、编码命令、间接路径或其他 shell 组合。无论 permission reviewer 使用什么模型，只要它能批准一个没有执行期边界的 raw shell，WorkspaceLease 就不是完整安全边界。
 
@@ -294,8 +294,8 @@ requested
 
 但日志失败后工具仍可能执行：
 
-- `Packages/IntatisAgentKernel/Sources/AgentLoop.swift:456-557`
-- `Packages/IntatisAgentKernel/Sources/AgentLoop.swift:761-800`
+- `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift:456-557`
+- `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift:761-800`
 
 这不是 reviewer 特殊问题，而是 AgentKernel/Permission/EventLog 的共享执行问题。副作用前的 tool intent 和 permission resolution 必须强制持久化，失败时应 fail closed。
 
@@ -303,8 +303,8 @@ requested
 
 恢复时，处于 `running` 的 task 会增加 attempt 并整体重新排队：
 
-- `Packages/IntatisCowork/Sources/Orchestrator.swift:706-750`
-- `Packages/IntatisCowork/Sources/Orchestrator.swift:772-799`
+- `Packages/EgakiumCowork/Sources/Orchestrator.swift:706-750`
+- `Packages/EgakiumCowork/Sources/Orchestrator.swift:772-799`
 
 当前没有根据 toolCall/toolResult 对已经发生的工具副作用进行 reconciliation，也没有工具级 idempotency key。若副作用已经发生但 task terminal event 尚未写入，重启后可能重复文件写入、提交、上传、发送或外部网络操作。
 
@@ -314,15 +314,15 @@ requested
 
 `withTaskTimeout` 超时后只取消 operation；结构化 task group 退出仍需等待不响应 cancellation 的子任务：
 
-- `Packages/IntatisCowork/Sources/Orchestrator.swift:97-114`
+- `Packages/EgakiumCowork/Sources/Orchestrator.swift:97-114`
 
 `ProcessShellRunner` 使用阻塞的 `readDataToEndOfFile` 和 `waitUntilExit`，没有 cancellation handler 或进程组终止：
 
-- `Packages/IntatisTools/Sources/ShellGit.swift:17-32`
+- `Packages/EgakiumTools/Sources/ShellGit.swift:17-32`
 
 `cancelAll` 又会等待所有 execution 完成：
 
-- `Packages/IntatisCowork/Sources/Orchestrator.swift:1160-1173`
+- `Packages/EgakiumCowork/Sources/Orchestrator.swift:1160-1173`
 
 结果是挂住的 provider、shell 或工具可能永久占据 agent 槽并阻塞 GUI stop、session 切换和 CLI 退出。
 
@@ -330,12 +330,12 @@ requested
 
 EventLog actor 只能串行化当前实例。`nextSeq` 在初始化时读取一次，append 没有文件锁、session lease 或 CAS：
 
-- `Packages/IntatisConversation/Sources/EventLog.swift:20-63`
-- `Packages/IntatisConversation/Sources/EventLog.swift:99-120`
+- `Packages/EgakiumConversation/Sources/EventLog.swift:20-63`
+- `Packages/EgakiumConversation/Sources/EventLog.swift:99-120`
 
 CLI 对同一个 workspace 使用稳定日志路径：
 
-- `Apps/intatis-cli/Sources/Interactive.swift:46-65`
+- `Apps/egakium-cli/Sources/Interactive.swift:46-65`
 
 两个 CLI 或 app 实例同时打开同一 session 时，可能产生重复 seq、交错写入和两个调度器执行同一任务。需要进程级 session lock；长期可以考虑 SQLite/WAL 或单写者持久化服务。
 
@@ -343,7 +343,7 @@ CLI 对同一个 workspace 使用稳定日志路径：
 
 普通 `detach` 先从 registry 和 lease map 删除，再 best-effort 写 revoke/detached 事件：
 
-- `Packages/IntatisCowork/Sources/Orchestrator.swift:349-392`
+- `Packages/EgakiumCowork/Sources/Orchestrator.swift:349-392`
 
 若日志失败，本轮运行看似删除成功，但重启 projection 仍可能恢复该 Agent 和默认 lease。自动回收 tool-spawned Agent 也会走此路径。
 
@@ -351,8 +351,8 @@ CLI 对同一个 workspace 使用稳定日志路径：
 
 Agent 在请求前只检查 `consumed < limit`，模型响应完成后才 charge。多个 Agent 可以同时通过检查，并在结算时才发现超额：
 
-- `Packages/IntatisAgentKernel/Sources/AgentExecutionBudget.swift:14-39`
-- `Packages/IntatisAgentKernel/Sources/AgentLoop.swift:185-227`
+- `Packages/EgakiumAgentKernel/Sources/AgentExecutionBudget.swift:14-39`
+- `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift:185-227`
 
 需要请求前原子预留、provider 输出上限和完成后结算返还，才能形成真正的 session budget。
 
@@ -368,8 +368,8 @@ Agent 在请求前只检查 `consumed < limit`，模型响应完成后才 charge
 
 但 GUI Cowork 的 provider factory 当前仍统一解析 session 默认 provider，尚未形成完整的 per-agent provider/model 配置和路由：
 
-- `Apps/IntatisMac/Sources/CoworkViewModel.swift:14-63`
-- `Apps/IntatisMac/Sources/CoworkViewModel.swift:182-190`
+- `Apps/EgakiumMac/Sources/CoworkViewModel.swift:14-63`
+- `Apps/EgakiumMac/Sources/CoworkViewModel.swift:182-190`
 
 建议未来引入通用配置，而不是为 reviewer 单独开特殊分支：
 
@@ -441,7 +441,7 @@ AgentRuntimeConfig
 
 ## VALIDATION_RESULT
 
-最终验证包括 reviewer 17/17、automatic review 12/12、orchestration reliability 28/28、AgentLoop policy 14/14、workspace lease 4/4，以及排除依赖真实受管进程后端的 SwiftPM 401 项、0 failure。IntatisMac、IntatisiOS Simulator 与 CLI 均构建通过。生产工具面、唯一 runtime 构造器、entitlements、关键持久化顺序和 `git diff --check` 另做了静态核验。
+最终验证包括 reviewer 17/17、automatic review 12/12、orchestration reliability 28/28、AgentLoop policy 14/14、workspace lease 4/4，以及排除依赖真实受管进程后端的 SwiftPM 401 项、0 failure。EgakiumMac、EgakiumiOS Simulator 与 CLI 均构建通过。生产工具面、唯一 runtime 构造器、entitlements、关键持久化顺序和 `git diff --check` 另做了静态核验。
 
 Tools 测试 bundle 已编译；其最终 process/Git 运行态窄回归受当前宿主 sandbox/外部审批额度限制。此前真实 macOS process confinement smoke 已通过，未留下确认的源码失败。
 
@@ -450,7 +450,7 @@ Tools 测试 bundle 已编译；其最终 process/Git 运行态窄回归受当�
 - 未进行真实 provider/key prompt-injection 对抗和 GUI 人工视觉验证。
 - Linux bwrap、真实设备/浏览器、长时间 crash/recovery 压力矩阵未运行。
 - 同一 session 的跨进程写入由文件锁、seq CAS 与 writer lease 覆盖，但未进行两个真实 GUI/CLI 实例的破坏性压力实验。
-- `ProcessGitService` 的配置静态审计与读取间，对绕过 Intatis 工具、由同一 OS 用户并发替换 Git config 的外部本地攻击者仍存在理论 TOCTOU；模型可见通用工具已禁止修改这些配置路径，当前威胁边界内不可达。若未来把本地同 UID 恶意进程纳入威胁模型，应把 Git 服务迁入更强的签名 helper/XPC 或使用 fd-pinned 配置读取。
+- `ProcessGitService` 的配置静态审计与读取间，对绕过 Egakium 工具、由同一 OS 用户并发替换 Git config 的外部本地攻击者仍存在理论 TOCTOU；模型可见通用工具已禁止修改这些配置路径，当前威胁边界内不可达。若未来把本地同 UID 恶意进程纳入威胁模型，应把 Git 服务迁入更强的签名 helper/XPC 或使用 fd-pinned 配置读取。
 
 ## NEXT_RECOMMENDED_ACTION
 

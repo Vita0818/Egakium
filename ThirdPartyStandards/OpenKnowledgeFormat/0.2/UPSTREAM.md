@@ -12,4 +12,4 @@
 - Adoption type: pinned third-party standard documentation, unmodified
 - Retrieved: 2026-08-09
 
-There was no dedicated upstream tag for the inspected v0.2 specification. Intatis therefore fixes the exact commit and byte hashes above. Only the self-contained specification and license are adopted; the upstream reference agent, samples, prompts, viewer, Python package, and data bundles are not copied or executed.
+There was no dedicated upstream tag for the inspected v0.2 specification. Egakium therefore fixes the exact commit and byte hashes above. Only the self-contained specification and license are adopted; the upstream reference agent, samples, prompts, viewer, Python package, and data bundles are not copied or executed.

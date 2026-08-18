@@ -80,7 +80,7 @@ agent-to-agent 消息会同时出现在通信双方的工作对话中，但底�
 - 无法从旧事件可靠判断 agent 的全局错误。
 - session runtime、writer lease、provider 或恢复状态。
 
-首版继续沿用现有 IntatisExecutionTracePresentation 的可见内容策略，不额外展开所有隐藏工具轨迹。首版也不新增 All Agents 聚合视图；当前需求的默认入口就是 main。
+首版继续沿用现有 EgakiumExecutionTracePresentation 的可见内容策略，不额外展开所有隐藏工具轨迹。首版也不新增 All Agents 聚合视图；当前需求的默认入口就是 main。
 
 ## 4. 我打算怎么做
 
@@ -245,12 +245,12 @@ agent-to-agent 消息会同时出现在通信双方的工作对话中，但底�
 
 ### Conversation / Projection
 
-- Packages/IntatisConversation/Sources/CodeProjection.swift
+- Packages/EgakiumConversation/Sources/CodeProjection.swift
   - 保留 typed agent attribution。
   - 增加 message/tool 快速索引。
   - 消除长历史中的高频 firstIndex 扫描。
 
-- Packages/IntatisConversation/Sources/SessionProjectionPump.swift
+- Packages/EgakiumConversation/Sources/SessionProjectionPump.swift
   - 增量维护 per-agent thread index。
   - 提供 bounded page snapshot。
   - 将 selected transcript 更新与其他 projection domain 分开。
@@ -259,24 +259,24 @@ agent-to-agent 消息会同时出现在通信双方的工作对话中，但底�
 
 ### macOS presentation
 
-- Apps/IntatisMac/Sources/CoworkViewModel.swift
+- Apps/EgakiumMac/Sources/CoworkViewModel.swift
   - 管理 session store 接入。
   - 提供窗口所需的 bounded page 和 selected-agent working 状态。
   - 避免完整 items 作为高频 Cowork transcript 发布面。
 
-- Apps/IntatisMac/Sources/IntatisMacApp.swift
+- Apps/EgakiumMac/Sources/EgakiumMacApp.swift
   - 将新的 presentation model/page 输入传给 CoworkShell。
   - 保持 runtime ownership 不变。
 
 ### Shared UI
 
-- Packages/IntatisSharedUI/Sources/CoworkViews.swift
+- Packages/EgakiumSharedUI/Sources/CoworkViews.swift
   - 右侧 agent row 点击和选中样式。
   - 默认 main。
   - 中间线程绑定 viewed agent 的 bounded page。
   - detach fallback、selected-agent thinking 和 accessibility。
 
-- Packages/IntatisSharedUI/Sources/ThreadSurfaces.swift
+- Packages/EgakiumSharedUI/Sources/ThreadSurfaces.swift
   - 确保 scope 包含 agent/page identity。
   - 继续使用最多 16 行 eager page。
 
@@ -428,8 +428,8 @@ agent-to-agent 消息会同时出现在通信双方的工作对话中，但底�
 
 ## 11. PATH_CHECK_RESULT
 
-- pwd：/Users/vita/Vitemis/Intatis
-- Git root：/Users/vita/Vitemis/Intatis
+- pwd：/Users/vita/Vitemis/Egakium
+- Git root：/Users/vita/Vitemis/Egakium
 - 路径匹配。
 
 ## 12. FILES_WRITTEN

@@ -29,7 +29,7 @@
 
 事故 session：
 
-`~/Library/Application Support/Intatis/cowork_tf2lkjbh/events.jsonl`
+`~/Library/Application Support/Egakium/cowork_tf2lkjbh/events.jsonl`
 
 已核对到：
 
@@ -37,7 +37,7 @@
 - 其中 584 条是 `message_delta`。
 - 第一条 SwiftUI fault 所在秒有 194 条 delta，下一秒还有 85 条。
 - 2026-07-29 11:26:34.826，统一日志出现：
-  - `onChange(of: IntatisThreadScrollSignature) action tried to update multiple times per frame.`
+  - `onChange(of: EgakiumThreadScrollSignature) action tried to update multiple times per frame.`
 - 2026-07-29 11:26:35.997，统一日志出现：
   - `<OnScrollGeometryChange Modifier> tried to update multiple times per frame.`
 - 2026-07-29 11:27:24 至 11:27:30，系统记录主线程 UI unresponsiveness 性能诊断。
@@ -47,22 +47,22 @@
 源码中的对应放大链也已确认：
 
 - `CoworkViewModel` 对每个 envelope 同时更新 thread、permission、stats、Cowork 全套 projection：
-  - `Apps/IntatisMac/Sources/CoworkViewModel.swift:563`
-  - `Apps/IntatisMac/Sources/CoworkViewModel.swift:624`
+  - `Apps/EgakiumMac/Sources/CoworkViewModel.swift:563`
+  - `Apps/EgakiumMac/Sources/CoworkViewModel.swift:624`
 - `CodeViewModel` 也按每个 envelope 发布完整 items / permission / stats：
-  - `Apps/IntatisMac/Sources/CodeViewModel.swift:136`
+  - `Apps/EgakiumMac/Sources/CodeViewModel.swift:136`
 - Cowork 每次还会扫描、复制完整 items 并重建 presented items：
-  - `Apps/IntatisMac/Sources/CoworkViewModel.swift:888`
+  - `Apps/EgakiumMac/Sources/CoworkViewModel.swift:888`
 - Cowork / Code 的最后正文长度进入 scroll signature，正文每增长一次就可能请求一次滚动：
-  - `Packages/IntatisSharedUI/Sources/CoworkViews.swift:1762`
-  - `Packages/IntatisSharedUI/Sources/CoworkViews.swift:1827`
-  - `Packages/IntatisSharedUI/Sources/CodeViews.swift:221`
-  - `Packages/IntatisSharedUI/Sources/CodeViews.swift:285`
+  - `Packages/EgakiumSharedUI/Sources/CoworkViews.swift:1762`
+  - `Packages/EgakiumSharedUI/Sources/CoworkViews.swift:1827`
+  - `Packages/EgakiumSharedUI/Sources/CodeViews.swift:221`
+  - `Packages/EgakiumSharedUI/Sources/CodeViews.swift:285`
 - geometry 高度变化又会请求 `.richHeightCorrection`：
-  - `Packages/IntatisSharedUI/Sources/CoworkViews.swift:1788`
-  - `Packages/IntatisSharedUI/Sources/CodeViews.swift:231`
+  - `Packages/EgakiumSharedUI/Sources/CoworkViews.swift:1788`
+  - `Packages/EgakiumSharedUI/Sources/CodeViews.swift:231`
 - 当前 scroll coordinator 只用一次 `Task.yield()` 合并同一主线程 turn，无法限制来自不同 EventLog delta 的持续请求：
-  - `Packages/IntatisSharedUI/Sources/ThreadSurfaces.swift:181`
+  - `Packages/EgakiumSharedUI/Sources/ThreadSurfaces.swift:181`
 
 因此可以确定，这不是单纯“数据量大”，而是以下闭环在高频流式输出和用户滚动同时发生时被放大：
 
@@ -82,7 +82,7 @@ message_delta burst
 Markdown parse 已经在并发执行区域，不应把“解析本身在主线程运行”写成已确认事实：
 
 - `Vendor/SwiftStreamingMarkdown/Sources/MarkdownText/Parser/MarkdownParser.swift:50`
-- `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMicrosoftMarkdownPipeline.swift:470`
+- `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMicrosoftMarkdownPipeline.swift:470`
 
 但 rich document 发布后，原生视图创建和布局仍发生在主线程：
 
@@ -118,7 +118,7 @@ Markdown parse 已经在并发执行区域，不应把“解析本身在主线�
 - 用户滚离底部后，不得由新 delta、completion 或 rich 高度变化强行拉回底部。
 - stale rich document 不得伪装成当前 exact revision。
 - 不新增无边界的 document、native view 或 message-height cache。
-- 不把 App Store sandbox 当作设计约束；本方案只针对 Developer ID 直接分发版，同时继续保留 Intatis 自有权限链、Workspace confinement、Seatbelt 和 Hardened Runtime。
+- 不把 App Store sandbox 当作设计约束；本方案只针对 Developer ID 直接分发版，同时继续保留 Egakium 自有权限链、Workspace confinement、Seatbelt 和 Hardened Runtime。
 
 ## 3. 目标架构
 
@@ -383,7 +383,7 @@ heartbeat 能证明“主线程多久没有执行”，但它不是调用栈采�
 
 诊断文件与 session EventLog 分离，建议保存到：
 
-`~/Library/Logs/Intatis/HangDiagnostics/<timestamp>-<pid>/`
+`~/Library/Logs/Egakium/HangDiagnostics/<timestamp>-<pid>/`
 
 合同：
 
@@ -408,9 +408,9 @@ heartbeat 能证明“主线程多久没有执行”，但它不是调用栈采�
 
 界面卡死时，应用内按钮也无法工作，所以必须提供进程外入口。实施时优先增加一个 CLI 或仓内脚本，完成：
 
-1. 精确解析 Intatis PID。
+1. 精确解析 Egakium PID。
 2. 调用 `/usr/bin/sample <pid> 10 1`。
-3. 导出最近 5 分钟 Intatis subsystem 统一日志。
+3. 导出最近 5 分钟 Egakium subsystem 统一日志。
 4. 收集本轮 heartbeat / signpost 摘要。
 5. 写入上述 owner-only bundle。
 
@@ -441,7 +441,7 @@ FPS / animation hitch 只能说明界面不流畅，不能说明哪个调用栈�
 
 ### Phase 1：Projection Pump
 
-- 在 `IntatisConversation` 增加可测试的 projection actor / cadence state machine。
+- 在 `EgakiumConversation` 增加可测试的 projection actor / cadence state machine。
 - Code / Cowork 改成 snapshot 单点提交。
 - 加入 dirty-domain 和 equality guard。
 - 保持 Chat 当前 strict snapshot / catch-up 链路不变。
@@ -491,21 +491,21 @@ FPS / animation hitch 只能说明界面不流畅，不能说明哪个调用栈�
 
 预期业务源码：
 
-- `Apps/IntatisMac/Sources/CodeViewModel.swift`
-- `Apps/IntatisMac/Sources/CoworkViewModel.swift`
-- `Packages/IntatisConversation/Sources/` 下新增 projection pump / cadence 类型
-- `Packages/IntatisSharedUI/Sources/ThreadSurfaces.swift`
-- `Packages/IntatisSharedUI/Sources/CodeViews.swift`
-- `Packages/IntatisSharedUI/Sources/CoworkViews.swift`
-- `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMessageContentView.swift`
-- `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMicrosoftMarkdownPipeline.swift`
+- `Apps/EgakiumMac/Sources/CodeViewModel.swift`
+- `Apps/EgakiumMac/Sources/CoworkViewModel.swift`
+- `Packages/EgakiumConversation/Sources/` 下新增 projection pump / cadence 类型
+- `Packages/EgakiumSharedUI/Sources/ThreadSurfaces.swift`
+- `Packages/EgakiumSharedUI/Sources/CodeViews.swift`
+- `Packages/EgakiumSharedUI/Sources/CoworkViews.swift`
+- `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMessageContentView.swift`
+- `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMicrosoftMarkdownPipeline.swift`
 - macOS 诊断 recorder / CLI 或 script 的精确落点在实施前按现有模块边界确定
 
 预期测试：
 
-- `Packages/IntatisConversation/Tests/`
-- `Packages/IntatisSharedUI/Tests/`
-- `Apps/IntatisMac/Tests/` 或现有 macOS UI fixture target
+- `Packages/EgakiumConversation/Tests/`
+- `Packages/EgakiumSharedUI/Tests/`
+- `Apps/EgakiumMac/Tests/` 或现有 macOS UI fixture target
 - CLI 诊断入口对应测试
 
 实施完成后必须同步更新：
@@ -597,7 +597,7 @@ FPS / animation hitch 只能说明界面不流畅，不能说明哪个调用栈�
 
 ## 11. 回滚与故障隔离
 
-- 现有 `-IntatisPlainSafeMessages` 继续作为 renderer 紧急诊断开关，不作为正常产品路径。
+- 现有 `-EgakiumPlainSafeMessages` 继续作为 renderer 紧急诊断开关，不作为正常产品路径。
 - 增加一个仅诊断用的“禁用自动 thread follow”开关时，其安全行为必须是：
   - 停止自动滚动；
   - 保留手动 “Jump to latest”；
@@ -630,8 +630,8 @@ FPS / animation hitch 只能说明界面不流畅，不能说明哪个调用栈�
 
 ### PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 与预期匹配：是
 
 ### FILES_WRITTEN
@@ -656,7 +656,7 @@ FPS / animation hitch 只能说明界面不流畅，不能说明哪个调用栈�
 - `docs/COWORK_PRINCIPLES.md`
 - Code / Cowork ViewModel 的 EventLog subscription 和 projection publication
 - Code / Cowork thread scroll signature 与 geometry callback
-- `IntatisThreadScrollCoordinator`
+- `EgakiumThreadScrollCoordinator`
 - message facade、raw projection、Markdown scheduler / renderer lifecycle
 - vendor `BlockView`、`ParagraphView`、`ParagraphNSView`
 - 当前 issue session EventLog 和对应 macOS unified log
@@ -707,15 +707,15 @@ zoom/restore 后进入无响应：
 - PID 389、7637、12689 均出现接近单核 100% 的持续占用；最高观测 RSS 约
   2.7 GB。
 - 进程外 sample 保存在：
-  - `/private/tmp/intatis-final-production-zoom-hang-sample-20260730.txt`
-  - `/private/tmp/intatis-final-production-inspector-off-zoom-hang-sample-20260730.txt`
+  - `/private/tmp/egakium-final-production-zoom-hang-sample-20260730.txt`
+  - `/private/tmp/egakium-final-production-inspector-off-zoom-hang-sample-20260730.txt`
 - 外部采样 bundle 保存在：
-  `/private/tmp/intatis-production-zoom-hang-diagnostics-v1/Intatis-HangDiagnostics/hang-1785386673173-389-d8f11b21`。
+  `/private/tmp/egakium-production-zoom-hang-diagnostics-v1/Egakium-HangDiagnostics/hang-1785386673173-389-d8f11b21`。
 - sample 的主线程反复经过 SwiftUI/AttributeGraph、
   `PlatformViewLayoutEngine.sizeThatFits`、`NSHostingView.minSize` 和
   `ParagraphView` copy/init/destroy。
 - 关闭 inspector 后仍可复现，排除 inspector 是必要条件。
-- 同一二进制、同一 session 使用 `-IntatisPlainSafeMessages` 完成相同
+- 同一二进制、同一 session 使用 `-EgakiumPlainSafeMessages` 完成相同
   zoom/restore，未复现无响应。这个对照只用于归因，不是产品兜底修复。
 
 事故 session 最终有 737 个 EventLog envelope；生产展示过滤后只有 13 个可见
@@ -788,7 +788,7 @@ runtime ownership；没有增加 document/native-view/message-height cache，也
   通过，77 个 XCTest + 11 个 Swift Testing，0 failures。
 - 根 full SwiftPM：1537 tests / 16 skipped / 0 failures。
 - 最终聚焦矩阵：
-  `SessionProjectionPumpTests|ThreadScrollCoordinatorTests|MessageRenderingTests|IntatisHangDiagnosticsTests|HangDiagnosticsCommandTests`
+  `SessionProjectionPumpTests|ThreadScrollCoordinatorTests|MessageRenderingTests|EgakiumHangDiagnosticsTests|HangDiagnosticsCommandTests`
   为 85 tests / 0 failures。
 - watchdog 使用 warnings-as-errors 编译；11 项 self-test 全部通过，覆盖 clean
   exit、exit race、wall/RSS/CPU fuse、process-group kill、telemetry
@@ -807,19 +807,19 @@ Paragraph 专项测试覆盖：
 ### 16.2 产品构建矩阵
 
 所有 macOS 构建均为当前 Developer ID/direct-distribution 产品
-`IntatisMac` 的 unsigned 验证构建；没有构建遗留 App Store target。
+`EgakiumMac` 的 unsigned 验证构建；没有构建遗留 App Store target。
 
 | 产物 | 结果 | executable SHA-256 |
 | --- | --- | --- |
-| IntatisMac Debug | 通过 | `ab617fd6e9b2e69dba5f3ee521cedf9aa3d17427c9a8fc45b8c14b26da0160cd` |
-| IntatisMac normal Release | 通过 | `84f29784f3b837392af3454960896afe8b66c621a9f3374737da05e1a224e267` |
-| IntatisMac validation Release | 通过 | `a12dc747c79d061df8fdf592ce8852340685fa6b054fd87291e2c52c2deb2f03` |
-| IntatisiOS Simulator Debug | 通过 | `4cd4b47573fecfeb12cfcff2e85437593719102bc62d98a3ab1e89ce5fce9a33` |
-| IntatisiOS Simulator Release | 通过 | `65e184c903d558041770b50adca62b3e937c59c38e8466761eb56b2b31a592e5` |
-| `intatis` CLI Release | 通过 | `5ad7c35a632f3b6a8af9c984e5ae60d5a042731927aa7b15a420b1edaaf33b09` |
+| EgakiumMac Debug | 通过 | `ab617fd6e9b2e69dba5f3ee521cedf9aa3d17427c9a8fc45b8c14b26da0160cd` |
+| EgakiumMac normal Release | 通过 | `84f29784f3b837392af3454960896afe8b66c621a9f3374737da05e1a224e267` |
+| EgakiumMac validation Release | 通过 | `a12dc747c79d061df8fdf592ce8852340685fa6b054fd87291e2c52c2deb2f03` |
+| EgakiumiOS Simulator Debug | 通过 | `4cd4b47573fecfeb12cfcff2e85437593719102bc62d98a3ab1e89ce5fce9a33` |
+| EgakiumiOS Simulator Release | 通过 | `65e184c903d558041770b50adca62b3e937c59c38e8466761eb56b2b31a592e5` |
+| `egakium` CLI Release | 通过 | `5ad7c35a632f3b6a8af9c984e5ae60d5a042731927aa7b15a420b1edaaf33b09` |
 
 normal Release 位于
-`/private/tmp/intatis-renderer-final-normal-release-v1/Build/Products/Release/IntatisMac.app`。
+`/private/tmp/egakium-renderer-final-normal-release-v1/Build/Products/Release/EgakiumMac.app`。
 仓内和该 app bundle 的 `NOTICE.md` 均为
 `616f4fcaa1f7e92a5e46ee9182485a5b8da427155cdcfe025bfac7754ccd4589`，
 字节一致。
@@ -861,13 +861,13 @@ plateau 通过。第三次在同一 PID 上交替执行 75 次 AX top/bottom；�
 
 第三次的 18 条 `Invalid view geometry` 必须保留原始事实：
 
-- 它们确实记录在 Intatis PID 的 AppKit runtime issue 中，不能写成“app
+- 它们确实记录在 Egakium PID 的 AppKit runtime issue 中，不能写成“app
   日志没有出现”。
 - 三簇各为 3 组 width/height negative；全部在
   `ThemeWidgetControlViewService` 激活后约 0.17–2.99 ms 出现。
 - 前两簇发生在显式 75 次滚动开始前，当时 Computer Use 正在做 AX 全树、
   ReplayKit screenshot / ScreenCapture；第三簇也紧随相同 ThemeWidget 激活。
-- backtrace 中 Intatis image 只有 `main` offset，没有
+- backtrace 中 Egakium image 只有 `main` offset，没有
   `ParagraphNSView`、`ParagraphView.sizeThatFits` 或 `CodeShell` 产品符号。
 - 相同 final binary 的前两次无 AX 全树/截屏 soak 均为 0；第三次仍无
   heartbeat stall、无 multiple-updates-per-frame、资源平台稳定，并继续完成
@@ -886,12 +886,12 @@ Time Profiler + Hangs 在 soak-2 的同一 PID 56283、同一 final validation
 executable 上录制约 90.665 秒；期间执行 zoom 和滚动。证据：
 
 - trace：
-  `/private/tmp/intatis-final-soak-2-time-profiler-v6.trace`
+  `/private/tmp/egakium-final-soak-2-time-profiler-v6.trace`
 - Potential Hangs XML：0 个数据 row，仅 schema；SHA-256
   `3e6a7b1c5896614835892637a92d58584bfb5a6d82213ce7fee01924b5b62b38`
 - Hang Risks XML：0 个数据 row，仅 schema；SHA-256
   `1d766167930dbf238719821b29dfb310a0c3f122e925ea92dfba4b54d54c0dee`
-- Time Profile XML：21,486 个 sample row，Intatis 主线程 19,347 个 1 ms
+- Time Profile XML：21,486 个 sample row，Egakium 主线程 19,347 个 1 ms
   Running sample，跨度 90.349 秒；SHA-256
   `28b818c72cc68c47ba4cf6a44caa12d213ca2fc48060816545f75b367d08561d`
 
@@ -931,27 +931,27 @@ Time Profiler 是统计采样；Release 优化/符号剥离也使
 ### 18.1 业务与测试
 
 - projection：
-  `Packages/IntatisConversation/Sources/SessionProjectionPump.swift`、
-  `Packages/IntatisConversation/Tests/SessionProjectionPumpTests.swift`、
-  `Apps/IntatisMac/Sources/CodeViewModel.swift`、
-  `Apps/IntatisMac/Sources/CoworkViewModel.swift`
+  `Packages/EgakiumConversation/Sources/SessionProjectionPump.swift`、
+  `Packages/EgakiumConversation/Tests/SessionProjectionPumpTests.swift`、
+  `Apps/EgakiumMac/Sources/CodeViewModel.swift`、
+  `Apps/EgakiumMac/Sources/CoworkViewModel.swift`
 - scroll / viewport：
-  `Packages/IntatisSharedUI/Sources/ThreadSurfaces.swift`、
+  `Packages/EgakiumSharedUI/Sources/ThreadSurfaces.swift`、
   `CodeViews.swift`、`CoworkViews.swift`、
-  `MessageRendering/IntatisMessageContentView.swift`、
-  `MessageRendering/IntatisMicrosoftMarkdownPipeline.swift`、
+  `MessageRendering/EgakiumMessageContentView.swift`、
+  `MessageRendering/EgakiumMicrosoftMarkdownPipeline.swift`、
   `Tests/ThreadScrollCoordinatorTests.swift`、
   `Tests/MessageRenderingTests.swift`
 - diagnostics / fixture：
-  `Packages/IntatisCore/Sources/IntatisHangDiagnostics.swift`、
-  `Packages/IntatisCore/Tests/IntatisHangDiagnosticsTests.swift`、
-  `Apps/IntatisMac/Sources/IntatisProcessDiagnostics.swift`、
-  `Apps/IntatisMac/Sources/RendererFixtureView.swift`、
-  `Apps/IntatisMac/Sources/IntatisMacApp.swift`、
-  `Apps/intatis-cli/Sources/HangDiagnosticsCommand.swift`、
-  `Apps/intatis-cli/Sources/Commands.swift`、
-  `Apps/intatis-cli/Sources/IntatisCLI.swift`、
-  `Apps/intatis-cli/Tests/HangDiagnosticsCommandTests.swift`、
+  `Packages/EgakiumCore/Sources/EgakiumHangDiagnostics.swift`、
+  `Packages/EgakiumCore/Tests/EgakiumHangDiagnosticsTests.swift`、
+  `Apps/EgakiumMac/Sources/EgakiumProcessDiagnostics.swift`、
+  `Apps/EgakiumMac/Sources/RendererFixtureView.swift`、
+  `Apps/EgakiumMac/Sources/EgakiumMacApp.swift`、
+  `Apps/egakium-cli/Sources/HangDiagnosticsCommand.swift`、
+  `Apps/egakium-cli/Sources/Commands.swift`、
+  `Apps/egakium-cli/Sources/EgakiumCLI.swift`、
+  `Apps/egakium-cli/Tests/HangDiagnosticsCommandTests.swift`、
   `scripts/RendererValidationWatchdog.swift`
 - vendor paragraph：
   `Vendor/SwiftStreamingMarkdown/Sources/MarkdownText/UI/Paragraph/AppKit/ParagraphView+macOS.swift`、
@@ -970,7 +970,7 @@ Time Profiler 是统计采样；Release 优化/符号剥离也使
 - `docs/NEXT_TARGET.md`
 - `NOTICE.md`
 - `ThirdPartyNotices/MarkdownRendering.md`
-- `Vendor/SwiftStreamingMarkdown/INTATIS_PATCH_LEDGER.md`
+- `Vendor/SwiftStreamingMarkdown/EGAKIUM_PATCH_LEDGER.md`
 
 仓库中还有大量与 Skills、provider、MCP、模型历史等其他工作相关的既有未提交
 改动；本轮没有回退、覆盖或清理它们。
@@ -984,8 +984,8 @@ Time Profiler 是统计采样；Release 优化/符号剥离也使
 
 ### PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 与预期匹配：是
 
 ### FILES_WRITTEN
@@ -1011,8 +1011,8 @@ Developer ID/direct-distribution 平台边界。
 ### VALIDATION_RESULT
 
 通过：vendor strict Release、root full SwiftPM、85 项最终 focused、watchdog
-11 项 self-test、IntatisMac Debug/normal Release/validation Release、
-IntatisiOS Simulator Debug/Release、CLI Release、真实 production
+11 项 self-test、EgakiumMac Debug/normal Release/validation Release、
+EgakiumiOS Simulator Debug/Release、CLI Release、真实 production
 A→B→A/zoom/scroll、多窗口、三次 180 秒 soak、60 秒主动滚动和 90 秒
 Instruments。最终还执行 `git diff --check` 与 `git status --short`；其结果
 为：`git diff --check` exit 0、无输出；`git status --short` 仍显示用户既有的
@@ -1054,7 +1054,7 @@ SwiftUI/AppKit、可变高度 rich row 上的虚拟化反馈。真实
 因此 plain-safe 只作为定位对照，不是兜底修复；selection overlay 可能增加
 成本，但不是该问题的必要条件。
 
-卡死样本 `/private/tmp/intatis-entry-fix3-scroll-hang.sample.txt` 中，主线程
+卡死样本 `/private/tmp/egakium-entry-fix3-scroll-hang.sample.txt` 中，主线程
 1509/1509 个样本停留在 run-loop observer，1484 次经过
 `GraphHost.flushTransactions`，1478 次经过 AttributeGraph flush，1175 次命中
 `AG::Subgraph::update`，959 次命中 SwiftUI `UpdateStack`。
@@ -1091,7 +1091,7 @@ macOS Chat、Code、Cowork 的 rich transcript 现在统一使用：
 所以修复避免了原 lazy/native feedback，也不把几百条历史一次性 mount。
 没有新增 completed-document、native-view、message-height cache；没有改变
 EventLog、provider、permission、turn 或 runtime ownership。
-`IntatisAdaptiveThreadStack` 只保留给共享 iOS/兼容路径，macOS 三个生产 rich
+`EgakiumAdaptiveThreadStack` 只保留给共享 iOS/兼容路径，macOS 三个生产 rich
 transcript 不再使用它。共享 iOS Chat 本轮未迁移，必须单独验证，不能由 macOS
 结果推导通过。
 
@@ -1112,8 +1112,8 @@ transcript 不再使用它。共享 iOS Chat 本轮未迁移，必须单独验�
   稳定；
 - 结构测试冻结 macOS Chat/Code/Cowork 都是
   `ForEach(historyWindow.items)` + bounded eager `VStack`，且 transcript
-  范围内没有 `LazyVStack` / `IntatisAdaptiveThreadStack`；
-- `IntatisMac` unsigned Debug build succeeded。
+  范围内没有 `LazyVStack` / `EgakiumAdaptiveThreadStack`；
+- `EgakiumMac` unsigned Debug build succeeded。
 
 真实 Debug 产品使用原问题 session `cowork_tf2lkjbh`：
 
@@ -1126,7 +1126,7 @@ transcript 不再使用它。共享 iOS Chat 本轮未迁移，必须单独验�
   `40–55`；
 - 进入、滚动、翻页后的抽样 CPU 均为 0.0%；加载较大 B 后 RSS 达
   241,600 KiB，随后回落至 220,560 KiB，没有观察到此前持续线性增长；
-- 本轮操作窗口没有生成新的 Intatis hang incident；
+- 本轮操作窗口没有生成新的 Egakium hang incident；
 - 验收进程已关闭并通过进程列表确认无该 build 残留实例。
 
 复验只导航、滚动和翻页，没有发 provider 请求，也没有修改任何 session

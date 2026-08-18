@@ -1,4 +1,4 @@
-# Intatis Session 切换布局风暴修复计划
+# Egakium Session 切换布局风暴修复计划
 
 > 日期：2026-07-24
 >
@@ -15,8 +15,8 @@
 
 ## PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 两者与项目预期路径一致。
 - 工作树已有大量未提交改动；本计划将其全部视为用户现有工作，不覆盖、不回退、不暂存。
 
@@ -83,7 +83,7 @@ Chat 历史消息“重新进入后逐条、逐 token 发布”的问题与本�
 
 ### 2.1 已确认：主线程正在发生布局风暴
 
-事故现场的 IntatisMac 进程表现为：
+事故现场的 EgakiumMac 进程表现为：
 
 - 进程状态为运行态；
 - CPU 约 99%–100%；
@@ -111,8 +111,8 @@ Chat 历史消息“重新进入后逐条、逐 token 发布”的问题与本�
 
 ### 2.3 已确认：Chat 有页面身份，Code / Cowork 没有同等隔离
 
-- Chat 在 `IntatisChatScreen.swift` 中以 session ID 设置页面身份；
-- Code / Cowork 在 `IntatisMacRootView.swift` 的同一结构位置替换 `vm`，但没有同等的 session identity；
+- Chat 在 `EgakiumChatScreen.swift` 中以 session ID 设置页面身份；
+- Code / Cowork 在 `EgakiumMacRootView.swift` 的同一结构位置替换 `vm`，但没有同等的 session identity；
 - SwiftUI 因而有机会复用上一 session 的 `@State`、ScrollView、锚点、异步任务和内部布局缓存。
 
 这不是完整根因，但它是 session 状态串扰的直接入口。
@@ -307,14 +307,14 @@ struct SessionPresentationID: Hashable, Sendable {
 
 | 文件 | 计划修改 | 不应修改 |
 |---|---|---|
-| `Apps/IntatisMac/Sources/IntatisMacRootView.swift` | 为 Code/Cowork 详情建立 session-scoped identity；分离窗口状态与 session 状态 | 不在切换时 stop runtime |
-| `Apps/IntatisMac/Sources/SessionRuntimeManager.swift` | 移除全局 `runtimeRevision` 广播；改为窄粒度 activity/removal/opening 事件 | 不改变 exact runtime retention |
-| `Apps/IntatisMac/Sources/IntatisChatScreen.swift` | 作为已存在 identity 的参考；Chat replay 阶段可能接入新恢复状态 | 不先重写 Chat UI |
-| `Packages/IntatisSharedUI/Sources/CodeViews.swift` | 引入 thread scope；替换延迟滚动闭包；initial history 不动画 | 不改变消息业务模型 |
-| `Packages/IntatisSharedUI/Sources/CoworkViews.swift` | 与 Code 一致；额外验证多 agent 活动期间切换 | 不改变 Cowork scheduler |
-| `Packages/IntatisSharedUI/Sources/ThreadSurfaces.swift` | 让 anchor / stack 接收显式 scope，提供稳定测试点 | 不强制放弃 LazyVStack |
-| `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMessageContentView.swift` | 在必要时传递 presentation scope；记录 rich 高度完成信号 | 不削弱 stale request 检查 |
-| `Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMicrosoftMarkdownPipeline.swift` | 只补可观测性或 bounded parsed IR 策略 | 第一轮不缓存原生 view graph |
+| `Apps/EgakiumMac/Sources/EgakiumMacRootView.swift` | 为 Code/Cowork 详情建立 session-scoped identity；分离窗口状态与 session 状态 | 不在切换时 stop runtime |
+| `Apps/EgakiumMac/Sources/SessionRuntimeManager.swift` | 移除全局 `runtimeRevision` 广播；改为窄粒度 activity/removal/opening 事件 | 不改变 exact runtime retention |
+| `Apps/EgakiumMac/Sources/EgakiumChatScreen.swift` | 作为已存在 identity 的参考；Chat replay 阶段可能接入新恢复状态 | 不先重写 Chat UI |
+| `Packages/EgakiumSharedUI/Sources/CodeViews.swift` | 引入 thread scope；替换延迟滚动闭包；initial history 不动画 | 不改变消息业务模型 |
+| `Packages/EgakiumSharedUI/Sources/CoworkViews.swift` | 与 Code 一致；额外验证多 agent 活动期间切换 | 不改变 Cowork scheduler |
+| `Packages/EgakiumSharedUI/Sources/ThreadSurfaces.swift` | 让 anchor / stack 接收显式 scope，提供稳定测试点 | 不强制放弃 LazyVStack |
+| `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMessageContentView.swift` | 在必要时传递 presentation scope；记录 rich 高度完成信号 | 不削弱 stale request 检查 |
+| `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMicrosoftMarkdownPipeline.swift` | 只补可观测性或 bounded parsed IR 策略 | 第一轮不缓存原生 view graph |
 | `Vendor/SwiftStreamingMarkdown/Sources/MarkdownText/UI/Paragraph/AppKit/ParagraphNSView.swift` | 宽度规范化、epsilon 判定、合并 intrinsic invalidation | 不反复创建 TextKit 树 |
 | `Vendor/SwiftStreamingMarkdown/Sources/MarkdownText/UI/Paragraph/AppKit/ParagraphView+macOS.swift` | 配合 Paragraph 生命周期和取消语义 | 不改变内容语义 |
 | `Vendor/SwiftStreamingMarkdown/Sources/MarkdownText/UI/TableView.swift` | 拆分 viewport/content width，切断状态回路 | 不牺牲横向滚动 |
@@ -797,7 +797,7 @@ Chat 的问题是 projection replay publication 模式；Code/Cowork 当前事�
 
 ## PROJECT_AUDIT_SUMMARY
 
-- macOS 根选择由 `IntatisMacRootView` 驱动；
+- macOS 根选择由 `EgakiumMacRootView` 驱动；
 - 进程级 `AppSessionRuntimeManager` 按 exact session key 保留 Chat / Code / Cowork runtime；
 - Code / Cowork 详情使用 `ScrollViewReader`、`ScrollView` 和自适应 thread stack；
 - 消息超过阈值后采用 LazyVStack；
@@ -850,10 +850,10 @@ Chat 的问题是 projection replay publication 模式；Code/Cowork 当前事�
 
 #### A. Session-scoped presentation 与滚动
 
-- `IntatisThreadPresentationScope` 是纯展示 identity，不持久化、不替代 runtime key。
-- `IntatisMacRootView` 对 Code / Cowork 完整详情设置 `.id(presentationScope)`；thread subtree 再以同一 scope 隔离 ScrollView / `@StateObject`。
-- `IntatisThreadBottomAnchorID(scope:)` 替代静态 anchor。
-- 每个可见 thread 的 `IntatisThreadScrollCoordinator` 同时最多一个 pending task；scope change、disappear、用户开始滚动或新请求会取消旧 generation，执行前再次核对 exact scope/generation。
+- `EgakiumThreadPresentationScope` 是纯展示 identity，不持久化、不替代 runtime key。
+- `EgakiumMacRootView` 对 Code / Cowork 完整详情设置 `.id(presentationScope)`；thread subtree 再以同一 scope 隔离 ScrollView / `@StateObject`。
+- `EgakiumThreadBottomAnchorID(scope:)` 替代静态 anchor。
+- 每个可见 thread 的 `EgakiumThreadScrollCoordinator` 同时最多一个 pending task；scope change、disappear、用户开始滚动或新请求会取消旧 generation，执行前再次核对 exact scope/generation。
 - initial restore、live update 与 rich correction 无动画；只有 completion 使用 0.18 秒短动画。
 - 用户离开底部后自动跟随关闭；回到底部后恢复。
 - raw item signature 或 content width 明确开启 layout epoch。每个 epoch 可以完成一次 shrink→regrow recovery；首次 correction 后同一 epoch 的 `800↔900` 重复高度振荡被拒绝，新 epoch 才重新开放。这样既修复“先缩后长但未超过旧峰值”漏校正，也不重新引入 geometry→scroll 反馈环。
@@ -885,19 +885,19 @@ Chat 的问题是 projection replay publication 模式；Code/Cowork 当前事�
 
 业务/展示源码：
 
-- `Packages/IntatisSharedUI/Sources/ThreadSurfaces.swift`
-- `Packages/IntatisSharedUI/Sources/CodeViews.swift`
-- `Packages/IntatisSharedUI/Sources/CoworkViews.swift`
-- `Packages/IntatisSharedUI/Sources/ChatViewModel.swift`
-- `Apps/IntatisMac/Sources/IntatisMacRootView.swift`
-- `Apps/IntatisMac/Sources/IntatisMacApp.swift`
-- `Apps/IntatisMac/Sources/SessionRuntimeManager.swift`
-- `Apps/IntatisMac/Sources/CoworkViewModel.swift`
+- `Packages/EgakiumSharedUI/Sources/ThreadSurfaces.swift`
+- `Packages/EgakiumSharedUI/Sources/CodeViews.swift`
+- `Packages/EgakiumSharedUI/Sources/CoworkViews.swift`
+- `Packages/EgakiumSharedUI/Sources/ChatViewModel.swift`
+- `Apps/EgakiumMac/Sources/EgakiumMacRootView.swift`
+- `Apps/EgakiumMac/Sources/EgakiumMacApp.swift`
+- `Apps/EgakiumMac/Sources/SessionRuntimeManager.swift`
+- `Apps/EgakiumMac/Sources/CoworkViewModel.swift`
 
 新增测试：
 
-- `Packages/IntatisSharedUI/Tests/ThreadScrollCoordinatorTests.swift`
-- `Packages/IntatisSharedUI/Tests/ChatHistoryReplayTests.swift`
+- `Packages/EgakiumSharedUI/Tests/ThreadScrollCoordinatorTests.swift`
+- `Packages/EgakiumSharedUI/Tests/ChatHistoryReplayTests.swift`
 
 状态/约束/验证文档：
 
@@ -922,17 +922,17 @@ Chat 的问题是 projection replay publication 模式；Code/Cowork 当前事�
 
 | Target | Executed | Skipped | Failures |
 |---|---:|---:|---:|
-| IntatisCoreTests | 31 | 0 | 0 |
-| IntatisProtocolTests | 72 | 0 | 0 |
-| IntatisProvidersTests | 104 | 0 | 0 |
-| IntatisArtifactsTests | 14 | 0 | 0 |
-| IntatisConversationTests | 132 | 0 | 0 |
-| IntatisToolsTests | 98 | 14 | 0 |
-| IntatisPermissionTests | 43 | 0 | 0 |
-| IntatisAgentKernelTests | 82 | 0 | 0 |
-| IntatisCoworkTests | 306 | 0 | 0 |
-| IntatisMultimodalTests | 3 | 0 | 0 |
-| IntatisSharedUITests | 70 | 0 | 0 |
+| EgakiumCoreTests | 31 | 0 | 0 |
+| EgakiumProtocolTests | 72 | 0 | 0 |
+| EgakiumProvidersTests | 104 | 0 | 0 |
+| EgakiumArtifactsTests | 14 | 0 | 0 |
+| EgakiumConversationTests | 132 | 0 | 0 |
+| EgakiumToolsTests | 98 | 14 | 0 |
+| EgakiumPermissionTests | 43 | 0 | 0 |
+| EgakiumAgentKernelTests | 82 | 0 | 0 |
+| EgakiumCoworkTests | 306 | 0 | 0 |
+| EgakiumMultimodalTests | 3 | 0 | 0 |
+| EgakiumSharedUITests | 70 | 0 | 0 |
 | **合计** | **955** | **14** | **0** |
 
 SharedUI 的 70 项由 8 个 class 构成：ChatHistory 6、CoworkInference 4、ExecutionTrace 7、MarkdownScheduler 6、MessageRendererMode 11、MessageRendering 25、ThreadLayout 3、ThreadScroll 8。
@@ -942,14 +942,14 @@ SharedUI 的 70 项由 8 个 class 构成：ChatHistory 6、CoworkInference 4、
 - 收口过程中的两次 one-shot serial full run 分别在约 5 分钟和 84.21 秒无 suite summary 后有界中止；
 - 一次早期 parallel full 在 9.515 秒尝试 955 项，因共享临时目录/timeout 竞争出现 3 failures；三项随后串行 3/3 通过；
 - 最终 SharedUI 整 target 在一个 runner 中 120 秒无 summary，但 8 个 class 独立 70/70；
-- 每次中止后均确认没有 `swift-test`、`xctest` 或 `IntatisPackageTests` 残留。
+- 每次中止后均确认没有 `swift-test`、`xctest` 或 `EgakiumPackageTests` 残留。
 
 因此，最终权威结论是“11 target / SharedUI class 分片覆盖 955 / 14 skipped / 0 failures”，不是“某一次 one-shot full 命令成功”。
 
 产品构建：
 
-- IntatisMac macOS Debug：成功；
-- IntatisiOS generic Simulator Debug：成功；
+- EgakiumMac macOS Debug：成功；
+- EgakiumiOS generic Simulator Debug：成功；
 - 警告仅为既有 `onChange(of:perform:)` 弃用、未使用 `try?` 结果和 DEBUG Phase-L fixture 的 Swift 6 actor-isolation warning；没有新增编译错误。
 
 静态检查：
@@ -960,7 +960,7 @@ SharedUI 的 70 项由 8 个 class 构成：ChatHistory 6、CoworkInference 4、
 
 ### 16.5 Computer Use 与性能观测
 
-验证使用 exact Debug app path、单个 Intatis 实例和用户现有只读历史；没有发送消息、触发 provider、删除 session、保存设置或修改绑定工作区。
+验证使用 exact Debug app path、单个 Egakium 实例和用户现有只读历史；没有发送消息、触发 provider、删除 session、保存设置或修改绑定工作区。
 
 历史规模：
 

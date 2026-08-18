@@ -11,7 +11,7 @@ Codex 对 Git 的处理不是简单地给 agent 开放 `git` shell，而是把 G
 - CLI 层允许常规本地命令，但 review 工作流是只读 reviewer：读 diff、给 findings，不改工作区。
 - 开源实现层把 Git helper 封装成专门模块：参数数组调用系统 `git`、禁用 hooks、抽取 patch 路径、支持 patch preflight/apply、读取 repo metadata、计算 base/merge-base。
 
-因此，Intatis 的正确方向是“受限 Git 工具 + patch/index/worktree 能力 + PermissionEngine”，而不是让模型自由拼接 `git` 命令。
+因此，Egakium 的正确方向是“受限 Git 工具 + patch/index/worktree 能力 + PermissionEngine”，而不是让模型自由拼接 `git` 命令。
 
 ## Codex App 的 Git 行为
 
@@ -25,7 +25,7 @@ Codex app 还提供内建 Git 功能：
 - 支持 commit、push、create pull requests。
 - 更高级 Git 任务交给 integrated terminal。
 
-对 Intatis 的启发：UI 可以有状态/评审面板，但核心执行层应暴露更小粒度的 tool：status/diff、patch preflight/apply/revert、stage/unstage、commit，而不是一次性做完整 IDE 式 Git 工作流。
+对 Egakium 的启发：UI 可以有状态/评审面板，但核心执行层应暴露更小粒度的 tool：status/diff、patch preflight/apply/revert、stage/unstage、commit，而不是一次性做完整 IDE 式 Git 工作流。
 
 ## Codex Worktrees 的隔离模型
 
@@ -43,7 +43,7 @@ Codex managed worktrees 的关键点：
 - 如果选择带本地改动的 branch，可把 uncommitted changes 应用到 worktree。
 - `.gitignore` 文件默认不会随 handoff 移动，除非通过 `.worktreeinclude` 指定被复制的 ignored paths。
 
-对 Intatis 的启发：本轮先做 workspace 内 `.intatis/git-worktrees/<name>` 受管 worktree，默认 detached HEAD，不做 handoff，也不自动复制 ignored secrets。这个范围更小，但方向与 Codex 一致。
+对 Egakium 的启发：本轮先做 workspace 内 `.egakium/git-worktrees/<name>` 受管 worktree，默认 detached HEAD，不做 handoff，也不自动复制 ignored secrets。这个范围更小，但方向与 Codex 一致。
 
 ## Codex CLI 的 Git/Review 行为
 
@@ -56,7 +56,7 @@ Codex CLI features 文档里，`/review` 会启动 dedicated reviewer，读取�
 
 CLI approval modes 也说明：Auto 默认可读文件、编辑和在工作目录内运行命令；Read-only 只咨询；Full Access 跨机器/网络执行能力更大。Codex 总是展示 action transcript，用户可用自己的 Git workflow review/rollback。
 
-对 Intatis 的启发：Git review 和 Git mutation 应拆开。只读 diff/base/recent commit 可以默认 read-only；index/patch/commit/worktree mutation 必须走权限流；remote/push/PR/CI 暂不进入本 slice。
+对 Egakium 的启发：Git review 和 Git mutation 应拆开。只读 diff/base/recent commit 可以默认 read-only；index/patch/commit/worktree mutation 必须走权限流；remote/push/PR/CI 暂不进入本 slice。
 
 ## openai/codex 开源实现观察
 
@@ -76,17 +76,17 @@ CLI approval modes 也说明：Auto 默认可读文件、编辑和在工作目�
 - `apply_git_patch` 的 preflight 使用 `git apply --check`，不改工作区；真实 apply 默认 `git apply --3way`。reverse apply 在非 preflight 场景会先 best-effort `git add -- <paths>`，降低 “does not match index” 类失败。
 - patch 输出会被解析为 `applied_paths`、`skipped_paths`、`conflicted_paths`，而不是只返回一段 stderr；这使 UI/agent 后续可以按文件解释失败和冲突。
 
-对 Intatis 的启发：本轮采用同类工程形态：`GitService` 抽象 + process-backed system `git`，参数数组调用，不拼 shell；patch 先解析 paths 再执行；repo metadata 和 workspace 边界显式校验。没有复制 Codex 源码。
+对 Egakium 的启发：本轮采用同类工程形态：`GitService` 抽象 + process-backed system `git`，参数数组调用，不拼 shell；patch 先解析 paths 再执行；repo metadata 和 workspace 边界显式校验。没有复制 Codex 源码。
 
-## Intatis 本轮实现映射
+## Egakium 本轮实现映射
 
-本轮 Intatis 已补上：
+本轮 Egakium 已补上：
 
 - read-only：`git_status`、`git_diff`、`git_diff_staged`、`git_info`、`git_recent_commits`、`git_diff_base`、`git_branch`、`git_apply_patch_check`、`git_worktree_list`。
 - write：`git_create_branch`、`git_stage`、`git_unstage`、`git_commit`、`git_apply_patch`、`git_stage_patch`、`git_unstage_patch`、`git_worktree_create`。
 - destructive：`git_revert_patch`、`git_worktree_remove`，均要求显式确认参数。
 - 权限：coordinator lease 可获得 `gitControl`；worker 默认没有任何 Git 工具；旧 `runShell` 兼容路径只暴露 read-only Git 工具。
-- 安全：参数数组调用 `git`；设置 `GIT_TERMINAL_PROMPT=0`、`GIT_OPTIONAL_LOCKS=0`、`core.hooksPath=/dev/null`、`core.fsmonitor=false`；Git 子进程有 5 秒 command timeout；repository root 必须等于 workspace root；普通 `.git` metadata 不得逃出 workspace；受管 worktree 限定 `.intatis/git-worktrees/<name>`；非 cached apply 使用 `git apply --3way`，reverse apply 前 best-effort stage 已存在路径。
+- 安全：参数数组调用 `git`；设置 `GIT_TERMINAL_PROMPT=0`、`GIT_OPTIONAL_LOCKS=0`、`core.hooksPath=/dev/null`、`core.fsmonitor=false`；Git 子进程有 5 秒 command timeout；repository root 必须等于 workspace root；普通 `.git` metadata 不得逃出 workspace；受管 worktree 限定 `.egakium/git-worktrees/<name>`；非 cached apply 使用 `git apply --3way`，reverse apply 前 best-effort stage 已存在路径。
 
 ## 仍未做的部分
 
@@ -104,7 +104,7 @@ CLI approval modes 也说明：Auto 默认可读文件、编辑和在工作目�
 
 ## 追加：remote/cloud Git 基础能力落地
 
-本轮继续对照 Codex Cloud / Codex app 公开资料后，Intatis 已把 remote Git 从“未实现”推进到受控 Agent 工具原语：
+本轮继续对照 Codex Cloud / Codex app 公开资料后，Egakium 已把 remote Git 从“未实现”推进到受控 Agent 工具原语：
 
 - `git_remotes`：列出已配置 remote，输出遮蔽 URL 中的凭据/token。
 - `git_fetch`：只接受已配置 remote name，不接受 URL remote/refspec；这是 write + network 工具。
@@ -114,7 +114,7 @@ CLI approval modes 也说明：Auto 默认可读文件、编辑和在工作目�
 
 能力租约也拆开：`gitControl` 继续代表本地 Git control；新增 `gitRemote` 代表 remote Git control。coordinator 默认可获得两者，worker 默认仍无任何 Git 工具；旧 `runShell` 兼容路径仍只暴露 Git read-only 工具。
 
-这不是完整 Codex Cloud/PR 工作流。Codex Cloud 的关键产品层能力是：在远端容器中 checkout 选定分支/commit、运行 setup、受控网络策略、完成后展示 diff 并提供 PR 入口。Intatis 当前只在本地/工作区 agent 工具层补齐 remote Git 的最小安全原语，真实 remote auth 仍依赖用户本机 Git credential helper / SSH agent，Intatis 不读取、保存或展示凭据。
+这不是完整 Codex Cloud/PR 工作流。Codex Cloud 的关键产品层能力是：在远端容器中 checkout 选定分支/commit、运行 setup、受控网络策略、完成后展示 diff 并提供 PR 入口。Egakium 当前只在本地/工作区 agent 工具层补齐 remote Git 的最小安全原语，真实 remote auth 仍依赖用户本机 Git credential helper / SSH agent，Egakium 不读取、保存或展示凭据。
 
 仍未做：
 

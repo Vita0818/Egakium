@@ -2,9 +2,9 @@
 
 文档状态：当前 UI 实施规范
 最近核对日期：2026-08-16
-产品基线：v0.2（build 49）
+产品基线：v0.4（build 50）
 
-> Ekagium 不再把“系统外观”解释为固定的纯白和纯黑。页面、侧栏、内容层与控制层均使用 Apple 平台的动态语义资源；在支持的系统上，导航与交互控件采用原生 Liquid Glass。`docs/UI_COLOR_SYSTEM.md` 只保存上一版香槟金 / 暖中性色方案，不随当前方案修改。
+> Egakium 不再把“系统外观”解释为固定的纯白和纯黑。页面、侧栏、内容层与控制层均使用 Apple 平台的动态语义资源；在支持的系统上，导航与交互控件采用原生 Liquid Glass。`docs/UI_COLOR_SYSTEM.md` 只保存上一版香槟金 / 暖中性色方案，不随当前方案修改。
 
 ## 1. 核心规则
 
@@ -33,15 +33,15 @@
 | Functional glass | `glassEffect`、`GlassEffectContainer`、`.buttonStyle(.glass/.glassProminent)` | composer、模型菜单、主要按钮、操作组、agent pill 等 |
 | Fallback | `.regularMaterial` 或系统 bordered button | macOS 13–15、iOS 16–18 等不支持 Liquid Glass 的部署目标 |
 
-系统强调色用于焦点、选中态和 prominent 操作。Ekagium 不再以固定黑白代替系统 accent，也不自行模拟玻璃的高光、折射、阴影或动态响应。
+系统强调色用于焦点、选中态和 prominent 操作。Egakium 不再以固定黑白代替系统 accent，也不自行模拟玻璃的高光、折射、阴影或动态响应。
 
 ## 3. 组件映射
 
 ### 3.1 页面与侧栏
 
-- macOS detail 区由 `IntatisSystemCanvas` 渲染动态 window surface。
-- macOS sidebar 不设置 `IntatisTheme.canvas` 或其他背景覆盖层；`NavigationSplitView` 继续提供系统侧栏材质，内部是 `Ekagium` 标题、唯一可见的 Cowork 模式行、Cowork session history/New 与底部 Settings 的连贯结构。Cowork 行使用既有 interactive Liquid Glass；隐藏的 Chat/Code 组件与样式实现不删除。
-- iOS 继续由 `NavigationStack` / SwiftUI 容器提供原生根背景，不引入 Intatis 私有页面色。紧凑 Chat 使用同一容器内的约 82% 左抽屉；抽屉与右移后的圆角主画布都只使用系统语义背景、Material、separator 和 glass controls，不复制参考应用的固定渐变或品牌资产。
+- macOS detail 区由 `EgakiumSystemCanvas` 渲染动态 window surface。
+- macOS sidebar 不设置 `EgakiumTheme.canvas` 或其他背景覆盖层；`NavigationSplitView` 继续提供系统侧栏材质，内部是 `Egakium` 标题、唯一可见的 Cowork 模式行、Cowork session history/New 与底部 Settings 的连贯结构。Cowork 行使用既有 interactive Liquid Glass；隐藏的 Chat/Code 组件与样式实现不删除。
+- iOS 继续由 `NavigationStack` / SwiftUI 容器提供原生根背景，不引入 Egakium 私有页面色。紧凑 Chat 使用同一容器内的约 82% 左抽屉；抽屉与右移后的圆角主画布都只使用系统语义背景、Material、separator 和 glass controls，不复制参考应用的固定渐变或品牌资产。
 
 ### 3.2 Chat
 
@@ -84,18 +84,18 @@
 
 - `glassEffect`、`GlassEffectContainer`、`.glass` 和 `.glassProminent` 只在 macOS 26 / iOS 26 及以上启用。
 - 当前产品 deployment target 是 macOS 26 / iOS 26；源码中的 Material / bordered fallback 只保留为防御性实现，不属于当前产品验收矩阵，也不能被替换成手绘静态“仿玻璃”。
-- `IntatisSharedUI` 通过可用性检查共享实现，不反向依赖 macOS app target，也不扩大 iOS 的 Chat-only 产品边界。
+- `EgakiumSharedUI` 通过可用性检查共享实现，不反向依赖 macOS app target，也不扩大 iOS 的 Chat-only 产品边界。
 - 系统 Reduce Transparency、Increase Contrast、accent、active / inactive window 与其他辅助功能设置应由原生 API 自动响应，不能用固定值覆盖。
 
 ## 5. 事实来源
 
-- `Apps/IntatisMac/Sources/IntatisDesign.swift`：系统 window canvas、macOS 13 兼容表面、语义色与内容卡片。
-- `Apps/IntatisMac/Sources/IntatisMacRootView.swift`：系统 split-view sidebar 材质、title/竖向 icon mode/history/Settings 内部结构与 detail canvas。
-- `Packages/IntatisSharedUI/Sources/ThreadSurfaces.swift`：用户消息原生 regular glass helper、结构化内容 Material、30×30 sidebar New 圆形 glass control、原生圆形 icon controls、40pt composer/selection-menu 几何合同、两排 composer、首排 usage strip 与可选 accessories。
-- `Packages/IntatisSharedUI/Sources/Views.swift`：共享 Chat 消息和 composer；仅用户消息使用 glass 气泡，其余对话角色继承系统 canvas。
-- `Packages/IntatisSharedUI/Sources/CodeViews.swift`、`CoworkViews.swift`、`ArtifactViews.swift`：各产品面的内容层 / 功能层映射。
-- `Apps/IntatisMac/Sources/IntatisChatScreen.swift`、`IntatisMacApp.swift`：macOS Chat、设置与 home CTA。
-- `Apps/IntatisiOS/Sources/IntatisiOSApp.swift`：iOS serif 标题角色、顶部 session header、
+- `Apps/EgakiumMac/Sources/EgakiumDesign.swift`：系统 window canvas、macOS 13 兼容表面、语义色与内容卡片。
+- `Apps/EgakiumMac/Sources/EgakiumMacRootView.swift`：系统 split-view sidebar 材质、title/竖向 icon mode/history/Settings 内部结构与 detail canvas。
+- `Packages/EgakiumSharedUI/Sources/ThreadSurfaces.swift`：用户消息原生 regular glass helper、结构化内容 Material、30×30 sidebar New 圆形 glass control、原生圆形 icon controls、40pt composer/selection-menu 几何合同、两排 composer、首排 usage strip 与可选 accessories。
+- `Packages/EgakiumSharedUI/Sources/Views.swift`：共享 Chat 消息和 composer；仅用户消息使用 glass 气泡，其余对话角色继承系统 canvas。
+- `Packages/EgakiumSharedUI/Sources/CodeViews.swift`、`CoworkViews.swift`、`ArtifactViews.swift`：各产品面的内容层 / 功能层映射。
+- `Apps/EgakiumMac/Sources/EgakiumChatScreen.swift`、`EgakiumMacApp.swift`：macOS Chat、设置与 home CTA。
+- `Apps/EgakiumiOS/Sources/EgakiumiOSApp.swift`：iOS serif 标题角色、顶部 session header、
   macOS 同层级抽屉、两排 composer 接线、Settings 与根 Icon Composer resource 选择。
 
 Apple 官方设计与 API 依据：
@@ -116,13 +116,13 @@ Apple 官方设计与 API 依据：
 - macOS Chat / Code / Cowork 与 iOS Chat 的 Light / Dark 运行态都曾经过视觉核对；其中 macOS
   Chat/Code 属于入口隐藏前的既有证据，不代表当前 sidebar 仍可进入这两个模式。不能只用源码搜索
   或固定像素值推断当前可见 UI。
-- thread header 显示 session display name；Code / Cowork header 使用紧凑顶部留白且 Cowork 不常驻 permission-reviewer 横幅；消息无 agent 头像与通用 Agent badge；正常 agent 回复无外层卡片；agent 名称旁有本地化三级时间元数据；macOS sidebar 模式为带图标的竖向三行且仅选中行使用玻璃，Recent New `+` 为 30×30 原生圆形 glass；macOS composer 第一排保持 40pt、关闭态仅模型名的 model/profile glass 菜单左、usage 右，第二排保持已有 action 左、输入居中、voice 紧邻唯一 Send/Stop 左侧。iOS 顶部固定 sidebar/session/new，抽屉为 serif `Ekagium`、选中 Chat、Recent/New 和底部 Settings，空页无 onboarding/建议卡；底部同样为 model/usage 第一排和 paperclip/input/voice/Send-or-Stop 第二排。两平台标题使用系统 serif、正文与控件使用系统 sans；两平台第二排 action/voice/stop/Send 与单行输入均为 40pt，输入变为多行时按钮底边不漂移；Cowork 宽屏 rail 第一位为权限审查、其后为 Agents/Goal/Tasks 且无 Git，pending 时 rail 固定；无法容纳 rail 时只显示一个权限兜底卡且不复制 Goal/Tasks。
+- thread header 显示 session display name；Code / Cowork header 使用紧凑顶部留白且 Cowork 不常驻 permission-reviewer 横幅；消息无 agent 头像与通用 Agent badge；正常 agent 回复无外层卡片；agent 名称旁有本地化三级时间元数据；macOS sidebar 模式为带图标的竖向三行且仅选中行使用玻璃，Recent New `+` 为 30×30 原生圆形 glass；macOS composer 第一排保持 40pt、关闭态仅模型名的 model/profile glass 菜单左、usage 右，第二排保持已有 action 左、输入居中、voice 紧邻唯一 Send/Stop 左侧。iOS 顶部固定 sidebar/session/new，抽屉为 serif `Egakium`、选中 Chat、Recent/New 和底部 Settings，空页无 onboarding/建议卡；底部同样为 model/usage 第一排和 paperclip/input/voice/Send-or-Stop 第二排。两平台标题使用系统 serif、正文与控件使用系统 sans；两平台第二排 action/voice/stop/Send 与单行输入均为 40pt，输入变为多行时按钮底边不漂移；Cowork 宽屏 rail 第一位为权限审查、其后为 Agents/Goal/Tasks 且无 Git，pending 时 rail 固定；无法容纳 rail 时只显示一个权限兜底卡且不复制 Goal/Tasks。
 - macOS 与 iOS touched targets 均可编译，全量 SwiftPM 测试通过。
 
 静态复核重点：
 
 ```sh
-rg -n 'IntatisTheme\.canvas|scheme == \.dark \? \.black : \.white|Color\.(white|black)|LinearGradient' Apps Packages
+rg -n 'EgakiumTheme\.canvas|scheme == \.dark \? \.black : \.white|Color\.(white|black)|LinearGradient' Apps Packages
 rg -n 'glassEffect|GlassEffectContainer|buttonStyle\(\.glass|regularMaterial|windowBackground' Apps Packages
 ```
 
@@ -131,9 +131,9 @@ rg -n 'glassEffect|GlassEffectContainer|buttonStyle\(\.glass|regularMaterial|win
 ## 7. 2026-07-15 实施验证
 
 - SwiftPM build 通过。
-- IntatisMac macOS Debug 与 IntatisiOS Simulator Debug 构建通过。
+- EgakiumMac macOS Debug 与 EgakiumiOS Simulator Debug 构建通过。
 - 使用 Computer Use 检查本轮构建的 Chat、Code、Cowork：Light 使用系统浅色 window / sidebar / Material，Dark 使用系统动态深灰层级而非纯黑；composer、CTA、模式切换和相关操作呈现原生控件 / Liquid Glass。
-- Light / Dark 验收使用 DEBUG-only 启动参数 `-IntatisAppearanceLight` / `-IntatisAppearanceDark` 隔离测试，不修改用户的全局系统 Appearance；生产启动不设置偏好，始终跟随系统。
+- Light / Dark 验收使用 DEBUG-only 启动参数 `-EgakiumAppearanceLight` / `-EgakiumAppearanceDark` 隔离测试，不修改用户的全局系统 Appearance；生产启动不设置偏好，始终跟随系统。
 - 完整 SwiftPM 测试通过：605 tests，14 skipped，0 failures。
 
 ## 8. 未固定的部分
@@ -146,7 +146,7 @@ rg -n 'glassEffect|GlassEffectContainer|buttonStyle\(\.glass|regularMaterial|win
 
 - 该次截图与 Computer Use 只验证当时的自定义纵向 mode/session 表面，以及“usage 独占上方一行、model/profile/attachment 位于输入容器”的旧布局。控制位置已被 2026-07-23 方案取代，不能继续作为当前像素、键盘或焦点行为的 Passed 证据。
 - 当时的 session-name header、无消息 agent 头像/通用 Agent badge和 Code/Cowork 原生 inspector 结论仍是历史事实。
-- `swift build`、IntatisMac macOS Debug、IntatisiOS Simulator Debug 与 `CoworkInferencePresentationTests` 4/4 通过。
+- `swift build`、EgakiumMac macOS Debug、EgakiumiOS Simulator Debug 与 `CoworkInferencePresentationTests` 4/4 通过。
 - Computer Use 在最新 Debug app 中只读检查了 Chat、Cowork 与宽屏 inspector；参考图和实现截图在同一比较输入中核对，结果见根目录 `design-qa.md`。
 - 本轮没有改字体 token、用户字体选择、EventLog/projection schema、权限链路、iOS chat-only target 边界或开源依赖。
 
@@ -155,26 +155,26 @@ rg -n 'glassEffect|GlassEffectContainer|buttonStyle\(\.glass|regularMaterial|win
 - Cowork 对话页删除常驻 permission-reviewer 顶部横幅；Code / Cowork session header 的顶部留白统一从 26pt 收紧为 12pt。真正待处理的 `PermissionCard`、permission FIFO 与权限引擎没有删除；横幅原有的 workspace reauthorization / automatic-review retry 只在异常时进入 Cowork Project Settings 的 Recovery 区。
 - macOS Chat、Code、Cowork 与共享 iOS Chat 的正常 assistant / agent 回复取消外层 Material、圆角和描边，正文、Markdown 与公式直接继承系统 canvas；用户消息、失败 / 中断回复、tool、error、permission、task 等结构化内容继续保留容器。
 - macOS Chat/Code/Cowork 与共享 iOS Chat 的 assistant/agent 名称右侧复用同一时间表现：首次 message envelope 定时，24 小时 / 7 天滚动分层，遵循当前 locale、时区和 12/24 小时偏好；流式完成不刷新为“完成时间”。
-- 没有硬编码白色背景，也没有修改字体。`MessageRenderingTests` 22/22、`swift build --disable-sandbox`、IntatisMac macOS Debug 与 IntatisiOS Simulator Debug build 通过；运行态 Light / Dark 和真实长回复视觉复核仍待用户检查。
+- 没有硬编码白色背景，也没有修改字体。`MessageRenderingTests` 22/22、`swift build --disable-sandbox`、EgakiumMac macOS Debug 与 EgakiumiOS Simulator Debug build 通过；运行态 Light / Dark 和真实长回复视觉复核仍待用户检查。
 - 名称旁时间追加后的组合过滤实际执行 161 tests / 0 failures，SwiftPM 与 macOS/iOS Debug app target 再次构建通过；遵守 renderer NO-GO，没有启动 App/fixture，因此不同 locale、Light/Dark 和跨阈值长期停留仍未做运行态视觉结论。
 
 ## 11. 2026-07-23 原生 List sidebar 与两排 composer（已撤销）
 
 - 该轮曾把 macOS 根侧栏收敛为单个 `List(selection:)`，以 `Section` 组织 mode、当前 mode 的 sessions 与 Settings，并采用 `.listStyle(.sidebar)`；此排布已被同日后续视觉修订撤销，不再代表当前实现。
 - composer 第一排为 model/profile 左、usage 右；第二排为当前已有附件/图像 action 左、`TextField` 居中、可选 Cowork stop 与 Send 右。`+`、附件、图像 action、stop 和 Send 使用统一 regular/circle 原生 glass/bordered control，Send 保持 prominent。Cowork selector 仍可在 busy 时选择且只冻结下一次 `@main` Send；没有新增 Chat/Code 附件能力，字体未改。
-- Swift parse、`swift build --target IntatisSharedUI`、`IntatisSharedUITests` 50/50、`PerAgentInferenceProfileTests` 20/20、`SubmittedIntentStoreTests` 11/11、`SubmissionProjectionTests` 4/4、XcodeGen、IntatisMac macOS Debug 与 IntatisiOS generic Simulator Debug build 均通过。
+- Swift parse、`swift build --target EgakiumSharedUI`、`EgakiumSharedUITests` 50/50、`PerAgentInferenceProfileTests` 20/20、`SubmittedIntentStoreTests` 11/11、`SubmissionProjectionTests` 4/4、XcodeGen、EgakiumMac macOS Debug 与 EgakiumiOS generic Simulator Debug build 均通过。
 - 本轮没有启动 App 或 renderer fixture；当前像素、sidebar 键盘/焦点、Light/Dark、Reduce Transparency 和真实窄宽布局仍为 `UNKNOWN`。
 
 ## 12. 2026-07-23 sidebar 竖向导航恢复与 composer 几何修正
 
-- sidebar 当前为系统 `NavigationSplitView` 材质内的 `Ekagium` 标题、唯一可见的 Cowork 模式行、
+- sidebar 当前为系统 `NavigationSplitView` 材质内的 `Egakium` 标题、唯一可见的 Cowork 模式行、
   Cowork `Recent` history/New 与底部 Settings；Cowork 行继续使用 interactive Liquid Glass。隐藏前的
   Chat/Code 行和 mode-specific history 仍保留在编译实现中，但不进入当前 `items` 投影。该状态取代
   同日较早的三行可见导航、单一 `List(selection:)` 和横向 segmented control 修订；session
   Rename/Delete、busy delete gate 与 durable selection 逻辑保持不变。
 - `Recent` 旁 New `+` 使用 24pt label、`.controlSize(.small)`、圆形 button border shape 与原生 glass，fitting-size probe 为 30×30。composer 仍为两排；第一排 Chat/Code/Cowork 模型或 profile `Menu` 共用 40pt 高 interactive Liquid Glass 胶囊，关闭态只显示模型名，右侧 usage 保持只读且不伪装成按钮。
 - 第二排附件/图像 action/stop/Send 的 icon label 统一为 32×32，经原生 `.glass` / `.glassProminent` 或 bordered fallback 后得到 40×40 外观；输入容器单行最小高度为 40、间距为 8、圆角为 20。外层使用 bottom alignment，多行输入时按钮保持贴底。
-- 原生控件 fitting-size probe 确认 Recent `+` 为 30×30，plain native `Menu` 加共享 interactive glass label 后为 40pt 高；第二排 glass/glassProminent/bordered 按钮与单行输入均为 40pt。Swift parse、SharedUI build、`IntatisSharedUITests` 50/50、`PerAgentInferenceProfileTests` 20/20、XcodeGen、macOS Debug 与 iOS generic Simulator Debug build 均通过。
+- 原生控件 fitting-size probe 确认 Recent `+` 为 30×30，plain native `Menu` 加共享 interactive glass label 后为 40pt 高；第二排 glass/glassProminent/bordered 按钮与单行输入均为 40pt。Swift parse、SharedUI build、`EgakiumSharedUITests` 50/50、`PerAgentInferenceProfileTests` 20/20、XcodeGen、macOS Debug 与 iOS generic Simulator Debug build 均通过。
 - 遵守 renderer NO-GO，本轮未启动 App 或 fixture；实际像素、sidebar 交互、Light/Dark、Reduce Transparency 和真实窄宽布局仍为 `UNKNOWN`。
 
 ## 13. 2026-07-31 权限审查与消息标识收口
@@ -182,24 +182,24 @@ rg -n 'glassEffect|GlassEffectContainer|buttonStyle\(\.glass|regularMaterial|win
 - 待处理权限使用紧凑、左对齐的低对比 Material 卡片，不再用风险色描整张卡。风险色只用于小图标与 risk chip；tool、reason 与当前状态保持可扫读，结构化 scope 和 patch diff 默认收进 `Details`，避免长参数抢占对话主视觉。
 - `Details` 只展示 host 生成的结构化 action preview / intent / resource / touched path；raw JSON arguments 不进入通用详情列表。patch diff 仍可在用户主动展开后查看和选择，权限 action、RequestID/FIFO 与审批语义不变。
 - automatic reviewer 状态只显示进度，不暴露 Approve / Decline / Cancel；人工模式继续区分 `Approve Call`、`Decline Call` 与 `Cancel Turn`。resolved notice 收窄为同一低对比表面的紧凑状态行。
-- Chat、Code、Cowork 和共享 iOS Chat 的用户气泡继续靠右并保留既有 Material/宽度合同，但不再重复显示 `You`；assistant、agent、system 的 structured identity header 与 agent timestamp 保留。macOS sidebar 品牌块只显示 `Ekagium`。当前可见的 active Cowork session header 和 sidebar Recent row 只显示 session name；入口隐藏但仍保留实现的 Chat/Code surface 继续遵守同一规则。不得在名称下显示灰色 model/provider/host、workspace/state、agent/running、event/date/path/runtime metadata；空态首页与 Settings 的说明性 subtitle 不属于 session metadata，继续保留。
+- Chat、Code、Cowork 和共享 iOS Chat 的用户气泡继续靠右并保留既有 Material/宽度合同，但不再重复显示 `You`；assistant、agent、system 的 structured identity header 与 agent timestamp 保留。macOS sidebar 品牌块只显示 `Egakium`。当前可见的 active Cowork session header 和 sidebar Recent row 只显示 session name；入口隐藏但仍保留实现的 Chat/Code surface 继续遵守同一规则。不得在名称下显示灰色 model/provider/host、workspace/state、agent/running、event/date/path/runtime metadata；空态首页与 Settings 的说明性 subtitle 不属于 session metadata，继续保留。
 - Computer Use 使用独立 bundle 的离线 Phase C fixture 验证了 Light/Dark、默认折叠、详情展开、automatic non-actionable 与 approved notice；另以本轮构建打开真实历史 Chat，只读确认侧栏品牌副标题、active session subtitle、Recent session detail 和用户气泡 `You` 均消失，并在 Cowork history 再核对单行 session row；未发送 provider 请求。当前截图与逐项对比记录见根目录 `design-qa.md`。
 
 ## 14. 2026-08-02 iOS 与 macOS 设计语言统一（取代同日全局 serif 记录）
 
 - iOS 不再在 App 根视图设置全局 `.fontDesign(.serif)`。与 macOS 相同，serif 只用于
-  品牌 `Ekagium`、当前 session 和 Settings 页面标题；正文、composer、按钮、菜单、
+  品牌 `Egakium`、当前 session 和 Settings 页面标题；正文、composer、按钮、菜单、
   表单与状态使用 Apple 系统 sans + Dynamic Type。Markdown/plain fallback、代码块、
   公式和第三方声明继续与 macOS 共用 renderer 的语义字体，不增加字体文件。
 - 顶部中央从 model picker 改为 serif session title；model 选择移入 composer 第一排，
   使用 13pt semibold sans、向下 chevron 与原生 interactive Liquid Glass capsule。
   有 turn stats 时同排右侧显示共享 usage strip；第二排继续是
   paperclip/input/voice/Send-or-Stop，voice 紧邻唯一主操作左侧。
-- 左抽屉采用 macOS 的同一信息层级：serif `Ekagium`、选中 Chat 玻璃模式行、`Recent`
+- 左抽屉采用 macOS 的同一信息层级：serif `Egakium`、选中 Chat 玻璃模式行、`Recent`
   session history/New 与底部 Settings；删除旧顶部 gear、假 search 占位和底部大 Chat CTA。
   Settings 使用 serif 页面标题，原生 toolbar、section、说明和字段保持 sans。
 - iPhone 17e Simulator 已检查 Light/Dark 主界面、Light 抽屉、Settings 与主屏幕安装态；
-  根 `Intatis.icon` 的 2026-08-02 22:26:51 版本正确显示为新版指针图标。对比图与详细
+  根 `Egakium.icon` 的 2026-08-02 22:26:51 版本正确显示为新版指针图标。对比图与详细
   severity review 见根目录 `design-qa.md`。
 
 ## 15. 2026-08-02 Cowork permission-first Liquid Glass rail（历史）
@@ -283,7 +283,7 @@ rg -n 'glassEffect|GlassEffectContainer|buttonStyle\(\.glass|regularMaterial|win
   transcript 的 empty/loading/page/rich 更新不会重新物化 rail subtree。
 - 每个 `Glass.clear` 位于独立稳定 backdrop；蓝色 selected-row 内容更新与原生 glass surface 分层。
   independent cards 不共享 `GlassEffectContainer`，从根源上取消邻卡光学融合/重组。
-- Code/Cowork 删除 `IntatisThreadViewportFramesPreferenceKey`、GeometryReader frame probe 和
+- Code/Cowork 删除 `EgakiumThreadViewportFramesPreferenceKey`、GeometryReader frame probe 和
   `.global`/named coordinate comparison；raw bottom-anchor 改由系统 `onScrollVisibilityChange`
   观察，窗口移动、focus 与全屏变化不再因 origin 改变触发布局 preference。
 - 85 个 MessageRendering/ThreadLayout/ThreadScrollCoordinator focused tests 通过；其中 AppKit host
@@ -314,14 +314,14 @@ rg -n 'glassEffect|GlassEffectContainer|buttonStyle\(\.glass|regularMaterial|win
 - macOS Chat、共享 iOS Chat 与 Code/Cowork 共用消息行都收敛为同一角色规则：只有用户消息
   带外层气泡，继续保持 trailing 对齐、原 `messageMaxWidth` 与 gutter；其他对话角色直接位于
   conversation canvas。
-- 用户气泡复用 `ThreadSurfaces.swift` 已有的 `intatisLiquidGlass`，在当前 macOS 26 / iOS 26
+- 用户气泡复用 `ThreadSurfaces.swift` 已有的 `egakiumLiquidGlass`，在当前 macOS 26 / iOS 26
   产品面使用原生 `Glass.regular`。旧 `.regularMaterial` 用户表面及 accent 蓝色细线描边已删除，
   没有新增颜色 token、自绘高光、渐变、阴影或玻璃组件。
 - assistant/agent/system 的普通、失败与中断回复不再因 failure/recovery 状态获得外层容器。
   Chat recovery advice 仍跟随原消息正文；Code/Cowork recovery advice 与错误事实统一迁入右栏，
   正常 tool、permission、artifact、Goal/Task 等专用结构化卡片保持不变。
-- `ThreadLayoutTests` 18/18、`swift build --disable-automatic-resolution`、IntatisMac macOS Debug
-  unsigned build 与 IntatisiOS generic Simulator Debug unsigned build 均通过。未启动 App 或 fixture；
+- `ThreadLayoutTests` 18/18、`swift build --disable-automatic-resolution`、EgakiumMac macOS Debug
+  unsigned build 与 EgakiumiOS generic Simulator Debug unsigned build 均通过。未启动 App 或 fixture；
   实际折射强度、长用户消息、Light/Dark、Reduce Transparency 与 Increase Contrast 仍需运行态观察。
 
 ## 22. 2026-08-13 Code/Cowork 会话错误统一右置
@@ -335,7 +335,7 @@ rg -n 'glassEffect|GlassEffectContainer|buttonStyle\(\.glass|regularMaterial|win
 - thread 使用错误清理后的 presentation copy：完整移除 error/失败 trace 行和 recovery 文案，
   清除用户行的 `Needs attention`/timeout 状态，同时保留用户消息、正常消息及已产生的 partial agent
   正文。EventLog、`CodeProjection`、submission failure 和 runtime error 的 durable 数据均未改动。
-- `ThreadLayoutTests` 21/21、`swift build --disable-automatic-resolution`、IntatisMac macOS Debug
-  unsigned build 与 IntatisiOS generic Simulator Debug unsigned build 均通过。测试直接复现同一 timeout
+- `ThreadLayoutTests` 21/21、`swift build --disable-automatic-resolution`、EgakiumMac macOS Debug
+  unsigned build 与 EgakiumiOS generic Simulator Debug unsigned build 均通过。测试直接复现同一 timeout
   同时来自失败 submission 与 `.error` 的截图场景，确认右栏去重为一项并保留 Retry；未启动 App 或
   fixture，长错误滚动、Light/Dark 与窄宽实际像素仍需手动观察。

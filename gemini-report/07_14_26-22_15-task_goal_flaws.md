@@ -1,7 +1,7 @@
 MODEL_CHECK_RESULT: Gemini 3.1 Pro (High)
 PATH_CHECK_RESULT: 
-- pwd: /Users/vita/Vitemis/Intatis
-- git root: /Users/vita/Vitemis/Intatis
+- pwd: /Users/vita/Vitemis/Egakium
+- git root: /Users/vita/Vitemis/Egakium
 - Match: Yes
 
 FINDINGS:

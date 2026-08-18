@@ -1,17 +1,19 @@
-# Ekagium
+# Egakium
 
-当前版本：**v0.2**（build 49）
-状态：pre-1.0；Ekagium v0.2 源码与构建元数据可验证，Developer ID 正式签名、公证与发行验收仍未完成。
+当前版本：**v0.4**（build 50）
+状态：pre-1.0；Egakium v0.4 源码与构建元数据可验证，Developer ID 正式签名、公证与发行验收仍未完成。
 
-Ekagium 是 Apple-first、Swift-native 优先的本地 AI 工作区，当前建立在导入的 Intatis
-技术基线上。macOS 底层仍保留 Chat、Code、Cowork 三个产品面，但当前主 sidebar 只展示 Cowork，
+Egakium 是 Apple-first、Swift-native 优先的本地 AI 工作区。macOS 底层仍保留 Chat、Code、Cowork
+三个产品面，但当前主 sidebar 只展示 Cowork，
 Chat 与 Code 入口仅隐藏、未删除；iOS 是严格的 Chat 子集；CLI 提供 headless Code/Cowork 和外部
 MCP client。所有运行时能力围绕结构化 EventLog、共享
 AgentKernel、显式工具注册和权限链组织，而不是让 UI 直接调用模型或本地执行器。
 
-用户可见品牌已统一为 `Ekagium`。为避免破坏现有构建、会话和本地数据，本轮不批量重命名
-`IntatisMac` / `IntatisiOS` target、Swift 模块、bundle identifier、配置/数据路径或协议标识；
-Session Canvas 的 `.egakium/` 路径也作为兼容 identity 保持不变。
+2026-08-18 已完成不兼容的 identity hard cutover：产品名、Swift 类型与模块、SwiftPM/Xcode target、
+macOS/iOS/CLI 可执行文件、bundle identifier、C/Objective-C 符号、环境变量、协议保留字段、
+UserDefaults、Keychain service、配置/数据/cache 路径和测试命名统一使用
+`Egakium` / `egakium` / `EGAKIUM`。应用不会探测或导入切换前的会话、配置、凭据或缓存；
+旧数据不会被自动删除，但属于另一个、不可见的 identity。Session Canvas 的当前路径是 `.egakium/`。
 
 当前文档入口见 [`docs/README.md`](docs/README.md)，版本规则见
 [`docs/VERSIONING.md`](docs/VERSIONING.md)。历史 v0.1–v0.16 里程碑不代表当前产品版本。
@@ -30,11 +32,11 @@ presentation visibility 恢复，不代表它们已从产品或数据模型中�
   PathConfinement 与权限链。
 - Cowork：多 agent roster、FIFO scheduler、WorkTask/Goal、MessageBus/Mediator、per-agent
   exact inference binding、独立 permission reviewer 和 goal verifier 控制面。
-- 设置：provider catalog、Ekagium JSON/JSONC 配置（底层兼容路径仍使用 Intatis identity）、MCP、renderer fallback、第三方声明，
+- 设置：provider catalog、Egakium JSON/JSONC 配置、MCP、CEF renderer 状态、第三方声明，
   以及只在本机生成且不上传的脱敏诊断 ZIP。
 
-macOS 唯一发行 target 是 `IntatisMac`，通过 Developer ID、Apple notarization 和直接下载
-分发。`IntatisMacAppStore` 是未删除的 legacy target，不属于产品或 release gate。
+macOS 唯一发行 target 是 `EgakiumMac`，通过 Developer ID、Apple notarization 和直接下载
+分发。`EgakiumMacAppStore` 是未删除的 legacy target，不属于产品或 release gate。
 
 ### iOS
 
@@ -44,7 +46,7 @@ Tools、Permission、AgentKernel、Cowork、MCP 或本地 workspace/shell。
 
 ### CLI
 
-`intatis` 支持 Chat/Code/Cowork REPL、managed execution、Skills、per-agent inference
+`egakium` 支持 Chat/Code/Cowork REPL、managed execution、Skills、per-agent inference
 profiles 和外部 MCP client。macOS/Linux 平台能力与 sandbox/guard 可用性按 host fail closed。
 
 ## 核心不变量
@@ -95,11 +97,11 @@ scripts/check-version-consistency.sh
 swift test
 xcodegen generate
 
-xcodebuild -project Intatis.xcodeproj -scheme IntatisMac \
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumMac \
   -configuration Debug -destination 'platform=macOS' \
   CODE_SIGNING_ALLOWED=NO build
 
-xcodebuild -project Intatis.xcodeproj -scheme IntatisiOS \
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumiOS \
   -configuration Debug -destination 'generic/platform=iOS Simulator' \
   CODE_SIGNING_ALLOWED=NO build
 ```
@@ -113,21 +115,21 @@ xcodebuild -project Intatis.xcodeproj -scheme IntatisiOS \
 保存的 `notarytool` profile：
 
 ```sh
-INTATIS_NOTARY_PROFILE=<profile-name> scripts/package-macos-release.sh
+EGAKIUM_NOTARY_PROFILE=<profile-name> scripts/package-macos-release.sh
 ```
 
 如果 GitHub 需要代理/VPN、Apple notarization 又需要直连，使用两阶段模式：
 
 ```sh
-INTATIS_PAUSE_BEFORE_NOTARIZATION=1 \
-INTATIS_NOTARY_PROFILE=<profile-name> \
+EGAKIUM_PAUSE_BEFORE_NOTARIZATION=1 \
+EGAKIUM_NOTARY_PROFILE=<profile-name> \
   scripts/package-macos-release.sh
 ```
 
 保持代理/VPN 开启完成依赖解析、构建和签名；脚本明确提示后保持终端打开，关闭代理/VPN
 再按 Return。它会先验证 Apple 可达性，失败时原地等待重试，不重新构建。上传进度和
 submission ID 会直接显示；Apple 处理默认等待 30 分钟，仍为 `In Progress` 时保留签名
-产物并打印 `INTATIS_RESUME_RELEASE_DIR` 恢复命令。恢复同一 submission，不要重复上传。
+产物并打印 `EGAKIUM_RESUME_RELEASE_DIR` 恢复命令。恢复同一 submission，不要重复上传。
 
 该脚本只有在 universal Release、Hardened Runtime、Developer ID 签名、App/DMG 公证、
 staple、codesign 和 Gatekeeper assessment 全部通过后，才向 `dist/` 输出 ZIP、DMG 与
@@ -135,8 +137,8 @@ SHA-256 清单。不要把证书私钥、Apple 密码或 app-specific password �
 
 ## 配置与数据
 
-- macOS/CLI 高级配置读取 `INTATIS_CONFIG`、Intatis-owned JSON/JSONC 路径及兼容 fallback；
-  不默认读取 OpenCode app 配置。
+- macOS/CLI 高级配置只从 `EGAKIUM_CONFIG` 或当前 Egakium-owned JSON/JSONC 路径发现；
+  不探测切换前的产品目录，也不默认读取 OpenCode app 配置。
 - Cowork 自动权限审查使用顶层 `permission_reviewer_model` 固定独立模型，不新增设置 UI，也不跟随
   当前主 Agent、会话默认模型或后续 rebind。字段缺失时只继承该 JSON 文档的顶层 `model`；显式填写
   但无法解析、顶层兼容来源不可用或整份已选配置损坏/不可读时 fail closed。
@@ -191,7 +193,7 @@ SHA-256 清单。不要把证书私钥、Apple 密码或 app-specific password �
       "models": {}
     },
     "knowledge": {
-      "npm": "intatis:siliconflow-v1",
+      "npm": "egakium:siliconflow-v1",
       "options": {
         "baseURL": "https://your-knowledge-provider.example/v1",
         "apiKey": "{env:KNOWLEDGE_API_KEY}"
@@ -202,21 +204,21 @@ SHA-256 清单。不要把证书私钥、Apple 密码或 app-specific password �
 }
 ```
 
-`permission_reviewer_model` 是 Intatis 的顶层授权控制面字段，格式为
-`<provider>/<model-id>`，并引用 provider `models` 中已配置的 base profile。Intatis 在启动/恢复
+`permission_reviewer_model` 是 Egakium 的顶层授权控制面字段，格式为
+`<provider>/<model-id>`，并引用 provider `models` 中已配置的 base profile。Egakium 在启动/恢复
 Cowork runtime 时冻结该 exact binding；每次审查仍从这个 binding fresh-resolve provider wrapper。
 改变 Chat/Cowork 模型菜单、session default 或 `@main` binding 都不会重定向审查者。该字段省略时，
-仅为旧配置兼容而一次性采用同一 JSON 文档的顶层 `model`；显式空值、错误类型、未知 provider/model
+字段缺失时按当前解析规则一次性采用同一 JSON 文档的顶层 `model`；显式空值、错误类型、未知 provider/model
 或不可解析引用不会回退主模型；已选配置文件本身无法读取/解析时，普通 provider 可继续沿用既有缓存，
 但权限审查保持不可用。
 
-`image_model` 是 Intatis 的顶层扩展字段，格式为 `<provider>/<model-id>`。专用图片 provider
+`image_model` 是 Egakium 的顶层扩展字段，格式为 `<provider>/<model-id>`。专用图片 provider
 可保持空 `models`，因此不会混入 Chat/Code/Cowork 的推理模型菜单；当前 backend 要求该 route
 兼容 `POST <baseURL>/images/generations` 与 multipart `POST <baseURL>/images/edits`，并返回
 `data[].b64_json`。`edit_image` 当前支持单张 PNG/JPEG/WebP 输入（最多 50 MiB）并写出新的 PNG；
 尚不支持 mask、多参考图或原地覆盖输入图。
 
-`transcription_model` 同样是 Intatis 的顶层扩展字段，格式为 `<provider>/<model-id>`。专用语音
+`transcription_model` 同样是 Egakium 的顶层扩展字段，格式为 `<provider>/<model-id>`。专用语音
 provider 可保持空 `models`，不会混入推理模型菜单；输入栏按 Flotis 的单模型 recorded-file runtime
 录制 WAV/16 kHz/mono。compatible provider 使用 multipart，exact OpenRouter adapter 使用 JSON-base64
 `input_audio`，两者都调用 `POST <baseURL>/audio/transcriptions`。录音和 upload body 使用有界、
@@ -225,10 +227,10 @@ EventLog 或 ArtifactStore。该接入不包含多模型对比，也没有新增
 
 `embedding_model` 与 `reranker_model` 是 Knowledge 的两个独立必填 route，均只接受
 `<provider>/<model-id>`；缺少任意一个时，Code/Cowork 不会获得 `build_knowledge` 和
-`search_knowledge`。上例中的 URL 和模型 ID 是需要替换的配置值；`intatis:siliconflow-v1`
+`search_knowledge`。上例中的 URL 和模型 ID 是需要替换的配置值；`egakium:siliconflow-v1`
 表示该 provider 同时使用 OpenAI-compatible `POST <baseURL>/embeddings` 和显式
 `POST <baseURL>/rerank`。若 reranker 使用 Cohere v2，应为它建立独立 provider 并将 `npm` 写为
-`intatis:cohere-v2`。Knowledge-only provider 的 `models` 可保持空对象，不会进入普通推理模型菜单；
+`egakium:cohere-v2`。Knowledge-only provider 的 `models` 可保持空对象，不会进入普通推理模型菜单；
 若使用没有内置维度定义的 embedding 模型，则必须在对应 model 的 `options.dimensions` 中显式声明
 正整数维度。若配置使用 `enabled_providers`，也必须把 Knowledge route 的 provider ID 加入其中。
 Knowledge 工具仅接入 macOS/CLI 的 Code 与 Cowork，不进入 Chat 或 iOS。
@@ -270,6 +272,6 @@ OpenAI-compatible Chat，这两个 model 也应以 model-level `@openrouter/ai-s
 
 ## 许可证
 
-Intatis 自有代码和第三方采用状态见 [`NOTICE.md`](NOTICE.md)、
+Egakium 自有代码和第三方采用状态见 [`NOTICE.md`](NOTICE.md)、
 [`ThirdPartyNotices/`](ThirdPartyNotices/) 与
 [`docs/OPEN_SOURCE_REUSE.md`](docs/OPEN_SOURCE_REUSE.md)。

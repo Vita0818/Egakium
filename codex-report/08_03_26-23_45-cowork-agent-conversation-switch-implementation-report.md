@@ -13,8 +13,8 @@
 
 ## 2. PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 两者匹配项目预期。
 - 开始实施时仅有用户要求保留的两份未跟踪报告；没有覆盖、回退或清理用户改动。
 
@@ -235,7 +235,7 @@ runtime、provider、workspace 或凭据访问。
 - `swift test --filter CoworkAgentThreadProjectionTests`；
 - `swift test --filter ThreadScrollCoordinatorTests/testMacRichTranscriptSurfacesUseBoundedEagerWindows`；
 - 完整 `swift test`；
-- `xcodebuild -project Intatis.xcodeproj -scheme IntatisMac -configuration Debug build CODE_SIGNING_ALLOWED=NO`；
+- `xcodebuild -project Egakium.xcodeproj -scheme EgakiumMac -configuration Debug build CODE_SIGNING_ALLOWED=NO`；
 - `git diff --check`；
 - `git status --short`。
 
@@ -249,8 +249,8 @@ unfiltered rail、read-only operation fence、每-agent paging、双窗口隔离
 `ForEach(historyWindow.items)`；生产实现按内存验收改为固定 slot 后，该测试同步改为明确要求
 `enumerated()` + `id: \.offset` 且禁止 `.id(item.id)`。修正后定向与最终全量测试通过。
 
-最终收尾期间，两个中间全量 invocation 分别曾只报告 `IntatisCoworkTests` 与
-`IntatisSharedUITests` target 失败，但总输出截断，未保留到具体断言；随后独立重跑分别为
+最终收尾期间，两个中间全量 invocation 分别曾只报告 `EgakiumCoworkTests` 与
+`EgakiumSharedUITests` target 失败，但总输出截断，未保留到具体断言；随后独立重跑分别为
 320/320、123/123 通过。最终 `swift test --quiet --xunit-output ...` 全量运行 exit 0。两次 target
 级波动均未复现，因此没有将其归因成当前功能缺陷，但仍作为测试运行器/时序不确定性保留记录。
 
@@ -259,13 +259,13 @@ unfiltered rail、read-only operation fence、每-agent paging、双窗口隔离
 - `CoworkProjectionRegressionTests`：8/8；
 - `CoworkAgentThreadPresentationModelTests`：10/10；
 - `CoworkInferencePresentationTests`：6/6；
-- `IntatisConversationTests`：172/172；
-- `IntatisMac` Debug unsigned build：exit 0；
+- `EgakiumConversationTests`：172/172；
+- `EgakiumMac` Debug unsigned build：exit 0；
 - Computer Use：detach 当前 agent 后保持选择、离开再返回可读，以及追加 1,000 rapid switches，
   均为 0 warning / 0 incident；
 - 当前 Codex managed sandbox 内再次运行完整 `swift test --disable-sandbox --quiet` 时，只有
-  `IntatisToolsTests` 的 process/Seatbelt/loopback 用例因宿主限制失败；Cowork、AgentKernel 等后续
-  target 通过。单独启动完整 `IntatisSharedUITests` target 的一次运行在 build 完成后无测试输出，
+  `EgakiumToolsTests` 的 process/Seatbelt/loopback 用例因宿主限制失败；Cowork、AgentKernel 等后续
+  target 通过。单独启动完整 `EgakiumSharedUITests` target 的一次运行在 build 完成后无测试输出，
   手动中止；上述与本修正直接相关的 SharedUI 定向用例均独立通过。这里不把环境失败或悬挂写成
   产品通过，也不推翻前述允许 process/loopback 的宿主环境全量 exit 0 记录。
 
@@ -273,25 +273,25 @@ unfiltered rail、read-only operation fence、每-agent paging、双窗口隔离
 
 主要业务与测试文件：
 
-- `Apps/IntatisMac/Sources/CoworkViewModel.swift`
-- `Apps/IntatisMac/Sources/CoworkProjectSettings.swift`
-- `Apps/IntatisMac/Sources/IntatisMacApp.swift`
-- `Apps/IntatisMac/Sources/CoworkAgentConversationFixtureView.swift`
-- `Packages/IntatisConversation/Sources/CodeProjection.swift`
-- `Packages/IntatisConversation/Sources/CoworkProjection.swift`
-- `Packages/IntatisConversation/Sources/SessionProjectionPump.swift`
-- `Packages/IntatisConversation/Tests/CoworkAgentThreadProjectionTests.swift`
-- `Packages/IntatisConversation/Tests/CoworkProjectionRegressionTests.swift`
-- `Packages/IntatisConversation/Tests/SessionProjectionPumpTests.swift`
-- `Packages/IntatisCore/Sources/IntatisHangDiagnostics.swift`
-- `Packages/IntatisCore/Tests/IntatisHangDiagnosticsTests.swift`
-- `Packages/IntatisSharedUI/Sources/CoworkAgentThreadPresentationModel.swift`
-- `Packages/IntatisSharedUI/Sources/CoworkViews.swift`
-- `Packages/IntatisSharedUI/Sources/ExecutionTracePresentation.swift`
-- `Packages/IntatisSharedUI/Tests/CoworkAgentThreadPresentationModelTests.swift`
-- `Packages/IntatisSharedUI/Tests/CoworkInferencePresentationTests.swift`
-- `Packages/IntatisSharedUI/Tests/ThreadLayoutTests.swift`
-- `Packages/IntatisSharedUI/Tests/ThreadScrollCoordinatorTests.swift`
+- `Apps/EgakiumMac/Sources/CoworkViewModel.swift`
+- `Apps/EgakiumMac/Sources/CoworkProjectSettings.swift`
+- `Apps/EgakiumMac/Sources/EgakiumMacApp.swift`
+- `Apps/EgakiumMac/Sources/CoworkAgentConversationFixtureView.swift`
+- `Packages/EgakiumConversation/Sources/CodeProjection.swift`
+- `Packages/EgakiumConversation/Sources/CoworkProjection.swift`
+- `Packages/EgakiumConversation/Sources/SessionProjectionPump.swift`
+- `Packages/EgakiumConversation/Tests/CoworkAgentThreadProjectionTests.swift`
+- `Packages/EgakiumConversation/Tests/CoworkProjectionRegressionTests.swift`
+- `Packages/EgakiumConversation/Tests/SessionProjectionPumpTests.swift`
+- `Packages/EgakiumCore/Sources/EgakiumHangDiagnostics.swift`
+- `Packages/EgakiumCore/Tests/EgakiumHangDiagnosticsTests.swift`
+- `Packages/EgakiumSharedUI/Sources/CoworkAgentThreadPresentationModel.swift`
+- `Packages/EgakiumSharedUI/Sources/CoworkViews.swift`
+- `Packages/EgakiumSharedUI/Sources/ExecutionTracePresentation.swift`
+- `Packages/EgakiumSharedUI/Tests/CoworkAgentThreadPresentationModelTests.swift`
+- `Packages/EgakiumSharedUI/Tests/CoworkInferencePresentationTests.swift`
+- `Packages/EgakiumSharedUI/Tests/ThreadLayoutTests.swift`
+- `Packages/EgakiumSharedUI/Tests/ThreadScrollCoordinatorTests.swift`
 
 持久文档：
 

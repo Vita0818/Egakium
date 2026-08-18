@@ -1,4 +1,4 @@
-# Intatis 外部 MCP Server 客户端完整系统规划、实现与证据
+# Egakium 外部 MCP Server 客户端完整系统规划、实现与证据
 
 > **唯一权威入口**
 >
@@ -58,8 +58,8 @@
 
 ## 3. PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 路径匹配预期：是。
 - 工作树在本目标开始前已有大量未提交改动；本目标保留这些改动，不执行清理、
   回退、暂存、提交或 push。
@@ -70,9 +70,9 @@
 
 - `Package.swift`、`Package.resolved`、`project.yml`。
 - `Vendor/MCPClientSDK/`、`ThirdPartyNotices/`、`NOTICE.md`。
-- `Packages/IntatisMCP/`、`IntatisMCPStdio/`、`IntatisCurlTransport/`。
-- `IntatisProtocol`、`IntatisTools`、`IntatisAgentKernel`、
-  `IntatisConversation`、`IntatisCowork` 的 additive MCP 接线。
+- `Packages/EgakiumMCP/`、`EgakiumMCPStdio/`、`EgakiumCurlTransport/`。
+- `EgakiumProtocol`、`EgakiumTools`、`EgakiumAgentKernel`、
+  `EgakiumConversation`、`EgakiumCowork` 的 additive MCP 接线。
 - macOS MCP 产品面、CLI MCP 产品面及其测试。
 - `Tests/MCPConformance/`、`scripts/validate-linux-cli.sh`。
 - `codex-report/07_25_26-14_58-mcp-full-system-plan.md` 以及相关项目文档。
@@ -87,7 +87,7 @@ resource 结构清洗和 CLI lazy owner 等在真实全链路中暴露的问题�
 
 ## 5. 执行结论
 
-Intatis 当前已经具备完整的**外部 MCP Server 客户端系统**，不是只有地基。
+Egakium 当前已经具备完整的**外部 MCP Server 客户端系统**，不是只有地基。
 
 真实主链为：
 
@@ -134,7 +134,7 @@ Intatis 当前已经具备完整的**外部 MCP Server 客户端系统**，不�
 - required/optional server startup 语义。
 - 精确 binding、connection reuse、revocation 与 execution-uncertain。
 - 所有标准 discovery/content/callback/notification surface。
-- macOS GUI 与 `intatis` CLI。
+- macOS GUI 与 `egakium` CLI。
 - 安全导入 `.mcp.json`、`.claude.json`。
 - 开源 provenance、NOTICE、升级 replay、双架构 Linux gate。
 - W0–W10 和本文全部 31 项验收门。
@@ -144,7 +144,7 @@ policy 关闭 sampling 或 experimental Tasks 也不能替代完整实现。
 
 ### 6.2 硬排除
 
-- 不实现 Intatis 或 Codex 作为 MCP Server。
+- 不实现 Egakium 或 Codex 作为 MCP Server。
 - 不创建 MCP server target、server binary、server listener、server actor、
   server protocol handler 或预留 hosting seam。
 - 不实现 `codex mcp-server` 对应的产品路径；它是 Codex 的另一角色，与本目标
@@ -165,7 +165,7 @@ policy 关闭 sampling 或 experimental Tasks 也不能替代完整实现。
   连接、认证、启动或授权。
 - `MCPStdioExactNetworkGateway.serve(_:)` 是 host-owned authenticated HTTP
   CONNECT egress tunnel，不处理 MCP JSON-RPC。
-- `IntatisMCPConformanceClient` 是仅供测试 runner 启动的客户端 driver，不是
+- `EgakiumMCPConformanceClient` 是仅供测试 runner 启动的客户端 driver，不是
   发行 product。
 
 ## 7. Codex 对齐基线
@@ -183,7 +183,7 @@ policy 关闭 sampling 或 experimental Tasks 也不能替代完整实现。
 - required server 初始化失败时，非交互执行失败，而不是静默降级。
 - server instructions、tools 和 context 都来自外部 server。
 
-Intatis 对齐这些行为合同，但保持自己的存储、GUI、EventLog、lease、权限和
+Egakium 对齐这些行为合同，但保持自己的存储、GUI、EventLog、lease、权限和
 sandbox，不复制 Codex UI、品牌、TUI trade dress 或私有控制面。
 
 公开产品入口：
@@ -202,17 +202,17 @@ sandbox，不复制 Codex UI、品牌、TUI trade dress 或私有控制面。
 | Grok Build | [`6e386420825bd44ae648c63e7c8cba12fcec9401`](https://github.com/xai-org/grok-build/tree/6e386420825bd44ae648c63e7c8cba12fcec9401) | `reference` | 大目录 search/use UX 与压力测试思路 |
 | Swift MCP SDK | `0.12.1` / [`a0ae212ebf6eab5f754c3129608bc5557637e605`](https://github.com/modelcontextprotocol/swift-sdk/tree/a0ae212ebf6eab5f754c3129608bc5557637e605) | `vendored + derived` | client protocol/wire 基础与可审计 patch |
 
-### 7.3 Codex baseline 与 Intatis 扩展
+### 7.3 Codex baseline 与 Egakium 扩展
 
 | 类别 | 内容 |
 |---|---|
 | `CODEX CURRENT BASELINE` | stdio、Streamable HTTP、bearer/OAuth、tools、resources、required、filters、四审批模式、server instructions、GUI/CLI 管理语义、`tool_search` |
-| `INTATIS SECURITY HARDENING` | per-Agent grant、exact authority pool、three-layer permission、durable ticket、strict output budgets、SecretScanner、managed stdio exact network、owner-only stores |
+| `EGAKIUM SECURITY HARDENING` | per-Agent grant、exact authority pool、three-layer permission、durable ticket、strict output budgets、SecretScanner、managed stdio exact network、owner-only stores |
 | `MCP STANDARD EXTENSION` | prompts、completions、roots、subscriptions、sampling、provider-neutral URL elicitation、完整通知/刷新 |
 | `MCP 2025-11-25 EXPERIMENTAL` | remote-server 与 client-hosted Tasks |
-| `INTATIS HOST EXTENSION` | bounded `MCPServerContributor` proposal review |
+| `EGAKIUM HOST EXTENSION` | bounded `MCPServerContributor` proposal review |
 
-不能把标准扩展冒充 Codex 已有能力，也不能把 Intatis 的安全加严说成 Codex
+不能把标准扩展冒充 Codex 已有能力，也不能把 Egakium 的安全加严说成 Codex
 缺陷。对齐的是可验证合同，不是品牌或内部实现复制。
 
 ## 8. Protocol profiles
@@ -239,55 +239,55 @@ connection/binding 证据。
 
 实现与证据：
 
-- [`MCPProtocolNegotiation.swift`](../Packages/IntatisMCP/Sources/MCPProtocolNegotiation.swift)
-- [`SDKPatchCompatibility.swift`](../Packages/IntatisMCP/Sources/SDKPatchCompatibility.swift)
+- [`MCPProtocolNegotiation.swift`](../Packages/EgakiumMCP/Sources/MCPProtocolNegotiation.swift)
+- [`SDKPatchCompatibility.swift`](../Packages/EgakiumMCP/Sources/SDKPatchCompatibility.swift)
 - [`Vendor/MCPClientSDK/PATCHES.md`](../Vendor/MCPClientSDK/PATCHES.md)
-- [`SDKPatchCompatibilityTests.swift`](../Packages/IntatisMCP/Tests/SDKPatchCompatibilityTests.swift)
-- [`MCPProtocolLifecycleTests.swift`](../Packages/IntatisMCP/Tests/MCPProtocolLifecycleTests.swift)
+- [`SDKPatchCompatibilityTests.swift`](../Packages/EgakiumMCP/Tests/SDKPatchCompatibilityTests.swift)
+- [`MCPProtocolLifecycleTests.swift`](../Packages/EgakiumMCP/Tests/MCPProtocolLifecycleTests.swift)
 
 ## 9. 平台与 target 边界
 
 | Host | stdio | Streamable HTTP | target/linkage 事实 |
 |---|---|---|---|
-| macOS DeveloperID App | 支持 | 支持 | `IntatisMac` 链接 `IntatisMCP` + `IntatisMCPStdio` |
-| macOS App Store App | 不支持 | 支持 | `IntatisMacAppStore` 链接 `IntatisMCP`，不链接 `IntatisMCPStdio`/guard |
-| macOS `intatis` CLI | 支持 | 支持 | `IntatisCLI` 链接 core + stdio，持有 exact session owner |
-| Linux `intatis` CLI | bwrap、guard 与全部策略可用时支持，否则 fail closed | 支持 | portable Crypto、Glibc/Musl、static CLI gate |
+| macOS DeveloperID App | 支持 | 支持 | `EgakiumMac` 链接 `EgakiumMCP` + `EgakiumMCPStdio` |
+| macOS App Store App | 不支持 | 支持 | `EgakiumMacAppStore` 链接 `EgakiumMCP`，不链接 `EgakiumMCPStdio`/guard |
+| macOS `egakium` CLI | 支持 | 支持 | `EgakiumCLI` 链接 core + stdio，持有 exact session owner |
+| Linux `egakium` CLI | bwrap、guard 与全部策略可用时支持，否则 fail closed | 支持 | portable Crypto、Glibc/Musl、static CLI gate |
 | iOS App | 不支持 | 不支持 | 不链接 MCP client runtime/transport/product UI |
 
-iOS 仍会链接共享 `IntatisProtocol`；其中 SDK-independent MCP payload/value
+iOS 仍会链接共享 `EgakiumProtocol`；其中 SDK-independent MCP payload/value
 类型只是跨平台 durable schema，不构成 iOS MCP API、连接能力或产品 surface。
 
 链接证据：
 
 - [`Package.swift`](../Package.swift)
 - [`project.yml`](../project.yml)
-- [`SDKClientOnlySurfaceTests.swift`](../Packages/IntatisMCP/Tests/SDKClientOnlySurfaceTests.swift)
+- [`SDKClientOnlySurfaceTests.swift`](../Packages/EgakiumMCP/Tests/SDKClientOnlySurfaceTests.swift)
 - [`PROJECT_MAP.md`](../docs/PROJECT_MAP.md)
 
 ## 10. 模块与所有权
 
 | 模块 | 当前职责 | 禁止反向拥有 |
 |---|---|---|
-| `IntatisMCP` | 配置/catalog/import、protocol negotiation、HTTP/OAuth、client session、content/callback/notification、tool binding/search、sampling/elicitation/tasks、output security、runtime/pool | App UI、Cowork scheduler、MCP server |
-| `IntatisMCPStdio` | launch identity、direct exec/pipe、sandbox、exact network gateway、process ownership、TERM→KILL→drain | App Store/iOS product |
-| `IntatisMCPStdioGuard` | Linux seccomp/ptrace execution/network mediation | Apple runtime policy |
-| `IntatisCurlTransport` | macOS/Linux libcurl C boundary、exact resolve/socket policy | iOS、URLSession fallback |
-| `IntatisMCPConformanceClient` | official/extended runner 启动的开发期 client driver；不是发行 product | 任何 server/hosting API |
-| `IntatisProtocol` | SDK-independent IDs、grants、attachments、events/results/authorization payload | SDK concrete types、network/process |
-| `IntatisTools` | instance registration、dynamic registry version、structured observation/result | MCP connection owner |
-| `IntatisAgentKernel` | per-dispatch tool snapshot、exact prepared route、permission/durable execution integration | global catalog ownership |
-| `IntatisConversation` | additive EventLog payload/projection/session state | transport |
-| `IntatisCowork` | per-Agent grant projection、intersection delegation、reviewer/Goal zero MCP | global implicit sharing |
+| `EgakiumMCP` | 配置/catalog/import、protocol negotiation、HTTP/OAuth、client session、content/callback/notification、tool binding/search、sampling/elicitation/tasks、output security、runtime/pool | App UI、Cowork scheduler、MCP server |
+| `EgakiumMCPStdio` | launch identity、direct exec/pipe、sandbox、exact network gateway、process ownership、TERM→KILL→drain | App Store/iOS product |
+| `EgakiumMCPStdioGuard` | Linux seccomp/ptrace execution/network mediation | Apple runtime policy |
+| `EgakiumCurlTransport` | macOS/Linux libcurl C boundary、exact resolve/socket policy | iOS、URLSession fallback |
+| `EgakiumMCPConformanceClient` | official/extended runner 启动的开发期 client driver；不是发行 product | 任何 server/hosting API |
+| `EgakiumProtocol` | SDK-independent IDs、grants、attachments、events/results/authorization payload | SDK concrete types、network/process |
+| `EgakiumTools` | instance registration、dynamic registry version、structured observation/result | MCP connection owner |
+| `EgakiumAgentKernel` | per-dispatch tool snapshot、exact prepared route、permission/durable execution integration | global catalog ownership |
+| `EgakiumConversation` | additive EventLog payload/projection/session state | transport |
+| `EgakiumCowork` | per-Agent grant projection、intersection delegation、reviewer/Goal zero MCP | global implicit sharing |
 | macOS App | settings/session/agent access/content cards/OAuth/import，进程级 session owner | protocol implementation |
 | CLI | complete management commands、lazy interactive owner、JSON output | App-only type dependency |
 
 关键 owner：
 
-- [`MCPSessionRuntimeOwner`](../Packages/IntatisMCP/Sources/MCPProductionRuntime.swift)
-- [`MCPShippingSessionRuntime`](../Packages/IntatisAgentKernel/Sources/MCPEventLogHostAdapters.swift)
-- [`AppSessionRuntimeManager`](../Apps/IntatisMac/Sources/SessionRuntimeManager.swift)
-- [`MCPCLIInteractiveCodeHost`](../Apps/intatis-cli/Sources/MCPCLIProcessOwner.swift)
+- [`MCPSessionRuntimeOwner`](../Packages/EgakiumMCP/Sources/MCPProductionRuntime.swift)
+- [`MCPShippingSessionRuntime`](../Packages/EgakiumAgentKernel/Sources/MCPEventLogHostAdapters.swift)
+- [`AppSessionRuntimeManager`](../Apps/EgakiumMac/Sources/SessionRuntimeManager.swift)
+- [`MCPCLIInteractiveCodeHost`](../Apps/egakium-cli/Sources/MCPCLIProcessOwner.swift)
 
 窗口、view model 或一次 AgentLoop 不是 MCP 长连接 owner。窗口切换和
 Command-W 不关闭 session runtime；session delete 和 Command-Q 按 exact scope
@@ -325,11 +325,11 @@ parse / normalize
 
 源码：
 
-- [`MCPConfiguration.swift`](../Packages/IntatisMCP/Sources/MCPConfiguration.swift)
-- [`MCPServerCatalogStore.swift`](../Packages/IntatisMCP/Sources/MCPServerCatalogStore.swift)
-- [`MCPPreparedConfiguration.swift`](../Packages/IntatisMCP/Sources/MCPPreparedConfiguration.swift)
-- [`MCPPreparedDefinitionPrecommitVerifier.swift`](../Packages/IntatisMCP/Sources/MCPPreparedDefinitionPrecommitVerifier.swift)
-- [`MCPCatalogOperationJournalStore.swift`](../Packages/IntatisMCP/Sources/MCPCatalogOperationJournalStore.swift)
+- [`MCPConfiguration.swift`](../Packages/EgakiumMCP/Sources/MCPConfiguration.swift)
+- [`MCPServerCatalogStore.swift`](../Packages/EgakiumMCP/Sources/MCPServerCatalogStore.swift)
+- [`MCPPreparedConfiguration.swift`](../Packages/EgakiumMCP/Sources/MCPPreparedConfiguration.swift)
+- [`MCPPreparedDefinitionPrecommitVerifier.swift`](../Packages/EgakiumMCP/Sources/MCPPreparedDefinitionPrecommitVerifier.swift)
+- [`MCPCatalogOperationJournalStore.swift`](../Packages/EgakiumMCP/Sources/MCPCatalogOperationJournalStore.swift)
 
 ### 11.2 显式 import/export
 
@@ -362,10 +362,10 @@ parse / normalize
 
 证据：
 
-- [`MCPImport.swift`](../Packages/IntatisMCP/Sources/MCPImport.swift)
-- [`MCPImportTests.swift`](../Packages/IntatisMCP/Tests/MCPImportTests.swift)
-- [`MCPImportSurfaces.swift`](../Apps/IntatisMac/Sources/MCPImportSurfaces.swift)
-- [`MCPCLIConfigurationArgumentsTests.swift`](../Apps/intatis-cli/Tests/MCPCLIConfigurationArgumentsTests.swift)
+- [`MCPImport.swift`](../Packages/EgakiumMCP/Sources/MCPImport.swift)
+- [`MCPImportTests.swift`](../Packages/EgakiumMCP/Tests/MCPImportTests.swift)
+- [`MCPImportSurfaces.swift`](../Apps/EgakiumMac/Sources/MCPImportSurfaces.swift)
+- [`MCPCLIConfigurationArgumentsTests.swift`](../Apps/egakium-cli/Tests/MCPCLIConfigurationArgumentsTests.swift)
 
 ### 11.3 session durable state
 
@@ -390,11 +390,11 @@ parse / normalize
 
 协议证据：
 
-- [`MCPEvents.swift`](../Packages/IntatisProtocol/Sources/MCPEvents.swift)
-- [`MCPGrant.swift`](../Packages/IntatisProtocol/Sources/MCPGrant.swift)
-- [`MCPIdentity.swift`](../Packages/IntatisProtocol/Sources/MCPIdentity.swift)
-- [`MCPResults.swift`](../Packages/IntatisProtocol/Sources/MCPResults.swift)
-- [`MCPProtocolTests.swift`](../Packages/IntatisProtocol/Tests/MCPProtocolTests.swift)
+- [`MCPEvents.swift`](../Packages/EgakiumProtocol/Sources/MCPEvents.swift)
+- [`MCPGrant.swift`](../Packages/EgakiumProtocol/Sources/MCPGrant.swift)
+- [`MCPIdentity.swift`](../Packages/EgakiumProtocol/Sources/MCPIdentity.swift)
+- [`MCPResults.swift`](../Packages/EgakiumProtocol/Sources/MCPResults.swift)
+- [`MCPProtocolTests.swift`](../Packages/EgakiumProtocol/Tests/MCPProtocolTests.swift)
 
 ## 12. Runtime、authority 与精确 binding
 
@@ -439,7 +439,7 @@ parse / normalize
 2. Agent view：按 attachment、grant、filters、platform、policy 派生。
 3. provider binding：某次 provider dispatch 冻结的 ToolSpec + prepared route。
 
-[`AgentRequestToolSnapshot`](../Packages/IntatisAgentKernel/Sources/AgentRequestToolSnapshot.swift)
+[`AgentRequestToolSnapshot`](../Packages/EgakiumAgentKernel/Sources/AgentRequestToolSnapshot.swift)
 在**每次 provider dispatch**创建。provider response 只能使用自己持有的
 snapshot；执行前复核：
 
@@ -458,26 +458,26 @@ snapshot；执行前复核：
 
 - required server 任一初始化失败，整个 invocation 在 provider dispatch 前失败。
 - GUI 保留会话并显示错误，但不降级执行。
-- `intatis exec`/非交互 CLI 非零退出。
+- `egakium exec`/非交互 CLI 非零退出。
 - optional server 失败只撤下自身能力并显示状态。
 - Retry、restore、attach 不隐式连接；只有 Send、Resume 或 explicit Connect
   创建 live generation。
 
 证据：
 
-- [`MCPRuntime.swift`](../Packages/IntatisMCP/Sources/MCPRuntime.swift)
-- [`MCPProductionRuntime.swift`](../Packages/IntatisMCP/Sources/MCPProductionRuntime.swift)
-- [`MCPConnection.swift`](../Packages/IntatisMCP/Sources/MCPConnection.swift)
-- [`MCPSnapshot.swift`](../Packages/IntatisMCP/Sources/MCPSnapshot.swift)
-- [`MCPRuntimeAuthorityTests.swift`](../Packages/IntatisMCP/Tests/MCPRuntimeAuthorityTests.swift)
-- [`MCPShippingConnectionServicesRegistryTests.swift`](../Packages/IntatisAgentKernel/Tests/MCPShippingConnectionServicesRegistryTests.swift)
+- [`MCPRuntime.swift`](../Packages/EgakiumMCP/Sources/MCPRuntime.swift)
+- [`MCPProductionRuntime.swift`](../Packages/EgakiumMCP/Sources/MCPProductionRuntime.swift)
+- [`MCPConnection.swift`](../Packages/EgakiumMCP/Sources/MCPConnection.swift)
+- [`MCPSnapshot.swift`](../Packages/EgakiumMCP/Sources/MCPSnapshot.swift)
+- [`MCPRuntimeAuthorityTests.swift`](../Packages/EgakiumMCP/Tests/MCPRuntimeAuthorityTests.swift)
+- [`MCPShippingConnectionServicesRegistryTests.swift`](../Packages/EgakiumAgentKernel/Tests/MCPShippingConnectionServicesRegistryTests.swift)
 
 ## 13. Control-plane admission、权限与 durable execution
 
 启动本地 executable、连接远程 origin、OAuth、refresh 和 subscription 都是宿主
 动作，不能只依赖模型工具权限。
 
-[`MCPControlPlaneAdmission`](../Packages/IntatisMCP/Sources/MCPAdmission.swift)
+[`MCPControlPlaneAdmission`](../Packages/EgakiumMCP/Sources/MCPAdmission.swift)
 为 Test/Connect/Refresh 等操作冻结：
 
 - request ID、session/server/revision。
@@ -521,7 +521,7 @@ MCP stdio 使用 direct exec + pipe，不使用 `/bin/sh -c`，不需要 PTY。
 
 ### 14.1 launch identity
 
-[`ManagedPipeProcess`](../Packages/IntatisMCPStdio/Sources/ManagedPipeProcess.swift)
+[`ManagedPipeProcess`](../Packages/EgakiumMCPStdio/Sources/ManagedPipeProcess.swift)
 持有：
 
 - canonical executable/interpreter/script identity。
@@ -549,7 +549,7 @@ MCP stdio 使用 direct exec + pipe，不使用 `/bin/sh -c`，不需要 PTY。
 
 “exact host/port 尚未实现”已经不是当前事实。
 
-[`MCPStdioExactNetworkGateway`](../Packages/IntatisMCPStdio/Sources/MCPStdioNetworkGateway.swift)
+[`MCPStdioExactNetworkGateway`](../Packages/EgakiumMCPStdio/Sources/MCPStdioNetworkGateway.swift)
 实现：
 
 - 只接受 canonical HTTPS origins。
@@ -562,7 +562,7 @@ MCP stdio 使用 direct exec + pipe，不使用 `/bin/sh -c`，不需要 PTY。
 - credential/proxy URL 注册到同一 redactor。
 
 macOS Seatbelt 只允许该 generation 的 loopback gateway。Linux
-`IntatisMCPStdioGuard`：
+`EgakiumMCPStdioGuard`：
 
 - `PTRACE_SEIZE` 并追踪 clone/fork/vfork。
 - tracee 冻结和 exec identity gate。
@@ -585,14 +585,14 @@ macOS Seatbelt 只允许该 generation 的 loopback gateway。Linux
 
 源码与测试：
 
-- [`MCPStdioSandbox.swift`](../Packages/IntatisMCPStdio/Sources/MCPStdioSandbox.swift)
-- [`MCPStdioNetworkGateway.swift`](../Packages/IntatisMCPStdio/Sources/MCPStdioNetworkGateway.swift)
-- [`MCPStdioGuard.c`](../Packages/IntatisMCPStdio/ExecutionGuard/IntatisMCPStdioGuard.c)
-- [`MCPManagedStdioTests.swift`](../Packages/IntatisMCP/Tests/MCPManagedStdioTests.swift)
+- [`MCPStdioSandbox.swift`](../Packages/EgakiumMCPStdio/Sources/MCPStdioSandbox.swift)
+- [`MCPStdioNetworkGateway.swift`](../Packages/EgakiumMCPStdio/Sources/MCPStdioNetworkGateway.swift)
+- [`MCPStdioGuard.c`](../Packages/EgakiumMCPStdio/ExecutionGuard/EgakiumMCPStdioGuard.c)
+- [`MCPManagedStdioTests.swift`](../Packages/EgakiumMCP/Tests/MCPManagedStdioTests.swift)
 
 ## 15. Streamable HTTP
 
-生产远程 transport 是 Intatis-owned state machine，不使用 URLSession 或上游
+生产远程 transport 是 Egakium-owned state machine，不使用 URLSession 或上游
 SDK transport fallback。
 
 ### 15.1 origin 与 I/O 边界
@@ -629,19 +629,19 @@ authorization challenge、session 404、network failure 或 reconnect 都不能�
 
 证据：
 
-- [`MCPStreamableHTTPTransport.swift`](../Packages/IntatisMCP/Sources/MCPStreamableHTTPTransport.swift)
-- [`MCPCurlHTTPExecutor.swift`](../Packages/IntatisMCP/Sources/MCPCurlHTTPExecutor.swift)
-- [`MCPHTTPPolicy.swift`](../Packages/IntatisMCP/Sources/MCPHTTPPolicy.swift)
-- [`IntatisCurlTransport`](../Packages/IntatisCurlTransport)
-- [`MCPStreamableHTTPTests.swift`](../Packages/IntatisMCP/Tests/MCPStreamableHTTPTests.swift)
-- [`MCPCurlHTTPExecutorTests.swift`](../Packages/IntatisMCP/Tests/MCPCurlHTTPExecutorTests.swift)
-- [`MCPHTTPPolicyTests.swift`](../Packages/IntatisMCP/Tests/MCPHTTPPolicyTests.swift)
+- [`MCPStreamableHTTPTransport.swift`](../Packages/EgakiumMCP/Sources/MCPStreamableHTTPTransport.swift)
+- [`MCPCurlHTTPExecutor.swift`](../Packages/EgakiumMCP/Sources/MCPCurlHTTPExecutor.swift)
+- [`MCPHTTPPolicy.swift`](../Packages/EgakiumMCP/Sources/MCPHTTPPolicy.swift)
+- [`EgakiumCurlTransport`](../Packages/EgakiumCurlTransport)
+- [`MCPStreamableHTTPTests.swift`](../Packages/EgakiumMCP/Tests/MCPStreamableHTTPTests.swift)
+- [`MCPCurlHTTPExecutorTests.swift`](../Packages/EgakiumMCP/Tests/MCPCurlHTTPExecutorTests.swift)
+- [`MCPHTTPPolicyTests.swift`](../Packages/EgakiumMCP/Tests/MCPHTTPPolicyTests.swift)
 
 ## 16. OAuth、凭据与账号
 
 ### 16.1 OAuth
 
-[`MCPOAuth.swift`](../Packages/IntatisMCP/Sources/MCPOAuth.swift)实现：
+[`MCPOAuth.swift`](../Packages/EgakiumMCP/Sources/MCPOAuth.swift)实现：
 
 - RFC 9728 Protected Resource Metadata。
 - RFC 8414 discovery，再到 OIDC discovery。
@@ -660,8 +660,8 @@ scope/account/authority 改变后立即无权用于新 binding。
 
 ### 16.2 两套凭据后端必须区分
 
-普通模型 provider 当前继续使用 Intatis config/auth/env/file resolver；
-`Apps/IntatisMac/Sources/Keychain.swift` 的历史命名不能用来描述 MCP。
+普通模型 provider 当前继续使用 Egakium config/auth/env/file resolver；
+`Apps/EgakiumMac/Sources/Keychain.swift` 的历史命名不能用来描述 MCP。
 
 MCP 使用：
 
@@ -674,11 +674,11 @@ source-binding mismatch 或密钥不可用时 fail closed；不存在明文降�
 
 证据：
 
-- [`MCPSecretStore.swift`](../Packages/IntatisMCP/Sources/MCPSecretStore.swift)
-- [`MCPSecretStoreTests.swift`](../Packages/IntatisMCP/Tests/MCPSecretStoreTests.swift)
-- [`MCPAppOAuthIntegration.swift`](../Apps/IntatisMac/Sources/MCPAppOAuthIntegration.swift)
-- [`MCPCLIOAuthIntegration.swift`](../Apps/intatis-cli/Sources/MCPCLIOAuthIntegration.swift)
-- [`MCPOAuthTests.swift`](../Packages/IntatisMCP/Tests/MCPOAuthTests.swift)
+- [`MCPSecretStore.swift`](../Packages/EgakiumMCP/Sources/MCPSecretStore.swift)
+- [`MCPSecretStoreTests.swift`](../Packages/EgakiumMCP/Tests/MCPSecretStoreTests.swift)
+- [`MCPAppOAuthIntegration.swift`](../Apps/EgakiumMac/Sources/MCPAppOAuthIntegration.swift)
+- [`MCPCLIOAuthIntegration.swift`](../Apps/egakium-cli/Sources/MCPCLIOAuthIntegration.swift)
+- [`MCPOAuthTests.swift`](../Packages/EgakiumMCP/Tests/MCPOAuthTests.swift)
 
 签名 App 的真实 data-protection Keychain CRUD 需要 signed host；unsigned XCTest
 不能替代该发行环境证据。
@@ -707,14 +707,14 @@ source-binding mismatch 或密钥不可用时 fail closed；不存在明文降�
 
 实现：
 
-- [`MCPBM25Index.swift`](../Packages/IntatisMCP/Sources/MCPBM25Index.swift)
-- [`MCPToolSearch.swift`](../Packages/IntatisMCP/Sources/MCPToolSearch.swift)
-- [`MCPStdioToolCatalogCache.swift`](../Packages/IntatisMCP/Sources/MCPStdioToolCatalogCache.swift)
-- [`MCPToolBinding.swift`](../Packages/IntatisMCP/Sources/MCPToolBinding.swift)
+- [`MCPBM25Index.swift`](../Packages/EgakiumMCP/Sources/MCPBM25Index.swift)
+- [`MCPToolSearch.swift`](../Packages/EgakiumMCP/Sources/MCPToolSearch.swift)
+- [`MCPStdioToolCatalogCache.swift`](../Packages/EgakiumMCP/Sources/MCPStdioToolCatalogCache.swift)
+- [`MCPToolBinding.swift`](../Packages/EgakiumMCP/Sources/MCPToolBinding.swift)
 
 ### 17.3 P1：预算原子性
 
-[`MCPToolResultAggregateBudget.reserveAtomically`](../Packages/IntatisMCP/Sources/MCPToolExecution.swift)
+[`MCPToolResultAggregateBudget.reserveAtomically`](../Packages/EgakiumMCP/Sources/MCPToolExecution.swift)
 按固定锁序同时预留 provider-request 与 turn aggregate budget。
 
 `MCPToolSearchTool.execute`：
@@ -728,7 +728,7 @@ source-binding mismatch 或密钥不可用时 fail closed；不存在明文降�
 因此 budget rejection 消耗零额度、loaded state 不变；两个并发调用不能各自
 看到旧余额后共同超支。证据：
 
-- [`testToolSearchCanonicalOutputIsBudgetedBeforeLoadedState`](../Packages/IntatisMCP/Tests/MCPToolBindingSearchTests.swift)
+- [`testToolSearchCanonicalOutputIsBudgetedBeforeLoadedState`](../Packages/EgakiumMCP/Tests/MCPToolBindingSearchTests.swift)
 - `MCPToolSearchParityTests`
 - `MCPToolResultConversionTests`
 
@@ -772,7 +772,7 @@ source-binding mismatch 或密钥不可用时 fail closed；不存在明文降�
 
 ### 18.4 Server instructions
 
-公开 Codex 会把 server instructions 作为 server-wide guidance。Intatis 保持
+公开 Codex 会把 server instructions 作为 server-wide guidance。Egakium 保持
 Codex 用户语义，但进行安全加严：
 
 - 明确显示来源和 server identity。
@@ -782,11 +782,11 @@ Codex 用户语义，但进行安全加严：
 
 实现与证据：
 
-- [`MCPResourceCatalog.swift`](../Packages/IntatisMCP/Sources/MCPResourceCatalog.swift)
-- [`MCPResourceTools.swift`](../Packages/IntatisMCP/Sources/MCPResourceTools.swift)
-- [`MCPContentOperations.swift`](../Packages/IntatisMCP/Sources/MCPContentOperations.swift)
-- [`MCPPromptsCompletionsRoots.swift`](../Packages/IntatisMCP/Sources/MCPPromptsCompletionsRoots.swift)
-- [`MCPW7CatalogResourceTests.swift`](../Packages/IntatisMCP/Tests/MCPW7CatalogResourceTests.swift)
+- [`MCPResourceCatalog.swift`](../Packages/EgakiumMCP/Sources/MCPResourceCatalog.swift)
+- [`MCPResourceTools.swift`](../Packages/EgakiumMCP/Sources/MCPResourceTools.swift)
+- [`MCPContentOperations.swift`](../Packages/EgakiumMCP/Sources/MCPContentOperations.swift)
+- [`MCPPromptsCompletionsRoots.swift`](../Packages/EgakiumMCP/Sources/MCPPromptsCompletionsRoots.swift)
+- [`MCPW7CatalogResourceTests.swift`](../Packages/EgakiumMCP/Tests/MCPW7CatalogResourceTests.swift)
 
 ## 19. Callbacks、notifications、sampling、elicitation 与 Tasks
 
@@ -817,11 +817,11 @@ capability/lifecycle 绑定的 typed notification。
 ### 19.3 Sampling
 
 - 独立 broker，不递归 `AgentLoop`。
-- 不继承 Intatis ToolRegistry、历史、workspace tools 或 Cowork task。
+- 不继承 Egakium ToolRegistry、历史、workspace tools 或 Cowork task。
 - sampling tools/toolChoice、tool-use/result 成对校验。
 - bounded rounds、parallel、tokens、cost、rate、timeout。
 - 逐请求 permission/user policy。
-- requesting server 执行 sampling tool；Intatis 不把这些 tool 名路由到自己的
+- requesting server 执行 sampling tool；Egakium 不把这些 tool 名路由到自己的
   registry。
 
 ### 19.4 Elicitation
@@ -836,31 +836,31 @@ capability/lifecycle 绑定的 typed notification。
 
 完整实现两套严格隔离的状态机：
 
-- remote-server task：外部 server 持有 task，Intatis poll/result/list/cancel。
-- client-hosted task：server 发 request，Intatis client 返回 task identity 并
+- remote-server task：外部 server 持有 task，Egakium poll/result/list/cancel。
+- client-hosted task：server 发 request，Egakium client 返回 task identity 并
   管理终态。
 
-它们都不是 Intatis Cowork `WorkTask`，不会自动映射、委派或递归 Agent。
+它们都不是 Egakium Cowork `WorkTask`，不会自动映射、委派或递归 Agent。
 profile/capability 未协商时不广告。
 
 证据：
 
-- [`MCPInboundCallbacks.swift`](../Packages/IntatisMCP/Sources/MCPInboundCallbacks.swift)
-- [`MCPInboundNotifications.swift`](../Packages/IntatisMCP/Sources/MCPInboundNotifications.swift)
-- [`MCPSamplingBroker.swift`](../Packages/IntatisMCP/Sources/MCPSamplingBroker.swift)
-- [`MCPElicitationBroker.swift`](../Packages/IntatisMCP/Sources/MCPElicitationBroker.swift)
-- [`MCPTaskStateMachines.swift`](../Packages/IntatisMCP/Sources/MCPTaskStateMachines.swift)
-- [`MCPCallbackBrokerTests.swift`](../Packages/IntatisMCP/Tests/MCPCallbackBrokerTests.swift)
-- [`MCPTaskWireTests.swift`](../Packages/IntatisMCP/Tests/MCPTaskWireTests.swift)
-- [`MCPTaskStateMachineTests.swift`](../Packages/IntatisMCP/Tests/MCPTaskStateMachineTests.swift)
-- [`MCPTaskAugmentedToolBindingTests.swift`](../Packages/IntatisMCP/Tests/MCPTaskAugmentedToolBindingTests.swift)
+- [`MCPInboundCallbacks.swift`](../Packages/EgakiumMCP/Sources/MCPInboundCallbacks.swift)
+- [`MCPInboundNotifications.swift`](../Packages/EgakiumMCP/Sources/MCPInboundNotifications.swift)
+- [`MCPSamplingBroker.swift`](../Packages/EgakiumMCP/Sources/MCPSamplingBroker.swift)
+- [`MCPElicitationBroker.swift`](../Packages/EgakiumMCP/Sources/MCPElicitationBroker.swift)
+- [`MCPTaskStateMachines.swift`](../Packages/EgakiumMCP/Sources/MCPTaskStateMachines.swift)
+- [`MCPCallbackBrokerTests.swift`](../Packages/EgakiumMCP/Tests/MCPCallbackBrokerTests.swift)
+- [`MCPTaskWireTests.swift`](../Packages/EgakiumMCP/Tests/MCPTaskWireTests.swift)
+- [`MCPTaskStateMachineTests.swift`](../Packages/EgakiumMCP/Tests/MCPTaskStateMachineTests.swift)
+- [`MCPTaskAugmentedToolBindingTests.swift`](../Packages/EgakiumMCP/Tests/MCPTaskAugmentedToolBindingTests.swift)
 
 ## 20. P1：外部错误与统一 redaction
 
 raw SDK `MCPError`、JSON-RPC data、remote diagnostics 或 HTTP body 不能直接进入
 模型、EventLog、ArtifactStore 或 UI。
 
-[`MCPClientSession`](../Packages/IntatisMCP/Sources/MCPClientSession.swift)在
+[`MCPClientSession`](../Packages/EgakiumMCP/Sources/MCPClientSession.swift)在
 initialize、perform、task、notify、content 等 session boundary 把外部错误转为：
 
 - bounded operation。
@@ -875,8 +875,8 @@ session sanitizer。
 
 精确测试：
 
-- [`testExternalJSONRPCErrorsAreExactlyRedactedAtSessionBoundary`](../Packages/IntatisMCP/Tests/MCPProtocolLifecycleTests.swift)
-- [`testRefreshDiagnosticUsesExactSessionRedactor`](../Packages/IntatisMCP/Tests/MCPRuntimeAuthorityTests.swift)
+- [`testExternalJSONRPCErrorsAreExactlyRedactedAtSessionBoundary`](../Packages/EgakiumMCP/Tests/MCPProtocolLifecycleTests.swift)
+- [`testRefreshDiagnosticUsesExactSessionRedactor`](../Packages/EgakiumMCP/Tests/MCPRuntimeAuthorityTests.swift)
 
 ## 21. 产品面
 
@@ -896,19 +896,19 @@ session sanitizer。
 
 主要文件：
 
-- [`MCPProductIntegration.swift`](../Apps/IntatisMac/Sources/MCPProductIntegration.swift)
-- [`MCPProjectSettingsSurfaces.swift`](../Apps/IntatisMac/Sources/MCPProjectSettingsSurfaces.swift)
-- [`MCPAppSessionSurfaces.swift`](../Apps/IntatisMac/Sources/MCPAppSessionSurfaces.swift)
-- [`MCPConversationSurfaces.swift`](../Apps/IntatisMac/Sources/MCPConversationSurfaces.swift)
-- [`MCPInteractionCenter.swift`](../Apps/IntatisMac/Sources/MCPInteractionCenter.swift)
-- [`MCPConversationRuntimeHost.swift`](../Apps/IntatisMac/Sources/MCPConversationRuntimeHost.swift)
+- [`MCPProductIntegration.swift`](../Apps/EgakiumMac/Sources/MCPProductIntegration.swift)
+- [`MCPProjectSettingsSurfaces.swift`](../Apps/EgakiumMac/Sources/MCPProjectSettingsSurfaces.swift)
+- [`MCPAppSessionSurfaces.swift`](../Apps/EgakiumMac/Sources/MCPAppSessionSurfaces.swift)
+- [`MCPConversationSurfaces.swift`](../Apps/EgakiumMac/Sources/MCPConversationSurfaces.swift)
+- [`MCPInteractionCenter.swift`](../Apps/EgakiumMac/Sources/MCPInteractionCenter.swift)
+- [`MCPConversationRuntimeHost.swift`](../Apps/EgakiumMac/Sources/MCPConversationRuntimeHost.swift)
 
 App Store target共享完整 macOS UI，但 stdio controls 由真实 linkage/platform
 capability 排除，不靠“点了再报错”的运行时布尔兜底。
 
 ### 21.2 CLI
 
-`intatis mcp` 覆盖：
+`egakium mcp` 覆盖：
 
 - list、status、add、edit、remove、test、doctor。
 - import、export。
@@ -921,10 +921,10 @@ interactive `/mcp` 提供 live status/connect/refresh/disconnect。
 
 主要文件：
 
-- [`MCPCLICommands.swift`](../Apps/intatis-cli/Sources/MCPCLICommands.swift)
-- [`MCPCLILiveCommands.swift`](../Apps/intatis-cli/Sources/MCPCLILiveCommands.swift)
-- [`MCPCLIProductRuntime.swift`](../Apps/intatis-cli/Sources/MCPCLIProductRuntime.swift)
-- [`MCPCLIProcessOwner.swift`](../Apps/intatis-cli/Sources/MCPCLIProcessOwner.swift)
+- [`MCPCLICommands.swift`](../Apps/egakium-cli/Sources/MCPCLICommands.swift)
+- [`MCPCLILiveCommands.swift`](../Apps/egakium-cli/Sources/MCPCLILiveCommands.swift)
+- [`MCPCLIProductRuntime.swift`](../Apps/egakium-cli/Sources/MCPCLIProductRuntime.swift)
+- [`MCPCLIProcessOwner.swift`](../Apps/egakium-cli/Sources/MCPCLIProcessOwner.swift)
 
 ### 21.3 P1：无 MCP CLI
 
@@ -938,17 +938,17 @@ interactive `/mcp` 提供 live status/connect/refresh/disconnect。
 
 证据：
 
-- [`MCPCLIProcessOwnerTests.swift`](../Apps/intatis-cli/Tests/MCPCLIProcessOwnerTests.swift)
-- [`MCPNoAttachmentRegressionTests.swift`](../Packages/IntatisAgentKernel/Tests/MCPNoAttachmentRegressionTests.swift)
+- [`MCPCLIProcessOwnerTests.swift`](../Apps/egakium-cli/Tests/MCPCLIProcessOwnerTests.swift)
+- [`MCPNoAttachmentRegressionTests.swift`](../Packages/EgakiumAgentKernel/Tests/MCPNoAttachmentRegressionTests.swift)
 
 ## 22. Client-only 证明矩阵
 
 | 检查面 | 当前证据 | 结论 |
 |---|---|---|
-| SwiftPM products | 根 manifest 只有 `IntatisMCP`/`IntatisMCPStdio` client libraries；无 MCP server product | client-only |
+| SwiftPM products | 根 manifest 只有 `EgakiumMCP`/`EgakiumMCPStdio` client libraries；无 MCP server product | client-only |
 | Vendored SDK | [`UPSTREAM.md`](../Vendor/MCPClientSDK/UPSTREAM.md) 排除 `Server` actor、HTTP Server transports、InMemory/Network transport、server OAuth、upstream conformance executable/tests | client-only source closure |
 | Patch ledger | [`CLIENT-ONLY-001/002`](../Vendor/MCPClientSDK/PATCHES.md) 固定 deny-list 和 remote server metadata 搬迁 | 无 server namespace/actor |
-| Source/API scan | [`SDKClientOnlySurfaceTests`](../Packages/IntatisMCP/Tests/SDKClientOnlySurfaceTests.swift) 检查 source deny-list、resolved dependency graph、平台 linkage | `EVIDENCE_PRESENT` |
+| Source/API scan | [`SDKClientOnlySurfaceTests`](../Packages/EgakiumMCP/Tests/SDKClientOnlySurfaceTests.swift) 检查 source deny-list、resolved dependency graph、平台 linkage | `EVIDENCE_PRESENT` |
 | Callbacks | 仅 client connection 上的 server→client request handler | 不监听/host MCP |
 | `MCPServerContributor` | 只返回 bounded proposal document；无 catalog/transport/credential/grant service | 不是 server seam |
 | stdio gateway | authenticated CONNECT proxy，只提供 outbound egress | 不是 MCP listener |
@@ -979,7 +979,7 @@ interactive `/mcp` 提供 live status/connect/refresh/disconnect。
 ### 23.2 不可信内容进入模型
 
 所有 external context 使用 SDK-independent
-[`UntrustedExternalContext`](../Packages/IntatisProtocol/Sources/UntrustedExternalContext.swift)
+[`UntrustedExternalContext`](../Packages/EgakiumProtocol/Sources/UntrustedExternalContext.swift)
 或等价 provenance：
 
 - server/revision/resource URI。
@@ -1034,9 +1034,9 @@ configured
 
 实现：
 
-- [`MCPReliability.swift`](../Packages/IntatisMCP/Sources/MCPReliability.swift)
-- [`MCPReliabilityTests.swift`](../Packages/IntatisMCP/Tests/MCPReliabilityTests.swift)
-- [`SessionRuntimeManager.swift`](../Apps/IntatisMac/Sources/SessionRuntimeManager.swift)
+- [`MCPReliability.swift`](../Packages/EgakiumMCP/Sources/MCPReliability.swift)
+- [`MCPReliabilityTests.swift`](../Packages/EgakiumMCP/Tests/MCPReliabilityTests.swift)
+- [`SessionRuntimeManager.swift`](../Apps/EgakiumMac/Sources/SessionRuntimeManager.swift)
 
 ## 25. 开源复用与供应链
 
@@ -1118,7 +1118,7 @@ dependency：
   - structured result/provenance。
   - authorization MCP snapshot。
 - 主要证据：
-  - `IntatisProtocol/Sources/MCP*.swift`
+  - `EgakiumProtocol/Sources/MCP*.swift`
   - `ToolProtocol.swift`
   - `MCPProtocolTests`
   - `MCPDynamicToolRegistryTests`
@@ -1167,7 +1167,7 @@ dependency：
   - minimal env/sensitive paths。
   - initialize/ping/cancel/shutdown。
 - 主要证据：
-  - `IntatisMCPStdio`
+  - `EgakiumMCPStdio`
   - `MCPManagedStdioTests`
   - C strict compilation/static cross-build gate。
 - 环境边界：
@@ -1277,7 +1277,7 @@ dependency：
   - `scripts/validate-linux-cli.sh`
 - 最终确定性结算：
   - official client conformance：23/23。
-  - Intatis Tasks interoperability：3/3。
+  - Egakium Tasks interoperability：3/3。
   - W10 七个 focused suites：102/102。
   - provenance/client-only/portable-crypto/static QA：全部通过。
 - 环境边界：真实第三方 server/OAuth、匹配 Linux runtime、签名/公证发行和长期
@@ -1316,7 +1316,7 @@ fixture、构建和静态证据均已通过，但不能替代对应真实环境�
 | 23 | `.mcp.json`/`.claude.json` 安全预览、迁移、确认、原子保存 | `PASS` | import/config tests |
 | 24 | DeveloperID/CLI stdio+HTTP，App Store HTTP-only，iOS 无 runtime | `I-ENV` | source graph；signed final bundle 受限 |
 | 25 | GUI/CLI 完成配置、测试、挂载、授权、认证、诊断、删除 | `I-ENV` | product sources/tests；真实第三方流程受限 |
-| 26 | 产品语义对齐 Codex，视觉保持 Intatis 原生 | `PASS` | public docs/source mapping、product sources |
+| 26 | 产品语义对齐 Codex，视觉保持 Egakium 原生 | `PASS` | public docs/source mapping、product sources |
 | 27 | 无 MCP Server、Hosted ChatGPT Apps、ChatGPT 私有 auth、reserved/private plugin、OpenAI 私有 form 或 Knowledge seam | `PASS` | client-only tests/target scan |
 | 28 | 无 MCP 用户行为与数据不回归 | `PASS` | CLI inert + no-attachment AgentLoop tests |
 | 29 | 固定上游、license、NOTICE、patch、fault/conformance、真实 E2E | `I-ENV` | provenance/fixtures 已有；真实 E2E/attestation 受限 |
@@ -1357,7 +1357,7 @@ provenance、patch、fault fixture 和 conformance harness 必须与下列
 - official client scenarios：23。
   - `codex-compat`：5。
   - `standard-extended`：18。
-- Intatis Tasks interoperability：3。
+- Egakium Tasks interoperability：3。
   - complete。
   - timeout。
   - cancel。
@@ -1415,10 +1415,10 @@ provenance、patch、fault fixture 和 conformance harness 必须与下列
 | W10 aggregate | `Tests/MCPConformance/run-w10.sh` | `PASS`：official 23/23 + Tasks 3/3 + 7 suites 102/102 |
 | Full SwiftPM tests | `swift test --disable-sandbox` | `PASS`：1362 executed、16 opt-in environment skips、0 failures |
 | Root SwiftPM build | `swift build --disable-sandbox` | `PASS`，exit 0 |
-| CLI product | `swift build --disable-sandbox --product intatis` | `PASS`，exit 0 |
-| macOS DeveloperID Debug | `xcodebuild ... -scheme IntatisMac ... CODE_SIGNING_ALLOWED=NO build` | `PASS`，exit 0，arm64 |
-| macOS App Store Debug | `xcodebuild ... -scheme IntatisMacAppStore ... CODE_SIGNING_ALLOWED=NO build` | `PASS`，exit 0，arm64 |
-| iOS Simulator Debug | `xcodebuild ... -scheme IntatisiOS ... CODE_SIGNING_ALLOWED=NO build` | `PASS`，exit 0，x86_64+arm64 |
+| CLI product | `swift build --disable-sandbox --product egakium` | `PASS`，exit 0 |
+| macOS DeveloperID Debug | `xcodebuild ... -scheme EgakiumMac ... CODE_SIGNING_ALLOWED=NO build` | `PASS`，exit 0，arm64 |
+| macOS App Store Debug | `xcodebuild ... -scheme EgakiumMacAppStore ... CODE_SIGNING_ALLOWED=NO build` | `PASS`，exit 0，arm64 |
+| iOS Simulator Debug | `xcodebuild ... -scheme EgakiumiOS ... CODE_SIGNING_ALLOWED=NO build` | `PASS`，exit 0，x86_64+arm64 |
 | Linux portable crypto | `swift test --filter MCPPortableCryptoTests` | `PASS`：4/4 |
 | Linux aarch64 static CLI | `scripts/validate-linux-cli.sh` | `PASS`：static ELF，266,529,224 bytes |
 | Linux x86_64 static CLI | `scripts/validate-linux-cli.sh` | `PASS`：static ELF，271,031,728 bytes |
@@ -1438,31 +1438,31 @@ provenance、patch、fault fixture 和 conformance harness 必须与下列
 Tests/MCPConformance/run-w10.sh
 swift test --disable-sandbox
 swift build --disable-sandbox
-swift build --disable-sandbox --product intatis
+swift build --disable-sandbox --product egakium
 
 swift test --disable-sandbox \
   --filter 'MCPToolSearchParityTests|MCPToolResultConversionTests|AgentRequestToolSnapshotTests|ResponsesToolSearchParityTests|MCPProtocolLifecycleTests|MCPRuntimeAuthorityTests|MCPCLIProcessOwnerTests|MCPNoAttachmentRegressionTests'
 
-xcodebuild -project Intatis.xcodeproj -scheme IntatisMac \
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumMac \
   -configuration Debug \
-  -derivedDataPath /private/tmp/intatis-mcp-mac-developerid \
+  -derivedDataPath /private/tmp/egakium-mcp-mac-developerid \
   CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO build
 
-xcodebuild -project Intatis.xcodeproj -scheme IntatisMacAppStore \
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumMacAppStore \
   -configuration Debug \
-  -derivedDataPath /private/tmp/intatis-mcp-mac-appstore \
+  -derivedDataPath /private/tmp/egakium-mcp-mac-appstore \
   CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO build
 
-xcodebuild -project Intatis.xcodeproj -scheme IntatisiOS \
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumiOS \
   -configuration Debug -destination 'generic/platform=iOS Simulator' \
-  -derivedDataPath /private/tmp/intatis-mcp-ios \
+  -derivedDataPath /private/tmp/egakium-mcp-ios \
   CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO build
 
-INTATIS_SWIFT_BIN=/private/tmp/intatis-swiftly/toolchains/swift-6.3.3-RELEASE.xctoolchain/usr/bin/swift \
-INTATIS_LINUX_SDKS_PATH=/private/tmp/intatis-swift-sdks \
-INTATIS_LINUX_SDK_AARCH64=aarch64-swift-linux-musl \
-INTATIS_LINUX_SDK_X86_64=x86_64-swift-linux-musl \
-INTATIS_LINUX_VALIDATION_ROOT=/private/tmp/intatis-linux-mcp-validation \
+EGAKIUM_SWIFT_BIN=/private/tmp/egakium-swiftly/toolchains/swift-6.3.3-RELEASE.xctoolchain/usr/bin/swift \
+EGAKIUM_LINUX_SDKS_PATH=/private/tmp/egakium-swift-sdks \
+EGAKIUM_LINUX_SDK_AARCH64=aarch64-swift-linux-musl \
+EGAKIUM_LINUX_SDK_X86_64=x86_64-swift-linux-musl \
+EGAKIUM_LINUX_VALIDATION_ROOT=/private/tmp/egakium-linux-mcp-validation \
 scripts/validate-linux-cli.sh
 ```
 
@@ -1549,7 +1549,7 @@ scripts/validate-linux-cli.sh
 
 - 根 manifest 与 XcodeGen target graph。
 - `Vendor/MCPClientSDK` manifest、UPSTREAM、PATCHES。
-- `IntatisMCP`、`IntatisMCPStdio`、`IntatisCurlTransport` 源码。
+- `EgakiumMCP`、`EgakiumMCPStdio`、`EgakiumCurlTransport` 源码。
 - AgentKernel per-dispatch snapshot 与 EventLog host adapters。
 - Protocol MCP payload/grant/result。
 - macOS session/product/OAuth/import surfaces。

@@ -2,18 +2,84 @@
 
 文档状态：当前开源复用政策
 生效日期：2026-07-12
-最近核对：2026-08-16
-产品基线：v0.2（build 49）
+最近核对：2026-08-18
+产品基线：v0.4（build 50）
 
 ## 项目立场
 
-Ekagium 是 Apple-first、Swift-native 优先的本地 AI workbench，当前业务代码与安全实现仍使用
-Intatis 技术 identity。项目不再采用“禁止直接复用外部源码”的严格 clean-room 政策；允许在许可证
+Egakium 是 Apple-first、Swift-native 优先的本地 AI workbench，当前业务代码与安全实现仍使用
+Egakium 技术 identity。项目不再采用“禁止直接复用外部源码”的严格 clean-room 政策；允许在许可证
 兼容、来源清晰、归属完整、安全边界不降级的前提下，选择性复制、翻译、修改、链接或以独立进程
 复用成熟开源实现。
 
-允许复用不等于无条件搬运。Ekagium 的产品身份、Apple 平台体验以及 Intatis 技术基线中的权限模型、
+允许复用不等于无条件搬运。Egakium 的产品身份、Apple 平台体验以及 Egakium 技术基线中的权限模型、
 持久化协议和安全边界仍由本项目控制。
+
+## Dependency-first / no-fallback（项目级硬约束）
+
+本节继承且不得弱化 Vitemis canonical `/Users/vita/Vitemis/docs/DEPENDENCY_POLICY.md`。
+
+2026-08-18 用户最终决定：当用户已经指定、项目已经采用，或经本文件的许可证、provenance、安全、
+平台和分发审查后可采用的外部依赖提供与目标相同的能力时，Egakium 必须直接集成该依赖的官方
+能力，禁止自行重写同等能力或用本地替代层顶替。
+
+本规则优先于此前任何“先做原型/兜底、以后再替换”“为了测试先接另一后端”或“保持双实现方便
+回退”的项目记录。具体要求如下：
+
+- 实现前必须先做 capability/dependency inventory，记录是否已有 exact-capability 的系统框架、已锁定
+  dependency、官方 SDK/runtime/binary 或用户指定组件；不能跳过调查直接写本地实现。
+- 已有合格依赖时，禁止新增自研 adapter、shim、compatibility layer、polyfill、parallel backend、
+  preview backend、shadow implementation 或 fallback 来重新实现其核心能力。
+- 允许的本地集成代码只能是调用官方 API 所必需的最薄 binding：类型转换、生命周期、配置、资源
+  打包、权限门、审计和平台接线。该 binding 不得包含另一套同等引擎、协议栈、渲染器、解析器、
+  调度器或业务算法，也不得在依赖失败时切换到自研版本。
+- 若 exact dependency 因版本、许可证、架构、构建、签名、公证、sandbox、安全或供应链问题暂时
+  无法接入，必须停止该能力的实现，明确报告 blocker、缺失证据和所需用户决定；不得静默降级、
+  偷换依赖或把“不可用”包装成兼容模式。
+- 只有用户针对 exact 依赖、exact 替代范围、时限、删除条件和验收方式作出的新明文授权，才能建立
+  临时例外；一般性的“先做原型”不得推导出替代依赖权限。
+- 现有自研能力不因已经存在就自动豁免。触及其功能时必须重新做等价依赖审计；确认存在合格依赖
+  后，应规划直接替换，不得继续扩展本地替代层。
+- 测试和最终报告必须证明实际产品 target 链接、加载并执行了指定依赖；仅有 mock、浏览器 fixture、
+  本地替代后端或接口形状测试不能作为依赖已接入的证据。
+
+这里的 “fallback” 特指 **用另一实现替代指定外部依赖的 capability-substitution fallback**。历史
+JSON/schema decode、同一依赖内部的有界 retry、以及已有明确产品合同约束的错误恢复仍按各自规范
+处理，但绝不能被用来解释或绕过本条。
+
+### Canvas / CEF 的确定结论
+
+- 官方 CEF macOS ARM64 发行包是 Egakium Canvas 唯一接受的网页渲染依赖；迁移前冻结的
+  `docs/egakium-cef-baseline/docs/TECHNICAL_ROUTE.md` 仅作为已接受路线与 provenance 历史证据。
+- 当前采用 exact official CEF Standard Distribution
+  `151.3.17+gf059e67+chromium-151.0.7922.138_macosarm64`，archive SHA-256 为
+  `b5302117aadb2255650cb721840d2512f0cb5e321b5ca446b1b07005afb948d2`，CEF commit
+  `f059e67fa6aad5e8cce8bebea5df706ffddfb174`，Chromium commit
+  `41fa82442390a4d4456c78f2d69a832d5720cb27`。canonical pin 在 `config/cef.cmake`；完整 provenance/
+  scope/license 见 `ThirdPartyNotices/ChromiumEmbeddedFramework.md` 和 `NOTICE.md`。
+- product target 直接编译 CEF 的 unmodified `libcef_dll_wrapper` 与官方 external message pump，打包
+  official Framework/Resources/五个 sandbox Helpers，并用官方 AppKit child browser、request context、
+  custom scheme、library loader 和 shutdown API。项目代码只做 lifecycle/bundle/Session path/security
+  wiring，不实现 CEF-equivalent renderer。
+- SwiftUI-owned `NSApplication` 的 `CefAppProtocol` event/terminate wiring 使用 official JCEF
+  `native/util_mac.mm` category/swizzling pattern 的最小派生，pin 为
+  `chromiumembedded/java-cef@6d3e8ca02cd3ec0af163086f9a79281beb0cc60e`；未复制/链接其 Java、AWT、
+  JNI、mouse monitor 或 browser registry。provenance 与 BSD license 同样记录在 CEF third-party notice。
+- Canvas WKWebView、WebKit content world/navigation、injected DOM runtime 与 fallback 已删除；不得
+  重新引入。CEF 不可用时构建失败或明确显示 Canvas unavailable，不能回落到另一 renderer。
+
+### 现有实现审计状态
+
+- **ADOPTED / DIRECT DEPENDENCY**：上述 pinned official CEF 是当前唯一 Canvas renderer；Debug App
+  build/runtime 已验证 Framework/Helpers/seatbelt subprocess。Developer ID notarized release 仍须按
+  `MACOS_DISTRIBUTION.md` 单独执行，不能从 Debug 证据外推。
+- **REMOVED / MUST NOT RETURN**：Canvas WKWebView/WebKit-specific renderer、DOM injection、metadata
+  monitor 和 compatibility fallback 与官方 CEF capability 重叠，已从产品路径删除。
+- 其他历史 `reference`/独立 Swift adapter、parser、renderer、helper 尚未因本次文档任务逐项完成
+  capability-equivalence 审计；它们不因既有记录自动合规。后续触及任一实现前，必须先按本节 inventory
+  同能力外部依赖并记录结论。
+- 下文各历史采用/参考记录继续说明当时实际发生的 provenance，不会被本政策改写成“当时未发生”；
+  但其中“独立实现”不再自动成为未来扩展依据，若已有可采用同能力依赖，必须直接迁移依赖。
 
 ## 允许的复用形式
 
@@ -52,42 +118,52 @@ external-runtime 以独立 helper/process/service 运行上游实现
 ## 永久禁止项
 
 - 不使用泄露、反编译、绕过访问控制获得的源码或私有 prompt。
-- 不复制第三方产品名称、Logo、图标、截图、UI 资产、商标性外观或品牌文案作为 Ekagium 产品身份。
-- 不把上游许可证、版权声明或来源记录删除、模糊化或错误标成 Intatis 原创。
+- 不复制第三方产品名称、Logo、图标、截图、UI 资产、商标性外观或品牌文案作为 Egakium 产品身份。
+- 不把上游许可证、版权声明或来源记录删除、模糊化或错误标成 Egakium 原创。
 - 不因复用外部实现而绕过 `DeterministicPolicyGate`、`PermissionEngine`、`CapabilityLease`、`WorkspaceLease`、`PathConfinement`、`SecretScanner`、`Mediator`、durable tool ticket 或 EventLog 审计。
 - 不让外部 runtime 扩大 iOS 平台边界；iOS 仍不得获得本地 workspace Agent、shell、Git 或 Cowork 执行能力。
 
 ## Prompt、文案与资产
 
-- 公开仓库中由兼容许可证覆盖的 model-facing prompt 可以按 `derived` 复用，但必须固定上游 commit、记录来源、移除上游品牌/支持链接，并重新核对 Intatis 的工具名、权限语义和安全边界。
+- 公开仓库中由兼容许可证覆盖的 model-facing prompt 可以按 `derived` 复用，但必须固定上游 commit、记录来源、移除上游品牌/支持链接，并重新核对 Egakium 的工具名、权限语义和安全边界。
 - 私有、泄露或许可证不明确的 prompt 永久禁止使用。
-- 用户可见文案默认由 Intatis 自己编写；若确需复用开源文案，按源码同等记录来源，但不得造成官方关联或商标混淆。
+- 用户可见文案默认由 Egakium 自己编写；若确需复用开源文案，按源码同等记录来源，但不得造成官方关联或商标混淆。
 - UI 图标、Logo、截图、产品名称和品牌视觉不因源码采用 MIT 等许可证就自动进入允许范围；没有单独确认时不得复用。
 
 ## Apple-first 实现规则
 
 - App shell、SwiftUI/AppKit 界面、EventLog、权限控制、lease、scheduler、workspace bookmark 与 iOS/macOS 平台边界优先保持 Swift 原生。
-- 从非 Swift 项目复用时，先判断是“选择性翻译核心逻辑”还是“隔离为外部 runtime”更合适，不做无边界的整仓移植。
-- Node/Bun/Rust/Go 等 helper 默认只可作为 macOS DeveloperID 路径的隔离组件评估；引入前必须设计签名、Hardened Runtime、sandbox、更新、进程清理、资源占用和失败降级。不得把它们隐式带入 iOS target。
-- 外部 runtime 必须通过受控协议接入 Intatis，由 Intatis 继续拥有权限决定、工作区授权、事件审计和用户可见状态；不得让上游 runtime 成为不可审计的第二事实源。
+- Swift-native 优先只约束产品 shell 与安全边界，不授权重写外部依赖已经提供的同等核心能力。从非
+  Swift 项目复用时应优先 dependency/external-runtime 官方接入；只有完成等价依赖调查、确认没有合格
+  外部能力并取得用户对独立实现的明确决定后，才可选择性翻译核心逻辑。
+- Node/Bun/Rust/Go 等 helper 默认只可作为 macOS DeveloperID 路径的隔离组件评估；引入前必须设计
+  签名、Hardened Runtime、sandbox、更新、进程清理和资源占用。组件不可用时必须 typed unavailable/
+  fail closed，不得切换到仓内自研同能力后端。不得把它们隐式带入 iOS target。
+- 外部 runtime 必须通过受控协议接入 Egakium，由 Egakium 继续拥有权限决定、工作区授权、事件审计和用户可见状态；不得让上游 runtime 成为不可审计的第二事实源。
 
 ## 每次复用前的检查清单
 
-1. 固定上游仓库 URL、tag/commit 和具体文件路径；不得直接跟随浮动 `main`/`dev` 作为可重复构建依据。
-2. 读取根许可证、目标文件头、NOTICE、依赖清单和相关资产许可证。
-3. 选择 `derived` / `vendored` / `dependency` / `external-runtime` 之一，并说明为何适合 Apple 平台。
-4. 评估 SwiftPM/Xcode target、macOS Developer ID 签名/公证/直接分发、
+1. 先列出目标 capability 和所有已知同能力系统框架、正式 dependency、SDK/runtime/binary；说明为何
+   选择直接集成的 exact 依赖，或为何确实不存在可采用依赖。禁止以偏好自研作为排除理由。
+2. 固定上游仓库 URL、tag/commit 和具体文件路径；不得直接跟随浮动 `main`/`dev` 作为可重复构建依据。
+3. 读取根许可证、目标文件头、NOTICE、依赖清单和相关资产许可证。
+4. 选择 `derived` / `vendored` / `dependency` / `external-runtime` 之一，并说明为何适合 Apple 平台；若
+   选择 `derived` 或独立实现，必须同时记录用户批准的无同等依赖结论或 exact 例外。
+5. 评估 SwiftPM/Xcode target、macOS Developer ID 签名/公证/直接分发、
    iOS 子集、binary size、更新和供应链影响；不得仅为已取消的 Mac App Store
    产品面引入替代依赖或裁剪能力。
-5. 说明外部实现如何接入现有 Permission/EventLog/Lease/PathConfinement 边界。
-6. 在 `NOTICE.md` 增加当前实际采用项；需要分发完整第三方声明时新增 `ThirdPartyNotices/<project>.md`。
-7. 对直接复制或翻译的文件，在文件头或相邻来源清单中记录上游 URL、commit、原许可证、本地修改摘要；不得把许可证全文散落复制到每个源码文件。
-8. 添加与复用风险相称的测试，并对照上游测试覆盖输入校验、错误路径、取消、并发和安全边界。
-9. 最终报告明确区分“直接复制”“翻译/改写”“仅参考行为”和“独立实现”。
+6. 说明外部实现如何接入现有 Permission/EventLog/Lease/PathConfinement 边界，并证明本地代码只是最薄
+   binding，没有隐藏平行实现或 fallback route。
+7. 在 `NOTICE.md` 增加当前实际采用项；需要分发完整第三方声明时新增 `ThirdPartyNotices/<project>.md`。
+8. 对直接复制或翻译的文件，在文件头或相邻来源清单中记录上游 URL、commit、原许可证、本地修改摘要；不得把许可证全文散落复制到每个源码文件。
+9. 添加与复用风险相称的测试，并对照上游测试覆盖输入校验、错误路径、取消、并发和安全边界；测试
+   必须验证指定依赖真实执行且依赖缺失时不切换替代后端。
+10. 最终报告明确区分“直接复制”“翻译/改写”“仅参考行为”“最薄官方 binding”和“独立实现”，并
+    列出任何待删除的旧替代层。
 
 ## OKF / knowledge retrieval 当前准入结论
 
-- Intatis 已把 GoogleCloudPlatform `knowledge-catalog` 的 Open Knowledge Format v0.2
+- Egakium 已把 GoogleCloudPlatform `knowledge-catalog` 的 Open Knowledge Format v0.2
   `okf/SPEC.md` 固定在 commit `3fcbb9f828c2f23d109c855ee403c3a4c81f3a96`，以
   byte-exact `vendored standard documentation` 形式保存于
   `ThirdPartyStandards/OpenKnowledgeFormat/0.2/`。规范 SHA-256 为
@@ -97,14 +173,14 @@ external-runtime 以独立 helper/process/service 运行上游实现
   `UPSTREAM.md`、`SHA256SUMS`、`NOTICE.md` 和
   `ThirdPartyNotices/OpenKnowledgeFormat.md` 是同一 adoption record，不得只更新其中一处。
 - 本次没有采用或执行上游 reference agent、Python package、prompt、sample bundle、viewer、
-  HTML/CSS/JavaScript 或品牌资产。Intatis 的 Profile、Validator、snapshot/index 和 tool contract
+  HTML/CSS/JavaScript 或品牌资产。Egakium 的 Profile、Validator、snapshot/index 和 tool contract
   是独立 Swift 集成代码；OKF 本身不定义 embedding、vector store、rerank、ACL 或 RAG runtime。
-- non-iOS `IntatisKnowledge` target 通过 SwiftPM 使用 Yams 6.2.2，固定 commit
+- non-iOS `EgakiumKnowledge` target 通过 SwiftPM 使用 Yams 6.2.2，固定 commit
   `a27b21e0c81c5bf42049b897a62aaf387e80f279`。复用类型为 `dependency`，许可证 MIT；运行闭包
   是 Yams 及其同包 CYaml/libYAML，无外部 package dependency。完整记录与许可证位于
   `ThirdPartyNotices/KnowledgeRetrieval.md` 和
   `ThirdPartyNotices/Licenses/Yams-6.2.2-MIT.txt`。Yams 只负责 bounded YAML AST；alias、custom
-  tag、node/depth/scalar limits 和不执行输入仍由 Intatis host safety profile 强制。
+  tag、node/depth/scalar limits 和不执行输入仍由 Egakium host safety profile 强制。
 - Apple NaturalLanguage、Accelerate 和系统加密/文件 API 属系统框架，不新增第三方 NOTICE。
   P0 dense exact KNN、BM25 tokenizer/scorer、RRF 与 embedding-cosine reranker 是仓内 Swift 实现；
   没有复制或链接 SwiftIndex、MLXEmbedders、sqlite-vec、USearch、VecturaKit、Wax、llama.cpp 或
@@ -115,9 +191,9 @@ external-runtime 以独立 helper/process/service 运行上游实现
 
 - 官方活跃仓库：`https://github.com/anomalyco/opencode`
 - 调研时根许可证：MIT
-- 当前状态：`research-only`，截至本政策生效时尚未把 OpenCode 源码、公开 prompt 或 UI 资产加入 Intatis。
+- 当前状态：`research-only`，截至本政策生效时尚未把 OpenCode 源码、公开 prompt 或 UI 资产加入 Egakium。
 - 后续允许选择性复用其具体实现，但每批必须固定 commit、核对目标文件与传递依赖，并按本政策记录 provenance。
-- Intatis 不使用 OpenCode 名称、Logo、图标或 UI 品牌；若复用 TypeScript 实现，优先选择可验证的逻辑/测试进行 Swift 派生实现，或作为 macOS-only 隔离 runtime 评估。
+- Egakium 不使用 OpenCode 名称、Logo、图标或 UI 品牌；若复用 TypeScript 实现，优先选择可验证的逻辑/测试进行 Swift 派生实现，或作为 macOS-only 隔离 runtime 评估。
 
 ## OpenCode provider adapter 与 AI SDK wire 参考记录
 
@@ -141,7 +217,7 @@ external-runtime 以独立 helper/process/service 运行上游实现
   `5cef3c562b12c89c7ddbf1c88565e1219af6a302`（Apache-2.0）。另参考 Remeda
   `mergeDeep` 的公开 plain-object recursion/array-scalar replacement 行为；
   本地没有引入 Remeda runtime。
-- 本轮复用形式是 `reference`：Intatis 以 Swift 独立实现 raw npm identity、
+- 本轮复用形式是 `reference`：Egakium 以 Swift 独立实现 raw npm identity、
   reviewed adapter selection/lowering、deep merge、durable revision 与
   fail-closed 边界；没有复制、逐行翻译、vendor、链接或分发 OpenCode、
   Vercel AI SDK、OpenRouter SDK、Remeda 的源码、测试、prompt、文案、名称、
@@ -155,7 +231,7 @@ external-runtime 以独立 helper/process/service 运行上游实现
 - 固定 commit：`1a817bb95d942d4ca93f6ed09c97968713ff6d2a`（调研日期 2026-07-24）
 - 核对结果：根许可证为 Apache-2.0，仓库包含 NOTICE；本轮阅读了 `codex-rs/core/src/unified_exec/process_manager.rs`、`async_watcher.rs`、`head_tail_buffer.rs`、`codex-rs/utils/pty/src/pty.rs`、`process.rs`、`codex-rs/core/src/tools/handlers/unified_exec/write_stdin.rs`、`codex-rs/protocol/src/shell_environment.rs` 与 `codex-rs/sandboxing/src/seatbelt_base_policy.sbpl`。
 - 本轮复用形式是 `reference`：参考了“长进程返回 session、后续继续写 stdin/轮询”“真实 PTY/controlling terminal”“持续 drain 且有界保留 head+tail”“process/session manager 负责取消与清理”“sandbox 与环境由 host 冻结”等行为和测试方向。
-- Intatis 的 `ProcessTerminalSessionManager`、Swift tool/lease/permission/EventLog 接线和 `IntatisPTYLauncher` C helper 均为独立实现；没有复制、逐行翻译、vendor 或链接 Codex Rust/C 源码、prompt、测试、文案、名称、Logo 或 UI 资产。因此本轮没有新增第三方分发物，也没有修改 `NOTICE.md`。如果后续直接采用任何 Codex 文件或表达，必须把对应批次改记为 `derived` / `vendored` / `dependency`，重新核对该 commit 的目标文件、依赖、Apache-2.0 NOTICE 与本地修改摘要后再更新 NOTICE。
+- Egakium 的 `ProcessTerminalSessionManager`、Swift tool/lease/permission/EventLog 接线和 `EgakiumPTYLauncher` C helper 均为独立实现；没有复制、逐行翻译、vendor 或链接 Codex Rust/C 源码、prompt、测试、文案、名称、Logo 或 UI 资产。因此本轮没有新增第三方分发物，也没有修改 `NOTICE.md`。如果后续直接采用任何 Codex 文件或表达，必须把对应批次改记为 `derived` / `vendored` / `dependency`，重新核对该 commit 的目标文件、依赖、Apache-2.0 NOTICE 与本地修改摘要后再更新 NOTICE。
 
 ## Codex CLI 模型历史参考记录
 
@@ -163,7 +239,7 @@ external-runtime 以独立 helper/process/service 运行上游实现
 - 固定 commit：`4c43465133428898aa84f0bfc02c306ed65fb66a`（调研日期 2026-07-25）
 - 核对结果：根许可证为 Apache-2.0，仓库包含 NOTICE；本轮重点阅读 `codex-rs/core/src/state/session.rs`、`context_manager/history.rs`、`context_manager/normalize.rs`、`codex-rs/core/src/session/turn.rs`、`session/rollout_reconstruction.rs`、`codex-rs/protocol/src/models.rs`、`protocol.rs`、`codex-rs/rollout/src/policy.rs` 以及对应 context/history/compaction tests。
 - 本轮复用形式是 `reference`：参考同一 thread 持有有序 model items、completed item 单次入历史、function call/output 按 call ID 配对、请求前对 missing/orphan pair 做 prompt-only 归一化、resume 从 rollout 重建，以及 compaction 保存完整 `replacement_history` 的行为。
-- Intatis 的 `ModelHistoryItemPayload`、EventLog wire event、Swift projector、legacy bridge、AgentLoop 接线和测试均为独立实现；没有复制、逐行翻译、vendor 或链接 Codex Rust 源码、prompt、测试、文案、名称、Logo 或 UI 资产。因此本轮没有新增第三方分发物，也没有修改 `NOTICE.md`。后续若直接采用上游任何文件或表达，必须重新按目标 commit 核对来源与 Apache-2.0 NOTICE，并把复用类型改为 `derived` / `vendored` / `dependency`。
+- Egakium 的 `ModelHistoryItemPayload`、EventLog wire event、Swift projector、legacy bridge、AgentLoop 接线和测试均为独立实现；没有复制、逐行翻译、vendor 或链接 Codex Rust 源码、prompt、测试、文案、名称、Logo 或 UI 资产。因此本轮没有新增第三方分发物，也没有修改 `NOTICE.md`。后续若直接采用上游任何文件或表达，必须重新按目标 commit 核对来源与 Apache-2.0 NOTICE，并把复用类型改为 `derived` / `vendored` / `dependency`。
 
 ## Codex CLI Skill 生命周期与 replacement-history compaction 参考记录
 
@@ -184,9 +260,9 @@ external-runtime 以独立 helper/process/service 运行上游实现
   budget，缺失时回退 8,000 characters；ext/skills 的 resolved/max-window +
   4k cap 是另一条路径，不能混写成 CLI Core 合同。MCP dependency 正式范围是
   `agents/openai.yaml` 中的 MCP tools，并包含用户确认、配置/OAuth 与 runtime
-  refresh 流程；Intatis 只独立实现了更窄的 metadata + request-owned
+  refresh 流程；Egakium 只独立实现了更窄的 metadata + request-owned
   fail-closed preflight，没有复制或声称实现该外部变更流程。
-- Intatis 的 OpenCode-compatible profile parser 会在 `context_window` 缺失时
+- Egakium 的 OpenCode-compatible profile parser 会在 `context_window` 缺失时
   把显式 `limit.context` 归一到 canonical primary `contextWindowTokens`；
   catalog 对该 canonical primary 应用同一 2% 公式，但仍拒绝
   `max_context_window`、compaction threshold 或 model slug 猜测。这是本地
@@ -199,13 +275,13 @@ external-runtime 以独立 helper/process/service 运行上游实现
   continuation summary、完整 replacement history、UUIDv7 window chain 与
   latest-checkpoint-plus-suffix 恢复；同时记录 remote persistence 测试 ignored
   与 network-dependent 测试 skip，未把它们写成上游已完整证明。
-- 本轮复用形式为 `reference`。Intatis 的 Swift protocol/EventLog event、
+- 本轮复用形式为 `reference`。Egakium 的 Swift protocol/EventLog event、
   compactor、projector、token estimator、profile policy、catalog budget/
   metrics、`agents/openai.yaml` parser、MCP locator fingerprint、
   request-owned host availability assertion、AgentLoop 接线与测试均为独立实现；没有
   复制或逐行翻译 Rust 源码，没有复制 compact/Skill prompt、snapshot、
   fixture、产品文案、名称、Logo 或 UI 资产，也没有 vendor、链接或分发 Codex
-  crate。Intatis 还保留了比上游更强的 EventLog-first
+  crate。Egakium 还保留了比上游更强的 EventLog-first
   commit-before-live-swap 与 per-agent CAS。
 - 因此没有新增第三方分发物或依赖，`NOTICE.md` 无需修改。若以后直接采用
   Codex prompt、源码表达、测试 fixture 或 remote compact wire 实现，必须按
@@ -225,10 +301,10 @@ external-runtime 以独立 helper/process/service 运行上游实现
   entry bounds、64/1024 metadata limits、8k/2% catalog budget、system→admin→
   repo→user budget order、无歧义 `$name`、完整 `SKILL.md` 激活和 child
   独立加载。
-- 本轮复用形式是 `reference`。`IntatisSkills` 的 Swift loader、snapshot、
+- 本轮复用形式是 `reference`。`EgakiumSkills` 的 Swift loader、snapshot、
   catalog 文案、dynamic tools、permission/durable execution 接线与测试均为
   独立实现；没有复制、逐行翻译、vendor 或链接 Codex Rust 源码、公开 prompt、
-  测试、文案、名称、Logo 或 UI 资产。Intatis 还增加了自己的
+  测试、文案、名称、Logo 或 UI 资产。Egakium 还增加了自己的
   WorkspaceLease、SecretScanner、48 KiB durable output、iOS linkage 与
   stricter no-symlink 边界。历史 App Store 分支不是当前复用准入条件。
 - 因此本轮没有新增第三方分发物或依赖，`NOTICE.md` 无需修改。若以后复制
@@ -243,7 +319,7 @@ external-runtime 以独立 helper/process/service 运行上游实现
   `25af12f7e61572b0bc18ddb1008be543b91519b0`；根许可证为
   Apache-2.0，仓库包含 NOTICE。该固定 release 与本机已安装的 Codex CLI
   0.145.0 对应。
-- 实际采用路径为 `.agents/skills/intatis-skill-creator/`，复用类型从上面的
+- 实际采用路径为 `.agents/skills/egakium-skill-creator/`，复用类型从上面的
   早期纯调研批次明确变为 `vendored` + `derived`。本批采用
   `SKILL.md`、三个 Python helper 和 `references/openai_yaml.md` 的公开结构与
   表达，并把设计指导重组为本地 `references/design-guide.md`。
@@ -251,11 +327,11 @@ external-runtime 以独立 helper/process/service 运行上游实现
   `$CODEX_HOME/skills/.system`，若再放置同名 `skill-creator`，显式
   `$skill-creator` 会因跨 root 歧义 fail closed。派生版本还改为
   `.agents/skills` 默认路径、Python 标准库实现、48 KiB 资源边界、
-  WorkspaceLease/普通权限链语义，并移除会触发 Intatis SecretScanner 的
+  WorkspaceLease/普通权限链语义，并移除会触发 Egakium SecretScanner 的
   credential-shaped 示例。
 - 没有复制上游 `agents/openai.yaml`、icon/image/品牌资产、其他系统 Skill
   或 Codex runtime。生成 `agents/openai.yaml` 只是 opt-in
-  cross-harness metadata；Intatis 只消费其中严格的 MCP dependency 子集，
+  cross-harness metadata；Egakium 只消费其中严格的 MCP dependency 子集，
   interface/policy 字段不授予能力。
 - 完整文件级 provenance、上游 Git blob、修改摘要、执行边界和升级流程在
   `ThirdPartyNotices/OpenAICodexSkillCreator.md`；复用现有完整许可证
@@ -280,10 +356,10 @@ external-runtime 以独立 helper/process/service 运行上游实现
   `resource-loader.ts`。其实现校验 Agent Skills metadata、发现多类 root、
   把 catalog 放入 system prompt，并要求模型用通用 `read` 工具读取
   `SKILL.md` 与相对资源。
-- 两条对照均为 `reference`。Intatis 采用“专用激活 + 渐进披露”的结构判断，
+- 两条对照均为 `reference`。Egakium 采用“专用激活 + 渐进披露”的结构判断，
   但没有复制两者的源码、prompt、测试或文案；同时明确不采用 Gemini 激活后
   扩大 workspace context、Pi 依赖 generic read/path 的读取方式。
-  `IntatisSkills` 只暴露 snapshot-bound `activate_skill` /
+  `EgakiumSkills` 只暴露 snapshot-bound `activate_skill` /
   `read_skill_resource`，不把 Skill 目录变成新权限根，也不以 `read_file`
   兜底。没有新增第三方分发物或依赖，因此 `NOTICE.md` 无需修改。
 
@@ -310,7 +386,7 @@ external-runtime 以独立 helper/process/service 运行上游实现
   `11297f566178023faba59ff14b6b399241488283` 的完整许可证/NOTICE、
   精确来源和完整性散列均登记在 `ThirdPartyNotices/SwiftCrypto.md`
   与 `ThirdPartyNotices/Licenses/`；不得换成自制散列/加密 fallback。
-- 上游 `MCP` product 同时含 client/server API，不满足 Intatis
+- 上游 `MCP` product 同时含 client/server API，不满足 Egakium
   client-only 边界。因此本地衍生包排除 `Server` actor、HTTP Server
   transports、conformance executables、paired in-memory/custom network
   transports 与 server-side OAuth publishing/validation types；只保留
@@ -333,7 +409,7 @@ external-runtime 以独立 helper/process/service 运行上游实现
 - 复用形式：公开 `tool_search` wire/history 合同、MCP 搜索文本字段和
   stdio schema cache 行为按 `derived` 登记；未采用 Codex MCP Server、
   UI、品牌资产、私有 prompt 或 Rust runtime。
-- Codex 固定使用 `bm25 2.3.2` 的 English default tokenizer。Intatis
+- Codex 固定使用 `bm25 2.3.2` 的 English default tokenizer。Egakium
   对 scoring/embedder/tokenizer/Snowball/fxhash 做 Swift 派生实现，
   base64 封装 deunicode 1.6.2 未修改数据，并复制 stop-words 0.9.0 的
   179 项英文表。对应 MIT/BSD-3-Clause/Apache-2.0 来源、crate
@@ -349,7 +425,7 @@ external-runtime 以独立 helper/process/service 运行上游实现
 
 ## MCP 原生 HTTP transport 准入结论
 
-- `Packages/IntatisCurlTransport` 是 Intatis 自有的 C/Swift 边界实现；
+- `Packages/EgakiumCurlTransport` 是 Egakium 自有的 C/Swift 边界实现；
   没有复制 curl、BoringSSL 或 zlib 源码。复用形式是 `dependency`：
   macOS 链接 Apple SDK/系统提供的 libcurl，Linux CLI 链接官方 Swift
   Static Linux SDK 提供的静态 archive。iOS 不链接该 target。
@@ -417,13 +493,13 @@ external-runtime 以独立 helper/process/service 运行上游实现
   `OpenAICompatibleTranscriber.swift` = `e0d92850431e7f5cb99029e4a8c26c35df876fab389d3739402c44fa6a96d22b`，
   `TranscriptionAdapterRuntimeTests.swift` = `49fc745656792494374f0758d3d92860fe592ea115e1d4b8067ed3847ec35c1c`。
 - Flotis 根目录当前没有 `LICENSE` / `NOTICE`。本批不是把无许可证第三方代码作为开源上游准入；
-  用户在本任务中以两个本地项目所有者身份明确要求把该第一方兄弟项目实现迁入 Intatis。因此本批
+  用户在本任务中以两个本地项目所有者身份明确要求把该第一方兄弟项目实现迁入 Egakium。因此本批
   仅在该明确第一方授权前提下按 `derived` 记录；若未来无法继续证明同一权利主体或授权范围，必须
   立即按“缺少许可证”规则停止升级/分发，不得把本记录冒充开放许可证。
 - 实际迁移范围是单模型 recorded-file 子系统：录音 format/settings、permission-pending generation、
   stop/cancel/temp cleanup、runtime configuration、普通文件/扩展/大小校验、disk-backed multipart、
   OpenRouter JSON-base64 `input_audio`、严格 JSON response 与对应 tests。Swift 文件头保留相邻来源说明；
-  Intatis 另外保留 exact `transcription_model`/adapter、credential lazy resolution、process-wide microphone
+  Egakium 另外保留 exact `transcription_model`/adapter、credential lazy resolution、process-wide microphone
   lease、no-redirect provider runtime、bounded shutdown 和 composer draft-only 边界。
 - 明确未采用 Flotis 的多模型并发对比、候选选择、provider/语音设置页、floating panel、全局快捷键、
   review/clipboard、Accessibility 注入、InputMethodKit target、品牌、图标、文案或其他 provider/realtime
@@ -434,7 +510,7 @@ external-runtime 以独立 helper/process/service 运行上游实现
 
 ## rbook EPUB helper 当前准入结论
 
-- `Packages/IntatisTools/Runtime/rbook-helper` 是 Intatis 自有的窄 Rust
+- `Packages/EgakiumTools/Runtime/rbook-helper` 是 Egakium 自有的窄 Rust
   connector，以 `dependency` + `external-runtime` 形式使用 crates.io
   `rbook 0.7.10`；实际 registry checksum 为
   `663ec1a8b0a945c8bb9c9912b1f8b328ba698a05165a81072e16604be019f45d`，
@@ -443,7 +519,7 @@ external-runtime 以独立 helper/process/service 运行上游实现
   `Cargo.lock` 与 registry checksum 为准。
 - helper 只暴露版本化 `json-v1` 的 EPUB write 子集；普通 EPUB read 已由固定
   Docling high-level converter 承担，不再经过 rbook helper。helper 不接受模型
-  command、backend、环境变量或网络地址。它仍位于 Intatis 的
+  command、backend、环境变量或网络地址。它仍位于 Egakium 的
   PermissionEngine、CapabilityLease、WorkspaceLease、sandbox、staging、
   EPUBCheck 和原子提交之后，不进入 iOS target。
 - `Cargo.toml` 对 rbook/serde/serde_json/zip 使用 exact pins，lockfile v4
@@ -462,5 +538,5 @@ external-runtime 以独立 helper/process/service 运行上游实现
 
 - 每个已采用上游维护一个 pinned commit 和本地 patch/translation 摘要。
 - 升级时先比较许可证、NOTICE、依赖和安全边界，再比较源码；不能只做版本号替换。
-- 上游的新权限默认、工具能力或网络/文件访问不能自动继承到 Intatis；必须重新映射到 CapabilityLease、WorkspaceLease 和 PermissionEngine。
+- 上游的新权限默认、工具能力或网络/文件访问不能自动继承到 Egakium；必须重新映射到 CapabilityLease、WorkspaceLease 和 PermissionEngine。
 - 无法确认行为或许可证变化时标记 `UNKNOWN` 并停止合入，不得猜测。

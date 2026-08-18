@@ -5,7 +5,7 @@
 
 > **本文已被 `CURRENT_UI_COLOR_SYSTEM.md` 完全取代。**
 >
-> 本文中的暖中性色、香槟金和自定义玻璃体系只记录 Intatis 之前的配色，不代表当前
+> 本文中的暖中性色、香槟金和自定义玻璃体系只记录 Egakium 之前的配色，不代表当前
 > 源码或下一版方向，也不得作为新增 UI 的默认要求。
 
 本文正文中“当前源码”“迁移前”等措辞均以 2026-07-14 的历史快照为语境。当前实现已改用
@@ -31,10 +31,10 @@ macOS 的上一版视觉语言是：**暖中性底色 + 克制的香槟金强调
 
 以下文件是上一版配色在当前源码中的事实来源，按优先级排列；它们不是下一版配色的设计依据：
 
-1. `Apps/IntatisMac/Sources/IntatisDesign.swift`：macOS 品牌色、明暗模式、渐变、玻璃修饰器与字体。
-2. `Packages/IntatisSharedUI/Sources/ThreadSurfaces.swift`：跨平台 thread 语义色和 iOS 使用的标准样式。
-3. `Apps/IntatisMac/Sources/IntatisMacRootView.swift`、`IntatisChatScreen.swift`：侧栏、选择态、聊天气泡、composer 和设置页的实际使用。
-4. `Packages/IntatisSharedUI/Sources/CodeViews.swift`、`CoworkViews.swift`、`Views.swift`：Code/Cowork 状态色及 iOS Chat 行的实际使用。
+1. `Apps/EgakiumMac/Sources/EgakiumDesign.swift`：macOS 品牌色、明暗模式、渐变、玻璃修饰器与字体。
+2. `Packages/EgakiumSharedUI/Sources/ThreadSurfaces.swift`：跨平台 thread 语义色和 iOS 使用的标准样式。
+3. `Apps/EgakiumMac/Sources/EgakiumMacRootView.swift`、`EgakiumChatScreen.swift`：侧栏、选择态、聊天气泡、composer 和设置页的实际使用。
+4. `Packages/EgakiumSharedUI/Sources/CodeViews.swift`、`CoworkViews.swift`、`Views.swift`：Code/Cowork 状态色及 iOS Chat 行的实际使用。
 
 ## 3. 上一版 macOS 基础颜色令牌
 
@@ -66,7 +66,7 @@ macOS 的上一版视觉语言是：**暖中性底色 + 克制的香槟金强调
 
 ## 4. 上一版 macOS 语义色映射
 
-在上一版实现中，`IntatisThreadStyle.intatisMac` 是 Chat、Code、Cowork 共用界面消费的语义层。
+在上一版实现中，`EgakiumThreadStyle.egakiumMac` 是 Chat、Code、Cowork 共用界面消费的语义层。
 
 | 语义字段 | 暗色模式 | 亮色模式 | 用途 |
 |---|---|---|---|
@@ -111,7 +111,7 @@ macOS 的上一版视觉语言是：**暖中性底色 + 克制的香槟金强调
 
 ### 5.3 玻璃修饰器
 
-`intatisGlassCard` 和 `intatisGlassCapsule` 会在 `glassSurface` 之上叠加 Material、渐变描边和阴影。暗色模式还会收窄不透明度：
+`egakiumGlassCard` 和 `egakiumGlassCapsule` 会在 `glassSurface` 之上叠加 Material、渐变描边和阴影。暗色模式还会收窄不透明度：
 
 - fill：`min(传入值 × 0.82, 0.40)`；
 - stroke：`min(传入值 × 0.72, 0.34)`；
@@ -143,7 +143,7 @@ Code 中的低/中/高风险也分别使用系统 `.green` / `.orange` / `.red`�
 
 ## 8. 上一版时期的 iOS 配色
 
-截至上一版方案记录时，iOS 没有直接使用 `IntatisTheme`，而是使用 `IntatisThreadStyle.standard(scheme)` 和系统 `accentColor`。因此 iOS 与 macOS 的组件结构部分共享，但品牌配色没有完全统一。
+截至上一版方案记录时，iOS 没有直接使用 `EgakiumTheme`，而是使用 `EgakiumThreadStyle.standard(scheme)` 和系统 `accentColor`。因此 iOS 与 macOS 的组件结构部分共享，但品牌配色没有完全统一。
 
 | iOS 语义字段 | 迁移前源码实现 |
 |---|---|

@@ -57,7 +57,7 @@ closure 中直接构造 `Color.clear.glassEffect(...)`，没有一个独立、�
 
 ### 3.3 glass backdrop 成为 content-independent Equatable view
 
-`Glass.clear` 被放进独立 `IntatisClearLiquidGlassBackdrop`：
+`Glass.clear` 被放进独立 `EgakiumClearLiquidGlassBackdrop`：
 
 - equality 只由 corner radius、interactive 状态、display scale 和系统 color scheme 决定；
 - label、计数、状态和蓝色 selection 在 backdrop 上方独立更新；
@@ -87,8 +87,8 @@ AppKit host 中交错的 agent selection / mode / inspector / window-size 压力
 - `CoworkAgentThreadPresentationModelTests`：10/10；
 - 合计：31 tests / 0 failures；
 - production-shaped host：360 次交错 selection/mode/inspector/window-size 循环通过；
-- IntatisMac macOS Debug unsigned build：通过；
-- IntatisiOS generic Simulator Debug unsigned build：通过；
+- EgakiumMac macOS Debug unsigned build：通过；
+- EgakiumiOS generic Simulator Debug unsigned build：通过；
 - 构建只出现仓库既有的 `onChange` deprecation 与 unused `try?` warnings；没有本轮新增编译错误。
 
 最终“肉眼是否还会跳一下”不由 Computer Use、截图或单帧像素比较代替。用户需要在本轮新构建中，
@@ -96,10 +96,10 @@ AppKit host 中交错的 agent selection / mode / inspector / window-size 压力
 
 ## 6. 修改文件
 
-- `Packages/IntatisSharedUI/Sources/CoworkViews.swift`
-- `Packages/IntatisSharedUI/Sources/ThreadSurfaces.swift`
-- `Packages/IntatisSharedUI/Tests/CoworkInferencePresentationTests.swift`
-- `Packages/IntatisSharedUI/Tests/ThreadLayoutTests.swift`
+- `Packages/EgakiumSharedUI/Sources/CoworkViews.swift`
+- `Packages/EgakiumSharedUI/Sources/ThreadSurfaces.swift`
+- `Packages/EgakiumSharedUI/Tests/CoworkInferencePresentationTests.swift`
+- `Packages/EgakiumSharedUI/Tests/ThreadLayoutTests.swift`
 - `docs/CURRENT_STATE.md`
 - `docs/ARCHITECTURE.md`
 - `docs/DO_NOT_BREAK.md`

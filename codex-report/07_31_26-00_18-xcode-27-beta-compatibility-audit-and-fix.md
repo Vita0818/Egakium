@@ -4,28 +4,28 @@
 
 ## 结论
 
-本轮已经完成可复现问题的兼容处理，并通过 SwiftPM、IntatisMac 和
-IntatisiOS 的 Xcode 27 构建验证。
+本轮已经完成可复现问题的兼容处理，并通过 SwiftPM、EgakiumMac 和
+EgakiumiOS 的 Xcode 27 构建验证。
 
 关于“是不是新系统导致”的结论必须拆开：
 
 1. `Gestures.InvalidTransition` 的 teardown assertion 可以高置信归类为
    Apple Beta 系统框架侧兼容回归。失败栈完全位于
    `Gestures`、`SwiftUICore`、`AppKit`、`NSTextInteraction` 和
-   `NSHostingView.deinit`，没有 Intatis frame；它发生在未稳定的
+   `NSHostingView.deinit`，没有 Egakium frame；它发生在未稳定的
    SwiftUI/AppKit interaction graph 被 XCTest 拆除时。
 2. 16-row 宿主测试最初收不到首批 geometry/preference callback，不应写成
    “纯系统 API 全局坏了”。它只在 Xcode 27 的 async XCTest hosting 生命周期
-   与 Intatis 复杂 rich renderer 组合中按顺序复现；两个只含 Apple API 的
-   最小程序均通过。准确分类是 **Xcode 27 测试宿主生命周期与 Intatis
+   与 Egakium 复杂 rich renderer 组合中按顺序复现；两个只含 Apple API 的
+   最小程序均通过。准确分类是 **Xcode 27 测试宿主生命周期与 Egakium
    renderer 测试夹具的交互兼容问题**。
 3. 当前机器只安装了 Xcode 27，没有旧 Xcode/SDK 可做同机 A/B。因此能够确认
    “升级后暴露了系统框架和测试宿主兼容回归”，但不能诚实宣称所有原始 timeout
    都由 macOS 27 或 Xcode 27 单方、排他性造成。
 4. 本轮另复现了 Xcode 27 `xctest` 的 target-wide filter 问题：把
-   `IntatisSharedUITests` 的 108 个 selector 一次性传入 `-XCTest` 后，runner
+   `EgakiumSharedUITests` 的 108 个 selector 一次性传入 `-XCTest` 后，runner
    可长期停在 `XCTWaiter`，主线程等待、工作线程空闲。无过滤整仓执行和按单个
-   test class 过滤均通过。这是测试工具链问题，不是 Intatis App 卡死。
+   test class 过滤均通过。这是测试工具链问题，不是 Egakium App 卡死。
 
 没有通过延长 timeout、伪造 callback、自动放行 rich admission 或切换
 plain renderer 来掩盖问题。
@@ -71,13 +71,13 @@ timeout unwind 后，Apple framework 触发：
 `SwiftUICore.CoreInteractionEffect.destroy` →
 `GraphHost.invalidate` → `NSHostingView.deinit`。
 
-该 assertion 是系统 framework 的内部状态机失败。Intatis 只能确保宿主在释放
+该 assertion 是系统 framework 的内部状态机失败。Egakium 只能确保宿主在释放
 原生 selectable text/gesture graph 前完成一次正常 run-loop settle，不能在
 产品代码中修改 Apple 私有状态机。
 
 ### 3. Apple-only 对照实验
 
-在 `/private/tmp` 构建了两个不依赖 Intatis 的诊断程序：
+在 `/private/tmp` 构建了两个不依赖 Egakium 的诊断程序：
 
 - 纯 AppKit/SwiftUI executable：`NSHostingView` + `ScrollViewReader` +
   `GeometryReader`/`PreferenceKey`，`orderFront` 和
@@ -88,11 +88,11 @@ timeout unwind 后，Apple framework 触发：
 
 因此没有证据支持“macOS 27 的 `PreferenceKey` 或
 `onScrollGeometryChange` 在所有程序里失效”。这些程序只用于归因，不代替
-Intatis production-shaped tests。
+Egakium production-shaped tests。
 
 ### 4. Xcode 27 target-wide test filter
 
-`swift test --filter IntatisSharedUITests` 会生成一个包含 108 个 selector 的
+`swift test --filter EgakiumSharedUITests` 会生成一个包含 108 个 selector 的
 `xctest -XCTest ...` 调用。本轮该进程超过两分钟无测试输出：
 
 - `swift-test` 与 `xctest` 均仍存活；
@@ -164,8 +164,8 @@ restore 之前的 stale geometry 明确不能放行。该修改没有引入 wall
 | `MessageRenderingTests` | 41/41，0 failures；含 3 个真实 `NSHostingView` cases |
 | 完整 `swift test --disable-sandbox` | 所有 test bundle 退出 0；0 failures；既有 opt-in environment skips 保留 |
 | `swift build --disable-sandbox` | succeeded |
-| IntatisMac Debug，macOS 27 SDK，unsigned | succeeded |
-| IntatisiOS Debug，generic iOS Simulator，unsigned | succeeded |
+| EgakiumMac Debug，macOS 27 SDK，unsigned | succeeded |
+| EgakiumiOS Debug，generic iOS Simulator，unsigned | succeeded |
 
 完整 SwiftPM 的最终输出由多个 test bundle 分别汇总，本轮没有把未出现的全局
 总数自行相加或猜测成一个数字。
@@ -182,7 +182,7 @@ error。本轮针对 Swift 6.4 新出现的并发/隔离 warning 已处理。
 
 - 未使用旧 Xcode/旧 SDK 对同一源码做 A/B，所以“所有 timeout 排他性由新系统
   造成”仍为 `UNKNOWN`。
-- 本轮没有启动真实 IntatisMac 并对用户的实际 Cowork session 做手工
+- 本轮没有启动真实 EgakiumMac 并对用户的实际 Cowork session 做手工
   entry/scroll/resize 操作；自动化 production-shaped host 和两个产品 build
   均通过，但运行态 GUI 复验仍应单独执行。
 - 没有找到 Apple 发布说明中与

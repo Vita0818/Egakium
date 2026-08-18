@@ -6,8 +6,8 @@
 
 ## PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 结果：两者一致，符合项目预期根目录。
 - 写入前已识别现有用户改动：`NOTICE.md`、两份既有 `codex-report`、`docs/CURRENT_STATE.md`、`docs/PROJECT_MAP.md` 与未跟踪的 `Experiments/`。本报告不覆盖、回退或整理这些改动。
 
@@ -36,14 +36,14 @@
 
 1. ChatGPT Web 在 Markdown、数学和代码渲染中，哪些对象真正长期存在；
 2. session 切换时，页面、路由、查询缓存、React 树和 CodeMirror 如何释放或短时保温；
-3. 这些行为对 Intatis 现有 native renderer 与进程级 session runtime 有什么可验证的启示；
-4. 当前独立 `Experiments/WebRendererParity` 是否已经适合直接嵌入 Intatis App。
+3. 这些行为对 Egakium 现有 native renderer 与进程级 session runtime 有什么可验证的启示；
+4. 当前独立 `Experiments/WebRendererParity` 是否已经适合直接嵌入 Egakium App。
 
 结论如下：
 
-- **直接把当前 Web 实验接入 Intatis App：NO-GO。** 它会新增 WKWebView/WebContent、npm 供应链、Swift↔JavaScript bridge、辅助功能、焦点、选择、复制、滚动、进程回收和 EventLog 续订等尚未收口的生命周期面。现有页面与短时测量不是生产或发布证据。
+- **直接把当前 Web 实验接入 Egakium App：NO-GO。** 它会新增 WKWebView/WebContent、npm 供应链、Swift↔JavaScript bridge、辅助功能、焦点、选择、复制、滚动、进程回收和 EventLog 续订等尚未收口的生命周期面。现有页面与短时测量不是生产或发布证据。
 - **把 renderer kernel 的行为合同作为参考：可行且有价值。** 值得借鉴的是“单一可见 renderer root、带 generation 的切换取消、旧树 unmount ACK、短时 warm residency、明确 hibernate/seq resume、视口分页、重型代码编辑器按需存在、按字节计的缓存预算和压力回收”，而不是复制 ChatGPT 的代码、样式或产品结构。
-- **Intatis production 仍应保持 native。** 当前生产链仍是 `IntatisMessageContentView` → `IntatisMicrosoftMarkdownPipeline` → vendored `SwiftStreamingMarkdown` / iosMath，加永久保留的 `.plainSafe` 熔断。本报告不改变该架构。
+- **Egakium production 仍应保持 native。** 当前生产链仍是 `EgakiumMessageContentView` → `EgakiumMicrosoftMarkdownPipeline` → vendored `SwiftStreamingMarkdown` / iosMath，加永久保留的 `.plainSafe` 熔断。本报告不改变该架构。
 - **`docs/NEXT_TARGET.md` 不变。** 当前 active follow-up 仍是 Cowork replacement-history compaction checkpoint + resume reconstruction；本研究不把 Web renderer 提升为新的业务源码目标。
 
 ## 证据分层与阅读规则
@@ -52,7 +52,7 @@
 
 1. **直接 live DOM / process 观察**：本轮对正在运行的公开 Web 产品页面做的 DOM、AX、heap 和 WebContent 进程抽样。
 2. **当前公开 Web bundle 代码观察（build-specific）**：对当时公开下发的构建产物做行为级阅读。标识符、常量和控制流只对该 build 成立，不是公开 API，也不是长期产品合同。
-3. **Intatis 本地源码审计**：直接读取当前工作树中的 Swift 与独立实验源码。
+3. **Egakium 本地源码审计**：直接读取当前工作树中的 Swift 与独立实验源码。
 4. **推论**：由前述证据组合得出的设计解释或风险判断。
 5. **UNKNOWN**：没有足够证据确认的实现、所有权或长期资源行为。
 
@@ -131,7 +131,7 @@ Markdown source
   → DOM
 ```
 
-该链路解释了为何标题、列表、表格、链接、公式和代码可以在最终树中拥有不同组件生命周期。这里描述的是该 build 的结构性行为，不声明 ChatGPT 永久使用某个固定包版本，也不把其内部实现视为 Intatis 可复制源码。
+该链路解释了为何标题、列表、表格、链接、公式和代码可以在最终树中拥有不同组件生命周期。这里描述的是该 build 的结构性行为，不声明 ChatGPT 永久使用某个固定包版本，也不把其内部实现视为 Egakium 可复制源码。
 
 流式 Markdown 另有一层 build-specific 保护：
 
@@ -142,7 +142,7 @@ Markdown source
   token 都已经是完整 Markdown；
 - 当次 bundle 可见的启发式阈值包括 complex suffix `240`、full source
   `1,200`、full word segments `180` 与 suffix `480`。这些数字只描述抽样 build，
-  不是稳定协议，也不应原样写进 Intatis production 常量。
+  不是稳定协议，也不应原样写进 Egakium production 常量。
 
 ### 2. 数学：KaTeX HTML + MathML
 
@@ -209,7 +209,7 @@ timer 到期且仍未返回
 - retained thread tree 仍可保温约 30 秒，快速切回不必立刻做完整冷恢复；
 - `conversation/init` unused query 则可按 `gcTime = 0` 立即 GC，两层不能混写。
 
-30 秒是本轮 build-specific 观察，不应被当成跨版本承诺，更不能直接复制成 Intatis 的永久常量。它体现的是“短时 warm residency + 可取消延迟释放”策略。
+30 秒是本轮 build-specific 观察，不应被当成跨版本承诺，更不能直接复制成 Egakium 的永久常量。它体现的是“短时 warm residency + 可取消延迟释放”策略。
 
 ### 6. 历史分页与可见性基础设施
 
@@ -219,11 +219,11 @@ timer 到期且仍未返回
 virtualization，也没有确认其 overscan、placeholder、selection/scroll-anchor
 策略。故“有分页/observer”是直接证据，“全列表已虚拟化”仍是 `UNKNOWN`。
 
-## ③ Intatis 本地源码审计
+## ③ Egakium 本地源码审计
 
 ### 1. `AppSessionRuntimeManager`：精确缓存，但无 LRU / TTL / hibernate
 
-`Apps/IntatisMac/Sources/SessionRuntimeManager.swift` 当前按 session 类型分别保存：
+`Apps/EgakiumMac/Sources/SessionRuntimeManager.swift` 当前按 session 类型分别保存：
 
 - `chatRuntimes: [SessionID: AppChatSessionRuntime]`
 - `codeRuntimes: [SessionID: CodeViewModel]`
@@ -243,7 +243,7 @@ virtualization，也没有确认其 overscan、placeholder、selection/scroll-an
 
 ### 2. View 按 presentation scope 重建
 
-Code/Cowork 使用 exact `IntatisThreadPresentationScope(kind, sessionID)`，根 thread 通过 `.id(presentationScope)` 建立身份。切 session 会销毁旧可见 ScrollView / row / renderer facade，再为目标 session 创建新树；业务 runtime 仍由 manager 保留。
+Code/Cowork 使用 exact `EgakiumThreadPresentationScope(kind, sessionID)`，根 thread 通过 `.id(presentationScope)` 建立身份。切 session 会销毁旧可见 ScrollView / row / renderer facade，再为目标 session 创建新树；业务 runtime 仍由 manager 保留。
 
 Chat 也用 session identity 重建其页面内容，但当前滚动实现与 Code/Cowork 不同，见下文风险。
 
@@ -251,7 +251,7 @@ Chat 也用 session identity 重建其页面内容，但当前滚动实现与 Co
 
 ### 3. Renderer `onDisappear` 明确释放 document
 
-`Packages/IntatisSharedUI/Sources/MessageRendering/IntatisMessageContentView.swift` 的生命周期 gate 在：
+`Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMessageContentView.swift` 的生命周期 gate 在：
 
 - `onAppear` 调用 `activate`；
 - `onDisappear` 调用 `deactivate`；
@@ -274,7 +274,7 @@ Chat 也用 session identity 重建其页面内容，但当前滚动实现与 Co
 
 ### 4. EventLog `AsyncStream` 默认 unbounded
 
-`Packages/IntatisConversation/Sources/EventLog.swift` 的 `stream(from:)` 通过无参数 `AsyncStream.makeStream()` 创建 stream；未指定 buffering policy 时是默认 unbounded buffering。
+`Packages/EgakiumConversation/Sources/EventLog.swift` 的 `stream(from:)` 通过无参数 `AsyncStream.makeStream()` 创建 stream；未指定 buffering policy 时是默认 unbounded buffering。
 
 活跃消费者正常追平时不一定形成问题，但以下组合值得警惕：
 
@@ -287,13 +287,13 @@ Chat 也用 session identity 重建其页面内容，但当前滚动实现与 Co
 
 ### 5. Chat scroll 仍有无 owner 的 async/animation
 
-`Apps/IntatisMac/Sources/IntatisChatScreen.swift` 当前 `scrollToBottom` 使用：
+`Apps/EgakiumMac/Sources/EgakiumChatScreen.swift` 当前 `scrollToBottom` 使用：
 
 - `DispatchQueue.main.async`
 - 可选 `withAnimation`
 - 静态 bottom anchor。
 
-该闭包没有 Code/Cowork `IntatisThreadScrollCoordinator` 那种 exact scope + generation + cancel 复核。页面 `.id(session)` 能销毁旧树，但无法从源码上证明已经排队的 main-queue closure 一定不会在切换边界参与旧 proxy/animation 工作。它也是未来做统一 switch-generation 协议时应优先收口的地方。
+该闭包没有 Code/Cowork `EgakiumThreadScrollCoordinator` 那种 exact scope + generation + cancel 复核。页面 `.id(session)` 能销毁旧树，但无法从源码上证明已经排队的 main-queue closure 一定不会在切换边界参与旧 proxy/animation 工作。它也是未来做统一 switch-generation 协议时应优先收口的地方。
 
 ### 6. Cowork 首开并发
 
@@ -308,7 +308,7 @@ Chat 也用 session identity 重建其页面内容，但当前滚动实现与 Co
 与短时单实例验证证明若干失控路径已被收紧，但不能据此把历史根因归到
 parser、SwiftUI、TextKit、selection、session manager 或某一个依赖。
 
-任何 WebView/React/CodeMirror 集成都将新增另一套对象图，不能用“WebContent 可独立回收”替代 native retaining-edge 诊断，也不能用本轮短时 Web 观察宣布 Intatis 已无生命周期风险。
+任何 WebView/React/CodeMirror 集成都将新增另一套对象图，不能用“WebContent 可独立回收”替代 native retaining-edge 诊断，也不能用本轮短时 Web 观察宣布 Egakium 已无生命周期风险。
 
 ## ④ 推论
 
@@ -325,7 +325,7 @@ parser、SwiftUI、TextKit、selection、session manager 或某一个依赖。
   retained thread tree；
 - 查询层在真正 unused 后可立即 GC。
 
-Intatis 当前是“runtime 长驻 + view scope 重建 + document onDisappear 释放”，已经具备其中两层，但缺少介于“永久 runtime”与“完全 shutdown”之间的 hibernate/TTL 层。
+Egakium 当前是“runtime 长驻 + view scope 重建 + document onDisappear 释放”，已经具备其中两层，但缺少介于“永久 runtime”与“完全 shutdown”之间的 hibernate/TTL 层。
 
 ### 2. DOM 节点数与 heap/RSS 必须联合解释
 
@@ -364,12 +364,12 @@ A 的 DOM/数学明显更多，C 的 CodeMirror 更多，而两者 heap 接近�
 - A/C heap 数字在强制 GC、长期 idle、更多切换后的稳定平台；
 - WebContent RSS 中各 session、字体、JIT、共享资源和浏览器框架的精确归因；
 - reload 后空白页面约 245 MB 是否能在正确内容恢复后保持；
-- Intatis 历史 renderer 事故的最终 retaining edge；
-- Intatis 在 3/10 个 session、50/1,000 条消息和真实后台 provider 工作下的长期 plateau；
+- Egakium 历史 renderer 事故的最终 retaining edge；
+- Egakium 在 3/10 个 session、50/1,000 条消息和真实后台 provider 工作下的长期 plateau；
 
-## ChatGPT Web、现有 Web 实验与 Intatis native 对比
+## ChatGPT Web、现有 Web 实验与 Egakium native 对比
 
-| 维度 | ChatGPT Web（本轮 build 观察） | `Experiments/WebRendererParity` | Intatis native production |
+| 维度 | ChatGPT Web（本轮 build 观察） | `Experiments/WebRendererParity` | Egakium native production |
 |---|---|---|---|
 | 产品地位 | 公开 Web 产品现场 | source-tree-only 行为实验 | 当前正式产品路径 |
 | Markdown | unified/remark 风格 → HAST → React | React/Vite +公开依赖的独立复现 | vendored `SwiftStreamingMarkdown` derivative |
@@ -378,7 +378,7 @@ A 的 DOM/数学明显更多，C 的 CodeMirror 更多，而两者 heap 接近�
 | session DOM/view | outer main 复用，旧消息 DOM disconnect | outer shell 复用，exact-generation message subtree disconnect；单一可见 root | presentation scope 切换重建 view |
 | 数据保温 | `releaseThread` 安排约 30 秒 thread-tree 删除；retain 可取消 | 30 秒可取消 warm metadata；最多 2 个 inactive sample resident | runtime 持续缓存，无 LRU/TTL |
 | 不可见状态 | route unmount 先 invalidate query / `releaseThread`；timer 后删 thread tree | newest 12、older 10 pagination；900 px overscan 外卸载 rich child | renderer `onDisappear` 释放 document；runtime/subscription 仍在 |
-| 查询/事件 | `conversation/init gcTime=0` 与 route retain 配合 | 无 Intatis EventLog bridge | EventLog canonical；live `AsyncStream` 默认 unbounded |
+| 查询/事件 | `conversation/init gcTime=0` 与 route retain 配合 | 无 Egakium EventLog bridge | EventLog canonical；live `AsyncStream` 默认 unbounded |
 | 压力控制 | WebContent/浏览器自身策略，细节 UNKNOWN | 36 次 UI stress；harness 最多 1,000 次；DOM/editor/math cache/grammar diagnostics | parser 有限额；session/runtime 总量无 budget |
 | 可直接接 App | 不适用 | **NO-GO** | 是 |
 
@@ -410,14 +410,14 @@ A 的 DOM/数学明显更多，C 的 CodeMirror 更多，而两者 heap 接近�
 - `Stress switch` UI 默认 36 次、可中止，bounded harness 最多 1,000 次；
   snapshot 只返回
   脱敏 session ID、generation/residency 与数量，不返回消息正文、parser 或
-  Intatis 数据。
+  Egakium 数据。
 
 实现继续保留以下边界：
 
 - 这是 behavior lab，不是 ChatGPT 克隆；
 - 不复制 ChatGPT 代码、样式、品牌、Logo、截图、prompt 或资产；
 - 不记录真实会话 ID、token、cookie、请求或私密文本；
-- 页面测量不是 Intatis production 或 release 证据；
+- 页面测量不是 Egakium production 或 release 证据；
 - npm 依赖只属于实验目录，不进入 SwiftPM、XcodeGen 或 App bundle。
 
 它还没有实现真正的 10-session / 1,000-message 数据集、跨 realm pressure
@@ -425,7 +425,7 @@ recycle、selection/focus/scroll-anchor 恢复、cache per-session byte budget �
 EventLog seq resume；这些仍属于下面的 production 建议和未来压力矩阵，不能把
 当前 3×16 fixture 称为长期 memory plateau。
 
-## 推荐的 Intatis 生命周期模型
+## 推荐的 Egakium 生命周期模型
 
 ### 1. 一个可见 WebView / renderer root
 
@@ -461,7 +461,7 @@ switch requested
 
 - 1 个 active session；
 - 最多 1–2 个 warm session；
-- warm session 有短 TTL，可从 30 秒开始做实验，但必须以 Intatis 自己的压力数据决定；
+- warm session 有短 TTL，可从 30 秒开始做实验，但必须以 Egakium 自己的压力数据决定；
 - 超预算时按 LRU 先 hibernate 最旧 idle session；
 - busy runtime、pending permission、active Goal/turn 的驱逐规则必须与 Phase L 合同分开设计，不能无条件 shutdown。
 
@@ -577,7 +577,7 @@ CodeMirror 应限制为：
   timer 把“立即 unmount view”和“延迟删除 retained thread tree”分开。
 - `conversation/init gcTime=0` 让 truly-unused query 可立即 GC；它不是 30 秒
   resident data，短时 warm 的所有者是 retained thread tree。
-- Intatis 当前保留 exact session runtime，但没有 LRU/TTL/hibernate；view/document 会按 scope 与 `onDisappear` 释放，重入会重新创建 rows/解析。
+- Egakium 当前保留 exact session runtime，但没有 LRU/TTL/hibernate；view/document 会按 scope 与 `onDisappear` 释放，重入会重新创建 rows/解析。
 - EventLog live stream 默认 unbounded；未来 hibernate 必须 unsubscribe + seq resume。
 - Chat scroll 仍有未绑定 generation 的 main-queue async/animation；Cowork 对同 key首开 single-flight，但跨 session 可并发。
 - 当前 Web 实验已实现 3×16 synthetic lifecycle lab、30 秒 warm metadata、
@@ -587,7 +587,7 @@ CodeMirror 应限制为：
 ## VALIDATION_RESULT
 
 - `pwd` 与 `git rev-parse --show-toplevel`：均为
-  `/Users/vita/Vitemis/Intatis`。
+  `/Users/vita/Vitemis/Egakium`。
 - `npm test`：4 test files，**46 tests / 0 failures**。
 - `npm run licenses`：266 packages，`rejected = []`。
 - `npm run build`：TypeScript project build 与 Vite production build 通过；
@@ -613,15 +613,15 @@ CodeMirror 应限制为：
 - WebContent RSS 与 JS heap 没有长期、强制 GC、分进程精确归因；不能据此证明或排除泄漏。
 - reload 后低 RSS 对应空白页面，未证明正确恢复。
 - ChatGPT 内部完整虚拟化、缓存字节预算、CodeMirror state/grammar 复用和服务端 thread retention 仍为 `UNKNOWN`。
-- Intatis historical renderer retaining edge 仍为 `UNKNOWN`。
-- Intatis 尚未实现或验证本文提出的 LRU/TTL/hibernate、subscriber resume、viewport pagination、pressure recycle 与 500–1,000 次 plateau。
+- Egakium historical renderer retaining edge 仍为 `UNKNOWN`。
+- Egakium 尚未实现或验证本文提出的 LRU/TTL/hibernate、subscriber resume、viewport pagination、pressure recycle 与 500–1,000 次 plateau。
 - 并行 Web 实验增强的最终代码/测试结果由主 Agent 最终验证决定；本报告不把目标原型写成生产事实。
 
 ## NEXT_RECOMMENDED_ACTION
 
 1. 保持已经完成的 Web lifecycle lab 独立，用它继续扩展确定性 fixture/soak，
    不接 App。
-2. 在 native Intatis 单独设计 `active / warm / hibernated` runtime 状态、LRU/TTL、EventLog unsubscribe/seq-resume 和 cache byte budget；不要把 WebView 集成与 native runtime 收口合成一次大改。
+2. 在 native Egakium 单独设计 `active / warm / hibernated` runtime 状态、LRU/TTL、EventLog unsubscribe/seq-resume 和 cache byte budget；不要把 WebView 集成与 native runtime 收口合成一次大改。
 3. 先收口 Chat scroll generation/cancel，再做 3/10 session、50–1,000 messages、500–1,000 switches 的单实例压力基线。
 4. 只有在 plateau、辅助功能、复制/选择、bridge、安全、bundle/许可证、pressure recycle 与正确恢复全部有证据后，才重新评估 WKWebView renderer；在此之前结论保持 NO-GO。
 5. 项目 active target 继续执行 `docs/NEXT_TARGET.md` 中的 replacement-history compaction，不因本研究自动改向。

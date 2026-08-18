@@ -1,4 +1,4 @@
-# Intatis Cowork 多 Agent Harness 开源源码审计与设计建议
+# Egakium Cowork 多 Agent Harness 开源源码审计与设计建议
 
 ## MODEL_CHECK_RESULT
 
@@ -7,8 +7,8 @@
 
 ## PATH_CHECK_RESULT
 
-- `pwd`：`/Users/vita/Vitemis/Intatis`
-- Git root：`/Users/vita/Vitemis/Intatis`
+- `pwd`：`/Users/vita/Vitemis/Egakium`
+- Git root：`/Users/vita/Vitemis/Egakium`
 - 路径匹配预期：是。
 - 写入前 `git status --short`：无输出，工作树干净。
 
@@ -22,10 +22,10 @@
 
 本轮工作包括：
 
-- 核对 Intatis 当前 Cowork、AgentKernel、MessageBus、权限、持久化和生命周期设计。
+- 核对 Egakium 当前 Cowork、AgentKernel、MessageBus、权限、持久化和生命周期设计。
 - 固定并阅读 OpenCode、Codex CLI、Gemini CLI、Grok Build CLI 的公开源码版本。
 - 比较它们在异步任务、消息投递、工具调度、后台进程、结构化结果、恢复和预算控制上的实现。
-- 给出适合 Intatis 的目标协议、状态机、工具面和分阶段实施建议。
+- 给出适合 Egakium 的目标协议、状态机、工具面和分阶段实施建议。
 
 本轮没有：
 
@@ -48,7 +48,7 @@ Grok Build 的该公开快照标注为从 monorepo 同步，记录的 `Source-Re
 
 ## 结论摘要
 
-Intatis 当前最需要补的不是“更多 agent 类型”，而是一个完整、durable、model-usable 的 **Operation / Invocation 控制平面**。
+Egakium 当前最需要补的不是“更多 agent 类型”，而是一个完整、durable、model-usable 的 **Operation / Invocation 控制平面**。
 
 建议的组合不是照搬某个项目，而是：
 
@@ -57,10 +57,10 @@ Codex CLI   异步 agent + mailbox + follow-up + identity/runtime 分离
 Grok Build  统一后台 handle + event-driven wait/kill + workflow journal
 Gemini CLI  typed protocol + complete_task + tool scheduling waves
 OpenCode V2 durable admission + exact retry/conflict + steer/queue
-Intatis     EventLog + 四层任务模型 + Capability/Workspace Lease + fail-closed recovery
+Egakium     EventLog + 四层任务模型 + Capability/Workspace Lease + fail-closed recovery
 ```
 
-Intatis 已有比多数上游更严格的 durable truth、权限和恢复边界；缺口主要在这些能力还没有被收敛为一套可让模型稳定使用的异步 harness：
+Egakium 已有比多数上游更严格的 durable truth、权限和恢复边界；缺口主要在这些能力还没有被收敛为一套可让模型稳定使用的异步 harness：
 
 1. `delegate_task` 仍以“调用者等待目标运行结束”为主要兼容语义，难以表达 fire-and-observe、wait-any、follow-up 和独立取消。
 2. Agent、WorkTask、单次 Invocation、消息和 artifact 虽已有部分独立概念，但缺少一个统一的操作句柄和完整 model-facing 协议。
@@ -72,16 +72,16 @@ Intatis 已有比多数上游更严格的 durable truth、权限和恢复边界�
 
 目标不是把 Cowork 改成递归 agent 树，而是让现有 scheduler/mailbox/EventLog 架构获得一套清楚的异步协议。
 
-## Intatis 当前基线
+## Egakium 当前基线
 
 ### 已有优势
 
-Intatis 当前设计中值得保留、且不应被上游模式削弱的部分包括：
+Egakium 当前设计中值得保留、且不应被上游模式削弱的部分包括：
 
 - `Goal / WorkTask / ContinuationRun / AgentInvocation` 四层语义已经明确分离。AgentInvocation 结束只能产生候选结果，不能自动完成 WorkTask；WorkTask 也不能自行完成 Goal。参见 [`docs/COWORK_PRINCIPLES.md`](../docs/COWORK_PRINCIPLES.md) 第 2 节。
 - EventLog 是 session canonical truth；任务、权限、tool execution、settings 和生命周期都走 durable-first/first-terminal 语义。
 - 普通用户输入和 Goal continuation 都进入 scheduler，而不是让 UI 直接运行一个不可恢复的 `AgentLoop`。
-- 同一 agent single-flight，不同 agent 在显式并发上限内运行。参见 [`AgentScheduler.swift`](../Packages/IntatisCowork/Sources/AgentScheduler.swift) `L257-L285`。
+- 同一 agent single-flight，不同 agent 在显式并发上限内运行。参见 [`AgentScheduler.swift`](../Packages/EgakiumCowork/Sources/AgentScheduler.swift) `L257-L285`。
 - `MessageBus -> Mediator -> mailbox` 已经提供至少一次投递、消费/丢弃和恢复基础。
 - CapabilityLease、WorkspaceLease、PathConfinement、PermissionEngine 和 durable tool ticket 已形成比多数上游更强的宿主边界。
 - `@permission-reviewer` 和 GoalVerifier 已经是独立控制面，不占普通 worker scheduler 槽，也不运行嵌套 `AgentLoop`。
@@ -91,17 +91,17 @@ Intatis 当前设计中值得保留、且不应被上游模式削弱的部分包
 
 | 缺口 | 当前源码表现 | 对实际协作的影响 |
 |---|---|---|
-| 委派调用仍是同步等待形态 | [`Orchestrator.swift`](../Packages/IntatisCowork/Sources/Orchestrator.swift) `L4164-L4291` 中 `delegate_task` 最终等待 scheduler result | main 在一个 tool call 内被占住；难表达多个长期子任务、wait-any、独立观察和后续 steering |
-| mailbox wake 与新 root invocation 耦合 | [`Orchestrator.swift`](../Packages/IntatisCowork/Sources/Orchestrator.swift) `L3949-L4053` | “给现有运行发送信息”和“创建下一轮工作”之间的语义不够显式 |
-| 同 agent 只能有一个 running invocation | [`AgentScheduler.swift`](../Packages/IntatisCowork/Sources/AgentScheduler.swift) `L257-L285` | 这是正确的不变量，但需要 queue/steer/interrupt 工具帮助模型使用它，而不是靠隐式等待 |
-| 工具并行只覆盖窄集合 | [`AgentLoop.swift`](../Packages/IntatisAgentKernel/Sources/AgentLoop.swift) `L941-L975` 仅在整批调用都是 `ask_agent` / `delegate_task` 时并行 | 普通无冲突只读工具、等待工具和后台操作不能形成可解释的调度 wave |
-| 通用 ToolObservation 仍以文本为中心 | [`ToolProtocol.swift`](../Packages/IntatisTools/Sources/ToolProtocol.swift) `L23-L50` | 结构化任务报告、artifact、changed files、evidence 和指标容易被压回字符串 |
-| artifact 投影失败时缺少更完整的可恢复交付协议 | [`ContextProjection.swift`](../Packages/IntatisAgentKernel/Sources/ContextProjection.swift) `L180-L192` | artifact 作为跨 agent 一等交付物的 publish/share/get/list 语义还不完整 |
-| production registry 固定且不暴露 raw shell | [`Orchestrator.swift`](../Packages/IntatisCowork/Sources/Orchestrator.swift) `L9106-L9152` | 安全边界正确，但缺少受控后台 build/test/command operation 来替代裸 shell |
-| CapabilityLease 仍以较粗能力组为主 | [`Leases.swift`](../Packages/IntatisProtocol/Sources/Leases.swift) `L80-L132` | 动态工具和任务级 effects 很难精确冻结为一份可重放 manifest |
+| 委派调用仍是同步等待形态 | [`Orchestrator.swift`](../Packages/EgakiumCowork/Sources/Orchestrator.swift) `L4164-L4291` 中 `delegate_task` 最终等待 scheduler result | main 在一个 tool call 内被占住；难表达多个长期子任务、wait-any、独立观察和后续 steering |
+| mailbox wake 与新 root invocation 耦合 | [`Orchestrator.swift`](../Packages/EgakiumCowork/Sources/Orchestrator.swift) `L3949-L4053` | “给现有运行发送信息”和“创建下一轮工作”之间的语义不够显式 |
+| 同 agent 只能有一个 running invocation | [`AgentScheduler.swift`](../Packages/EgakiumCowork/Sources/AgentScheduler.swift) `L257-L285` | 这是正确的不变量，但需要 queue/steer/interrupt 工具帮助模型使用它，而不是靠隐式等待 |
+| 工具并行只覆盖窄集合 | [`AgentLoop.swift`](../Packages/EgakiumAgentKernel/Sources/AgentLoop.swift) `L941-L975` 仅在整批调用都是 `ask_agent` / `delegate_task` 时并行 | 普通无冲突只读工具、等待工具和后台操作不能形成可解释的调度 wave |
+| 通用 ToolObservation 仍以文本为中心 | [`ToolProtocol.swift`](../Packages/EgakiumTools/Sources/ToolProtocol.swift) `L23-L50` | 结构化任务报告、artifact、changed files、evidence 和指标容易被压回字符串 |
+| artifact 投影失败时缺少更完整的可恢复交付协议 | [`ContextProjection.swift`](../Packages/EgakiumAgentKernel/Sources/ContextProjection.swift) `L180-L192` | artifact 作为跨 agent 一等交付物的 publish/share/get/list 语义还不完整 |
+| production registry 固定且不暴露 raw shell | [`Orchestrator.swift`](../Packages/EgakiumCowork/Sources/Orchestrator.swift) `L9106-L9152` | 安全边界正确，但缺少受控后台 build/test/command operation 来替代裸 shell |
+| CapabilityLease 仍以较粗能力组为主 | [`Leases.swift`](../Packages/EgakiumProtocol/Sources/Leases.swift) `L80-L132` | 动态工具和任务级 effects 很难精确冻结为一份可重放 manifest |
 | 真实长任务仍有外部验证空白 | [`docs/CURRENT_STATE.md`](../docs/CURRENT_STATE.md) 的 real-provider / crash-restart 说明 | 源码级设计不能替代 provider 中断、App kill、跨重启和非幂等操作的运行证据 |
 
-这意味着 Intatis 不是缺少 scheduler、task graph 或 recovery；它缺少的是把这些底层能力组合成模型可可靠操作的“进程管理 API”。
+这意味着 Egakium 不是缺少 scheduler、task graph 或 recovery；它缺少的是把这些底层能力组合成模型可可靠操作的“进程管理 API”。
 
 ## 开源项目源码审计
 
@@ -117,7 +117,7 @@ OpenCode 源码树同时包含两条不同成熟度的路径：现行 `TaskTool`
 - [`task.ts L273-L347`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/opencode/src/tool/task.ts#L273-L347)：前台执行可转入后台。
 - [`background-job.ts L256-L290`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/core/src/background-job.ts#L256-L290)：运行中的 follow-up 在当前 run 后排队。
 
-第二条是较新的 V2 Session 控制面。虽然它尚未成为现行 TaskTool 的完整 model-facing harness，但其中的内部协议设计更值得 Intatis 借鉴：
+第二条是较新的 V2 Session 控制面。虽然它尚未成为现行 TaskTool 的完整 model-facing harness，但其中的内部协议设计更值得 Egakium 借鉴：
 
 - [`session.ts L360-L385`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/core/src/session.ts#L360-L385) 与 [`input.ts L41-L81`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/core/src/session/input.ts#L41-L81)：durable admission、exact retry 和冲突拒绝。
 - [`input.ts L216-L288`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/core/src/session/input.ts#L216-L288)：把 steer 与 queue 分成显式操作。
@@ -128,14 +128,14 @@ OpenCode 源码树同时包含两条不同成熟度的路径：现行 `TaskTool`
 
 #### 不应照搬
 
-- BackgroundJob registry 当前是进程内状态；[`background-job.ts L113-L119`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/core/src/background-job.ts#L113-L119) 不足以作为 Intatis 的 canonical recovery source。
+- BackgroundJob registry 当前是进程内状态；[`background-job.ts L113-L119`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/core/src/background-job.ts#L113-L119) 不足以作为 Egakium 的 canonical recovery source。
 - `task_id` 实际等同 child SessionID；如果指定 ID 不存在，现行工具会创建新 child，[`task.ts L131-L172`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/opencode/src/tool/task.ts#L131-L172)。这会把“恢复失败”和“创建新任务”混在一起。
 - 现行结果主要取最后一段文本，[`task.ts L200-L214`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/opencode/src/tool/task.ts#L200-L214)，不够承载 artifact、evidence 和 task settlement。
 - V2 的 wait 尚未完成，[`session.ts L387-L424`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/core/src/session.ts#L387-L424)；runner 也仍有 durability TODO，[`llm.ts L43-L90`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/core/src/session/runner/llm.ts#L43-L90)。
-- 默认最大 steps 可为无限，[`prompt.ts L1178-L1185`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/opencode/src/session/prompt.ts#L1178-L1185)，不能作为 Intatis root-scoped budget 的默认值。
-- shell lifecycle 有可借鉴的进程清理，但它仍是 host-authority shell，[`shell.ts L428-L595`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/opencode/src/tool/shell.ts#L428-L595)、[`bash.ts L107-L140`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/core/src/tool/bash.ts#L107-L140)，不能绕过 Intatis 的 managed runner、workspace lease 和 sandbox。
+- 默认最大 steps 可为无限，[`prompt.ts L1178-L1185`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/opencode/src/session/prompt.ts#L1178-L1185)，不能作为 Egakium root-scoped budget 的默认值。
+- shell lifecycle 有可借鉴的进程清理，但它仍是 host-authority shell，[`shell.ts L428-L595`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/opencode/src/tool/shell.ts#L428-L595)、[`bash.ts L107-L140`](https://github.com/anomalyco/opencode/blob/66495a2a22cd0a57efcc4f721e65532f0987b4e8/packages/core/src/tool/bash.ts#L107-L140)，不能绕过 Egakium 的 managed runner、workspace lease 和 sandbox。
 
-#### 对 Intatis 的提炼
+#### 对 Egakium 的提炼
 
 借鉴 V2 的 admission、steer/queue、single-owner 和 typed registry；不要复用 SessionID/task/job ID 合并、进程内 job truth、last-text-only 结果和无限 steps。
 
@@ -158,9 +158,9 @@ Codex CLI 的 multi-agent V2 是四个项目中最接近“模型可用异步 ag
 
 #### 不应照搬
 
-- agent graph 主要是 parent-child 和 open/closed 状态，不是 WorkTask DAG。[`types.rs L4-L12`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/agent-graph-store/src/types.rs#L4-L12) 与 [`store.rs L13-L59`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/agent-graph-store/src/store.rs#L13-L59) 不能替代 Intatis 的 Goal/WorkTask authority。
-- child thread 创建与 graph edge upsert 不是一个原子 settlement；edge 写入失败会 fail-soft 继续。[`control.rs L676-L704`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/core/src/agent/control.rs#L676-L704)。Intatis 必须把 invocation admission、lineage 和 lease 绑定进同一 durable transaction。
-- 底层 communication enqueue 能返回 submission/request ID，但 V2 tool result 丢弃该值；源码不足以把它定义为 durable MessageID。[`control.rs L168-L225`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/core/src/agent/control.rs#L168-L225) 与 [`message_tool.rs L110-L129`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/core/src/tools/handlers/multi_agents_v2/message_tool.rs#L110-L129)。Intatis 应把自己的 MessageID/receipt 明确定义为 durable 事实。
+- agent graph 主要是 parent-child 和 open/closed 状态，不是 WorkTask DAG。[`types.rs L4-L12`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/agent-graph-store/src/types.rs#L4-L12) 与 [`store.rs L13-L59`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/agent-graph-store/src/store.rs#L13-L59) 不能替代 Egakium 的 Goal/WorkTask authority。
+- child thread 创建与 graph edge upsert 不是一个原子 settlement；edge 写入失败会 fail-soft 继续。[`control.rs L676-L704`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/core/src/agent/control.rs#L676-L704)。Egakium 必须把 invocation admission、lineage 和 lease 绑定进同一 durable transaction。
+- 底层 communication enqueue 能返回 submission/request ID，但 V2 tool result 丢弃该值；源码不足以把它定义为 durable MessageID。[`control.rs L168-L225`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/core/src/agent/control.rs#L168-L225) 与 [`message_tool.rs L110-L129`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/core/src/tools/handlers/multi_agents_v2/message_tool.rs#L110-L129)。Egakium 应把自己的 MessageID/receipt 明确定义为 durable 事实。
 - wait 返回结果极粗：规格声称摘要哪些 agent 有更新，[`multi_agents_spec.rs L285-L294`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/core/src/tools/handlers/multi_agents_spec.rs#L285-L294)，实现只返回固定完成文本和 `timed_out`，[`wait.rs L133-L195`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/core/src/tools/handlers/multi_agents_v2/wait.rs#L133-L195)。
 - agent 完成通知写回父 session 的失败只记 debug 日志并返回，无 durable outbox/retry。[`session/mod.rs L1982-L1989`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/core/src/session/mod.rs#L1982-L1989)。
 - 默认模型合同声明子 agent 使用相同工具并共享目录。[`multi_agents_spec.rs L749-L768`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/core/src/tools/handlers/multi_agents_spec.rs#L749-L768)、[`config/mod.rs L212-L259`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/core/src/config/mod.rs#L212-L259) 的易用性不能覆盖 CapabilityLease/WorkspaceLease。
@@ -168,9 +168,9 @@ Codex CLI 的 multi-agent V2 是四个项目中最接近“模型可用异步 ag
 - feature 表中 multi-agent V2 虽标为 stable，但默认仍关闭；rollout budget 标为 under development 且默认关闭。[`features/src/lib.rs L1067-L1078`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/features/src/lib.rs#L1067-L1078)、[`L1301-L1312`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/features/src/lib.rs#L1301-L1312)。
 - V2 model-facing 工具面没有 `close_agent` / `resume_agent`；这些只在 V1 分支注册。[`spec_plan.rs L808-L893`](https://github.com/openai/codex/blob/f201c30c52a35f819262865a53df94b6f4ea7a50/codex-rs/core/src/tools/spec_plan.rs#L808-L893)。
 
-#### 对 Intatis 的提炼
+#### 对 Egakium 的提炼
 
-直接借鉴“异步 spawn + FIFO mailbox + follow-up + wait + interrupt + unload/reload identity”的工具心智模型；以 Intatis EventLog/outbox、WorkTaskGraph 和 lease 重新实现其 durability 与 authority。
+直接借鉴“异步 spawn + FIFO mailbox + follow-up + wait + interrupt + unload/reload identity”的工具心智模型；以 Egakium EventLog/outbox、WorkTaskGraph 和 lease 重新实现其 durability 与 authority。
 
 ### 3. Gemini CLI
 
@@ -188,14 +188,14 @@ Gemini CLI 的优势不是多 agent 数量，而是 typed protocol 和工具调�
 #### 不应照搬
 
 - Local protocol 内部可以异步，但 model-facing agent tool 最终等待整个结果。[`agent-tool.ts L217-L241`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/agents/agent-tool.ts#L217-L241) 与 [`local-session-invocation.ts L280-L320`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/agents/local-session-invocation.ts#L280-L320) 仍不是完整异步控制平面。
-- local subagent 明确不开放 agent tools，[`local-executor.ts L169-L205`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/agents/local-executor.ts#L169-L205)。这个保险丝可保留，但不能替代 Intatis 的 task-scoped delegation lease。
-- InjectionService 是共享广播式：同一 Config 下所有正在运行的 local agents 都会收到 hint，并只在 inter-turn safe point 注入。[`injectionService.ts L15-L64`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/config/injectionService.ts#L15-L64)。Intatis 需要 MessageID、目标 agent、WorkTask/run scope 和 durable consumption。
-- 未配置 `toolConfig` 时，local subagent 默认继承父 registry 中全部可复制的非-agent 工具，并过滤 `update_topic`。[`local-executor.ts L208-L266`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/agents/local-executor.ts#L208-L266)。这对 Intatis 默认能力模型仍然过宽。
+- local subagent 明确不开放 agent tools，[`local-executor.ts L169-L205`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/agents/local-executor.ts#L169-L205)。这个保险丝可保留，但不能替代 Egakium 的 task-scoped delegation lease。
+- InjectionService 是共享广播式：同一 Config 下所有正在运行的 local agents 都会收到 hint，并只在 inter-turn safe point 注入。[`injectionService.ts L15-L64`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/config/injectionService.ts#L15-L64)。Egakium 需要 MessageID、目标 agent、WorkTask/run scope 和 durable consumption。
+- 未配置 `toolConfig` 时，local subagent 默认继承父 registry 中全部可复制的非-agent 工具，并过滤 `update_topic`。[`local-executor.ts L208-L266`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/agents/local-executor.ts#L208-L266)。这对 Egakium 默认能力模型仍然过宽。
 - `complete_task` 的 typed 参数最终又被 stringify，[`complete-task.ts L145-L179`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/tools/complete-task.ts#L145-L179)；A2A artifact 也会被 textify，[`a2aUtils.ts L171-L249`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/agents/a2aUtils.ts#L171-L249)。
 - tracker 有 DAG 类型，但没有成为 agent invocation 的统一调度事实源。[`trackerTypes.ts L22-L40`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/services/trackerTypes.ts#L22-L40) 与 [`trackerService.ts L139-L244`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/services/trackerService.ts#L139-L244)。
 - 主循环接入 loop detector，[`loopDetectionService.ts L175-L348`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/services/loopDetectionService.ts#L175-L348)、[`client.ts L747-L763`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/core/client.ts#L747-L763)；LocalAgentExecutor 没有接入该 detector，只依赖 max time/turn 与 final-warning/`complete_task` grace。[`local-executor.ts L747-L824`](https://github.com/google-gemini/gemini-cli/blob/69b51f8fa2af0abf717daaba4dca1c627023d82d/packages/core/src/agents/local-executor.ts#L747-L824)。
 
-#### 对 Intatis 的提炼
+#### 对 Egakium 的提炼
 
 借鉴 typed event protocol、tool scheduling wave、集中式 execution lifecycle 和显式 completion schema；不要把最终交付重新 stringify，也不要采用全局注入或 ambient all-tools inheritance。
 
@@ -219,19 +219,19 @@ Grok Build 的最大价值是把“后台命令”和“后台 subagent”纳入
 
 #### 不应照搬
 
-- subagent depth 固定为 1，[`task/mod.rs L31-L35`](https://github.com/xai-org/grok-build/blob/69f0ba880aa98f55e3ac1dcc570e2f332f825fe2/crates/codegen/xai-grok-tools/src/implementations/grok_build/task/mod.rs#L31-L35)。Intatis 可保留 bounded depth，但主要约束应是 CapabilityLease、task graph 和 root budget。
-- restrictive tool mode 对未分类工具仍有保留逻辑，[`task/types.rs L206-L265`](https://github.com/xai-org/grok-build/blob/69f0ba880aa98f55e3ac1dcc570e2f332f825fe2/crates/codegen/xai-grok-tools/src/implementations/grok_build/task/types.rs#L206-L265)。Intatis 对未知动态 capability 应 fail closed。
-- interjection 通过 synthetic message 注入，[`interjection.rs L280-L336`](https://github.com/xai-org/grok-build/blob/69f0ba880aa98f55e3ac1dcc570e2f332f825fe2/crates/codegen/xai-grok-shell/src/session/acp_session_impl/interjection.rs#L280-L336)。Intatis 应保存真实 MessageID、delivery mode 和消费状态。
-- worktree 建立失败可能回退共享工作区，[`handle_request.rs L282-L337`](https://github.com/xai-org/grok-build/blob/69f0ba880aa98f55e3ac1dcc570e2f332f825fe2/crates/codegen/xai-grok-shell/src/agent/subagent/handle_request.rs#L282-L337)。Intatis 不能让失败的隔离请求静默扩大 workspace authority。
+- subagent depth 固定为 1，[`task/mod.rs L31-L35`](https://github.com/xai-org/grok-build/blob/69f0ba880aa98f55e3ac1dcc570e2f332f825fe2/crates/codegen/xai-grok-tools/src/implementations/grok_build/task/mod.rs#L31-L35)。Egakium 可保留 bounded depth，但主要约束应是 CapabilityLease、task graph 和 root budget。
+- restrictive tool mode 对未分类工具仍有保留逻辑，[`task/types.rs L206-L265`](https://github.com/xai-org/grok-build/blob/69f0ba880aa98f55e3ac1dcc570e2f332f825fe2/crates/codegen/xai-grok-tools/src/implementations/grok_build/task/types.rs#L206-L265)。Egakium 对未知动态 capability 应 fail closed。
+- interjection 通过 synthetic message 注入，[`interjection.rs L280-L336`](https://github.com/xai-org/grok-build/blob/69f0ba880aa98f55e3ac1dcc570e2f332f825fe2/crates/codegen/xai-grok-shell/src/session/acp_session_impl/interjection.rs#L280-L336)。Egakium 应保存真实 MessageID、delivery mode 和消费状态。
+- worktree 建立失败可能回退共享工作区，[`handle_request.rs L282-L337`](https://github.com/xai-org/grok-build/blob/69f0ba880aa98f55e3ac1dcc570e2f332f825fe2/crates/codegen/xai-grok-shell/src/agent/subagent/handle_request.rs#L282-L337)。Egakium 不能让失败的隔离请求静默扩大 workspace authority。
 - 公开源码能证明进程内 journal/handle 语义，但“App/进程被杀后继续一个 active operation”的完整语义仍需后续确认。
 
-#### 对 Intatis 的提炼
+#### 对 Egakium 的提炼
 
 借鉴 unified operation handle、事件驱动 wait、typed snapshot/cancel、request-hash journal 和 root budget；不采用 silent shared-workspace fallback、synthetic-message-only steering 或未知工具默认保留。
 
 ## 横向比较
 
-| 能力 | OpenCode | Codex CLI | Gemini CLI | Grok Build | Intatis 当前 |
+| 能力 | OpenCode | Codex CLI | Gemini CLI | Grok Build | Egakium 当前 |
 |---|---|---|---|---|---|
 | model-facing 异步 agent | TaskTool 有实验性 background；无模型侧 list/get/wait/cancel | V2 opt-in spawn/interrupt；wait-any；无 model-facing close | 内部异步，model tool 仍等待 | task 可后台 | `delegate_task` 主要等待终态 |
 | queue / steer / interrupt | V2 内部 Session API 有 queue/steer/interrupt；尚非完整模型工具面 | mailbox + follow-up + interrupt | 同一 Config 的共享 injection + inter-turn safe point | interjection + interruptible wait | mailbox/cancel 已有，model-facing 语义未完全拆分 |
@@ -413,7 +413,7 @@ managed_command（仅在完整 allow-list/lease/sandbox 合同成立后）
 - timeout、consumer cancellation、process-group cleanup。
 - 结构化 stdout/stderr chunk、exit status、artifact 和 changed-files report。
 
-这吸收 Grok Build/Gemini 的后台 lifecycle 易用性，同时保留 Intatis 当前“不暴露 raw shell”的产品边界。
+这吸收 Grok Build/Gemini 的后台 lifecycle 易用性，同时保留 Egakium 当前“不暴露 raw shell”的产品边界。
 
 ### 8. Dynamic Tool Manifest
 
@@ -642,9 +642,9 @@ flowchart LR
 - Codex multi-agent V2 在该 commit 的 feature table 中为 stable 但默认关闭；rollout budget 仍 under development/default off。其 wait 规格声称返回更新摘要，而当前实现只返回固定文本和 `timed_out`，属于已确认的规格/实现漂移。
 - Gemini 的 agent protocol 在接口层支持异步事件，但本地 model-facing subagent tool 仍等待结果；协议 registry/replay 的跨进程持久性不能仅凭类型定义确认。
 - Grok Build 公开仓库是 monorepo 同步快照；本报告无法确认其与线上产品、内部仓库或未来 commit 的差异。
-- 四个上游都没有直接提供符合 Intatis 全部 EventLog、四层完成 authority、lease、权限 reviewer 和 Apple-first 平台边界的现成实现。
+- 四个上游都没有直接提供符合 Egakium 全部 EventLog、四层完成 authority、lease、权限 reviewer 和 Apple-first 平台边界的现成实现。
 - 本轮没有实际运行这些上游 CLI，也没有验证 provider interruption、App kill、跨重启 active operation 或所有 provider 的并行 tool-call 行为。
-- Intatis 当前真实 provider 多 agent 长任务、symlink/workspace 组合和非幂等 crash reconciliation 仍需设备级验证。
+- Egakium 当前真实 provider 多 agent 长任务、symlink/workspace 组合和非幂等 crash reconciliation 仍需设备级验证。
 - 若后续决定复制/翻译上游源码，必须按 `docs/OPEN_SOURCE_REUSE.md` 重新固定 commit、逐文件/依赖核对许可证、记录 provenance 并更新 `NOTICE.md`；本报告本身没有完成该准入。
 
 ## NEXT_RECOMMENDED_ACTION

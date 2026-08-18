@@ -103,19 +103,19 @@
         }
       }
     },
-    "The microphone is already being used by another Ekagium session." : {
+    "The microphone is already being used by another Egakium session." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The microphone is already being used by another Ekagium session."
+            "value" : "The microphone is already being used by another Egakium session."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "麦克风正在被另一个 Ekagium 会话使用。"
+            "value" : "麦克风正在被另一个 Egakium 会话使用。"
           }
         }
       }
@@ -256,19 +256,19 @@
         }
       }
     },
-    "\"%@\" and its Ekagium event history and artifacts will be permanently deleted. Files in the linked workspace will not be changed." : {
+    "\"%@\" and its Egakium event history and artifacts will be permanently deleted. Files in the linked workspace will not be changed." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\"%@\" and its Ekagium event history and artifacts will be permanently deleted. Files in the linked workspace will not be changed."
+            "value" : "\"%@\" and its Egakium event history and artifacts will be permanently deleted. Files in the linked workspace will not be changed."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“%@”及其 Ekagium 事件历史和产物将被永久删除。已关联工作区中的文件不会被更改。"
+            "value" : "“%@”及其 Egakium 事件历史和产物将被永久删除。已关联工作区中的文件不会被更改。"
           }
         }
       }
@@ -1995,19 +1995,19 @@
         }
       }
     },
-    "Add the exact executable and launch closure, then run intatis mcp test before attaching it." : {
+    "Add the exact executable and launch closure, then run egakium mcp test before attaching it." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add the exact executable and launch closure, then run intatis mcp test before attaching it."
+            "value" : "Add the exact executable and launch closure, then run egakium mcp test before attaching it."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "添加精确的可执行文件和启动闭包，然后在挂载前运行 intatis mcp test。"
+            "value" : "添加精确的可执行文件和启动闭包，然后在挂载前运行 egakium mcp test。"
           }
         }
       }
@@ -4817,19 +4817,19 @@
         }
       }
     },
-    "Declare the complete launch closure explicitly: exactly one executable plus every interpreter, script, package entrypoint, lockfile, and helper. Ekagium does not infer files from imported arguments." : {
+    "Declare the complete launch closure explicitly: exactly one executable plus every interpreter, script, package entrypoint, lockfile, and helper. Egakium does not infer files from imported arguments." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Declare the complete launch closure explicitly: exactly one executable plus every interpreter, script, package entrypoint, lockfile, and helper. Ekagium does not infer files from imported arguments."
+            "value" : "Declare the complete launch closure explicitly: exactly one executable plus every interpreter, script, package entrypoint, lockfile, and helper. Egakium does not infer files from imported arguments."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请显式声明完整的启动闭包：必须且只能有一个可执行文件，并包含所有解释器、脚本、包入口点、锁定文件和辅助程序。Ekagium 不会根据导入的参数推断文件。"
+            "value" : "请显式声明完整的启动闭包：必须且只能有一个可执行文件，并包含所有解释器、脚本、包入口点、锁定文件和辅助程序。Egakium 不会根据导入的参数推断文件。"
           }
         }
       }
@@ -5242,19 +5242,19 @@
         }
       }
     },
-    "Create a privacy-redacted ZIP containing app and session structure, provider and network errors, performance and hang data, and recent Ekagium crash reports. Message contents, API keys, configuration files, workspace files, and browser data are excluded. Nothing is uploaded." : {
+    "Create a privacy-redacted ZIP containing app and session structure, provider and network errors, performance and hang data, and recent Egakium crash reports. Message contents, API keys, configuration files, workspace files, and browser data are excluded. Nothing is uploaded." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Create a privacy-redacted ZIP containing app and session structure, provider and network errors, performance and hang data, and recent Ekagium crash reports. Message contents, API keys, configuration files, workspace files, and browser data are excluded. Nothing is uploaded."
+            "value" : "Create a privacy-redacted ZIP containing app and session structure, provider and network errors, performance and hang data, and recent Egakium crash reports. Message contents, API keys, configuration files, workspace files, and browser data are excluded. Nothing is uploaded."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "生成经过隐私脱敏的 ZIP，包含 App 与会话结构、提供商和网络错误、性能与卡顿数据，以及近期 Ekagium 崩溃报告。消息内容、API 密钥、配置文件、工作区文件和浏览器数据不会包含，也不会上传任何内容。"
+            "value" : "生成经过隐私脱敏的 ZIP，包含 App 与会话结构、提供商和网络错误、性能与卡顿数据，以及近期 Egakium 崩溃报告。消息内容、API 密钥、配置文件、工作区文件和浏览器数据不会包含，也不会上传任何内容。"
           }
         }
       }
@@ -6877,19 +6877,19 @@
         }
       }
     },
-    "Import an Ekagium JSON or JSONC file from Files. Provider and model settings are stored in this app; literal credentials are migrated to the protected auth file." : {
+    "Import an Egakium JSON or JSONC file from Files. Provider and model settings are stored in this app; literal credentials are migrated to the protected auth file." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Import an Ekagium JSON or JSONC file from Files. Provider and model settings are stored in this app; literal credentials are migrated to the protected auth file."
+            "value" : "Import an Egakium JSON or JSONC file from Files. Provider and model settings are stored in this app; literal credentials are migrated to the protected auth file."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从“文件”App 导入 Ekagium JSON 或 JSONC 文件。提供商和模型设置将存储在本 App 中；配置中的明文凭据会迁移至受保护的认证文件。"
+            "value" : "从“文件”App 导入 Egakium JSON 或 JSONC 文件。提供商和模型设置将存储在本 App 中；配置中的明文凭据会迁移至受保护的认证文件。"
           }
         }
       }
@@ -6911,19 +6911,19 @@
         }
       }
     },
-    "Import Ekagium Config" : {
+    "Import Egakium Config" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Import Ekagium Config"
+            "value" : "Import Egakium Config"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "导入 Ekagium 配置"
+            "value" : "导入 Egakium 配置"
           }
         }
       }
@@ -7302,19 +7302,19 @@
         }
       }
     },
-    "Install the MCP server using its trusted publisher's instructions outside Ekagium." : {
+    "Install the MCP server using its trusted publisher's instructions outside Egakium." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Install the MCP server using its trusted publisher's instructions outside Ekagium."
+            "value" : "Install the MCP server using its trusted publisher's instructions outside Egakium."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "按照受信任发布者的说明，在 Ekagium 之外安装 MCP 服务器。"
+            "value" : "按照受信任发布者的说明，在 Egakium 之外安装 MCP 服务器。"
           }
         }
       }
@@ -7353,87 +7353,87 @@
         }
       }
     },
-    "Ekagium" : {
+    "Egakium" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekagium"
+            "value" : "Egakium"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekagium"
+            "value" : "Egakium"
           }
         }
       }
     },
-    "Ekagium does not prefetch this URL and never receives credentials or other data entered in the external browser." : {
+    "Egakium does not prefetch this URL and never receives credentials or other data entered in the external browser." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekagium does not prefetch this URL and never receives credentials or other data entered in the external browser."
+            "value" : "Egakium does not prefetch this URL and never receives credentials or other data entered in the external browser."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekagium 不会预取此 URL，也不会接收在外部浏览器中输入的凭据或其他数据。"
+            "value" : "Egakium 不会预取此 URL，也不会接收在外部浏览器中输入的凭据或其他数据。"
           }
         }
       }
     },
-    "Ekagium does not run an install command, arbitrary shell string, or an unverified executable on behalf of this form." : {
+    "Egakium does not run an install command, arbitrary shell string, or an unverified executable on behalf of this form." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekagium does not run an install command, arbitrary shell string, or an unverified executable on behalf of this form."
+            "value" : "Egakium does not run an install command, arbitrary shell string, or an unverified executable on behalf of this form."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekagium 不会代表此表单运行安装命令、任意 shell 字符串或未经验证的可执行文件。"
+            "value" : "Egakium 不会代表此表单运行安装命令、任意 shell 字符串或未经验证的可执行文件。"
           }
         }
       }
     },
-    "Ekagium renderer fixture" : {
+    "Egakium renderer fixture" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekagium renderer fixture"
+            "value" : "Egakium renderer fixture"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekagium 渲染器夹具"
+            "value" : "Egakium 渲染器夹具"
           }
         }
       }
     },
-    "Ekagium will open the authorization page only after you continue. The callback is bound to a one-shot local loopback address; this does not connect the MCP server." : {
+    "Egakium will open the authorization page only after you continue. The callback is bound to a one-shot local loopback address; this does not connect the MCP server." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ekagium will open the authorization page only after you continue. The callback is bound to a one-shot local loopback address; this does not connect the MCP server."
+            "value" : "Egakium will open the authorization page only after you continue. The callback is bound to a one-shot local loopback address; this does not connect the MCP server."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "只有在你继续后，Ekagium 才会打开授权页面。回调绑定到一次性的本地回环地址；此操作不会连接 MCP 服务器。"
+            "value" : "只有在你继续后，Egakium 才会打开授权页面。回调绑定到一次性的本地回环地址；此操作不会连接 MCP 服务器。"
           }
         }
       }
@@ -8118,36 +8118,36 @@
         }
       }
     },
-    "Message Ekagium..." : {
+    "Message Egakium..." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Message Ekagium..."
+            "value" : "Message Egakium..."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "给 Ekagium 发消息…"
+            "value" : "给 Egakium 发消息…"
           }
         }
       }
     },
-    "Message Ekagium…" : {
+    "Message Egakium…" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Message Ekagium…"
+            "value" : "Message Egakium…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "给 Ekagium 发消息…"
+            "value" : "给 Egakium 发消息…"
           }
         }
       }
@@ -9478,19 +9478,19 @@
         }
       }
     },
-    "Open Ekagium Config" : {
+    "Open Egakium Config" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open Ekagium Config"
+            "value" : "Open Egakium Config"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开 Ekagium 配置"
+            "value" : "打开 Egakium 配置"
           }
         }
       }
@@ -9529,19 +9529,19 @@
         }
       }
     },
-    "Open the Ekagium provider config" : {
+    "Open the Egakium provider config" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open the Ekagium provider config"
+            "value" : "Open the Egakium provider config"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开 Ekagium 提供商配置"
+            "value" : "打开 Egakium 提供商配置"
           }
         }
       }
@@ -11783,19 +11783,19 @@
         }
       }
     },
-    "Run intatis mcp doctor and resolve every bwrap or launch-artifact error." : {
+    "Run egakium mcp doctor and resolve every bwrap or launch-artifact error." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Run intatis mcp doctor and resolve every bwrap or launch-artifact error."
+            "value" : "Run egakium mcp doctor and resolve every bwrap or launch-artifact error."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "运行 intatis mcp doctor，并解决所有 bwrap 或启动产物错误。"
+            "value" : "运行 egakium mcp doctor，并解决所有 bwrap 或启动产物错误。"
           }
         }
       }
@@ -11851,19 +11851,19 @@
         }
       }
     },
-    "Run Test & Save. Ekagium captures and revalidates the exact launch artifacts before every managed start." : {
+    "Run Test & Save. Egakium captures and revalidates the exact launch artifacts before every managed start." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Run Test & Save. Ekagium captures and revalidates the exact launch artifacts before every managed start."
+            "value" : "Run Test & Save. Egakium captures and revalidates the exact launch artifacts before every managed start."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "运行“测试并保存”。Ekagium 会在每次受管启动前捕获并重新验证精确的启动产物。"
+            "value" : "运行“测试并保存”。Egakium 会在每次受管启动前捕获并重新验证精确的启动产物。"
           }
         }
       }
@@ -13976,19 +13976,19 @@
         }
       }
     },
-    "The server is asking Ekagium to run a provider-neutral model request. Approval here does not grant tools or access to the current Agent conversation. You will review the model result separately." : {
+    "The server is asking Egakium to run a provider-neutral model request. Approval here does not grant tools or access to the current Agent conversation. You will review the model result separately." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The server is asking Ekagium to run a provider-neutral model request. Approval here does not grant tools or access to the current Agent conversation. You will review the model result separately."
+            "value" : "The server is asking Egakium to run a provider-neutral model request. Approval here does not grant tools or access to the current Agent conversation. You will review the model result separately."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "服务器正在请求 Ekagium 运行与提供商无关的模型请求。在此批准不会向当前 Agent 对话授予工具或访问权限。你还需要单独审阅模型结果。"
+            "value" : "服务器正在请求 Egakium 运行与提供商无关的模型请求。在此批准不会向当前 Agent 对话授予工具或访问权限。你还需要单独审阅模型结果。"
           }
         }
       }

@@ -1,14 +1,14 @@
-# Intatis Cowork Agent Architecture
+# Egakium Cowork Agent Architecture
 
 > **历史文档：冻结于 v0.10 迁移阶段。** 本文只保留设计/迁移 provenance，不是当前
 > 状态、测试或实现事实源。产品基线与当前规则见 `docs/VERSIONING.md`、
 > `docs/COWORK_PRINCIPLES.md`、`docs/ARCHITECTURE.md` 和 `docs/CURRENT_STATE.md`。
 
-This document defines the intended architecture for Intatis Cowork. It replaces a fixed recursive-agent model with a task-scoped, context-scoped, capability-scoped multi-agent system.
+This document defines the intended architecture for Egakium Cowork. It replaces a fixed recursive-agent model with a task-scoped, context-scoped, capability-scoped multi-agent system.
 
 ## 1. Core Principle
 
-Intatis should not model agents as a hardcoded tree of permanent roles such as `main`, `coordinator`, `worker`, and `leaf`.
+Egakium should not model agents as a hardcoded tree of permanent roles such as `main`, `coordinator`, `worker`, and `leaf`.
 
 Instead:
 
@@ -270,7 +270,7 @@ Task decomposition:
 Task M:
   assignee = @macos-counter
   roleHint = macOS Swift file counter
-  workspace = Apps/IntatisMac
+  workspace = Apps/EgakiumMac
   expectedDeliverable = count + path list
   delegation = none
   relatedAgent = @ios-counter
@@ -278,7 +278,7 @@ Task M:
 Task I:
   assignee = @ios-counter
   roleHint = iOS Swift file counter
-  workspace = Apps/IntatisiOS
+  workspace = Apps/EgakiumiOS
   expectedDeliverable = count + path list
   delegation = none
   relatedAgent = @macos-counter
@@ -290,8 +290,8 @@ The `@macos-counter` context should say:
 You were created by @main as part of a two-agent count task.
 @main already split the global task into macOS and iOS parts.
 Your assigned role is macOS Swift file counter.
-Your workspace is Apps/IntatisMac.
-@ios-counter is independently responsible for Apps/IntatisiOS.
+Your workspace is Apps/EgakiumMac.
+@ios-counter is independently responsible for Apps/EgakiumiOS.
 Return only the macOS Swift count and file paths.
 You do not have delegation authority for this task. If you believe delegation is needed, ask @main.
 ```
@@ -320,7 +320,7 @@ The following invariants should be enforced by code, not just prompt text.
 A useful package-level shape:
 
 ```text
-IntatisCowork
+EgakiumCowork
 ├── AgentRegistry
 ├── TaskGraph
 ├── Scheduler

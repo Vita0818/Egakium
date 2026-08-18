@@ -4,7 +4,7 @@
 自动权限审查机制为了追求“不可绕过”和“序列化证明”，被设计成了极端的单点串行检查口。更严重的是，当它遇到任何性能超时和异常时，它会悲观地“闭锁（Fail-closed）”。
 
 ## 涉及的核心文件与类型
-- `Packages/IntatisCowork/Sources/PermissionReviewControlPlane.swift`
+- `Packages/EgakiumCowork/Sources/PermissionReviewControlPlane.swift`
 - **核心类型**：`public actor PermissionReviewControlPlane`
 
 ## 代码级致病机理分析

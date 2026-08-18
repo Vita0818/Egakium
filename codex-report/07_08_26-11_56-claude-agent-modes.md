@@ -6,9 +6,9 @@ Codex / GPT-5-based agent. Exact runtime model identifier is not exposed in this
 
 ## PATH_CHECK_RESULT
 
-- `pwd`: `/Users/vita/Vitemis/Intatis`
-- Git root: `/Users/vita/Vitemis/Intatis`
-- Result: path and Git root match the expected Intatis repository root.
+- `pwd`: `/Users/vita/Vitemis/Egakium`
+- Git root: `/Users/vita/Vitemis/Egakium`
+- Result: path and Git root match the expected Egakium repository root.
 - Initial `git status --short`: clean before this report was written.
 
 ## FILES_WRITTEN
@@ -99,9 +99,9 @@ Subagents solve context pollution. A task like "search the whole codebase for ev
 - Automatic delegation can become noisy if descriptions are too broad.
 - Nested/background subagent chains need depth guards and clear permission behavior.
 
-### Intatis Interpretation
+### Egakium Interpretation
 
-Intatis should treat this pattern as "task-scoped worker execution", not as a permanent agent hierarchy. The project already has the right primitives: `TaskContract`, `CapabilityLease`, `MessageBus`, `Mediator`, and `AgentLoop`. The clean-room equivalent should be:
+Egakium should treat this pattern as "task-scoped worker execution", not as a permanent agent hierarchy. The project already has the right primitives: `TaskContract`, `CapabilityLease`, `MessageBus`, `Mediator`, and `AgentLoop`. The clean-room equivalent should be:
 
 - Main agent issues a structured task contract.
 - Worker receives scoped context, not full raw transcript.
@@ -145,17 +145,17 @@ Agent view optimizes for human dispatch and oversight. It is the right mode when
 - If sessions create worktrees, cleanup and review become a real product concern.
 - The human becomes the merge/coherence layer.
 
-### Intatis Interpretation
+### Egakium Interpretation
 
-This should not be conflated with Cowork's agent roster. Agent view is closer to a future "background session supervisor" for Intatis Code/Cowork:
+This should not be conflated with Cowork's agent roster. Agent view is closer to a future "background session supervisor" for Egakium Code/Cowork:
 
 - It should manage whole sessions, not task-local workers.
 - It should surface session state from append-only event logs.
 - It should allow attach/detach without mutating hidden state.
-- It should isolate file writes by workspace/worktree or an equivalent Intatis workspace lease.
+- It should isolate file writes by workspace/worktree or an equivalent Egakium workspace lease.
 - It should make cost, tool activity, permission waits, and changed files visible.
 
-This is a good fit for Intatis' local-first workbench direction, but it should be built as a session management layer, not as a replacement for Cowork's task graph.
+This is a good fit for Egakium' local-first workbench direction, but it should be built as a session management layer, not as a replacement for Cowork's task graph.
 
 ## MODE 3: AGENT TEAMS
 
@@ -193,9 +193,9 @@ The cost and coordination overhead are higher because each teammate is a separat
 - File conflicts are likely if ownership boundaries are vague.
 - Lead termination, teammate shutdown, and session resumption become product-level reliability issues.
 
-### Intatis Interpretation
+### Egakium Interpretation
 
-This mode is closest to Intatis Cowork, but Intatis' existing principles are stricter and should remain stricter:
+This mode is closest to Egakium Cowork, but Egakium' existing principles are stricter and should remain stricter:
 
 - Avoid permanent `main/coordinator/worker/leaf` role trees.
 - Role belongs to the task; identity is persistent.
@@ -243,11 +243,11 @@ The orchestration plan becomes inspectable and repeatable. Instead of asking the
 - Saved workflows can become stale as repository structure changes.
 - If the workflow approval model is too permissive, the script becomes a high-amplification execution path.
 
-### Intatis Interpretation
+### Egakium Interpretation
 
-This is the most relevant pattern for future large-scale Intatis Code/Cowork work, but it should be introduced cautiously.
+This is the most relevant pattern for future large-scale Egakium Code/Cowork work, but it should be introduced cautiously.
 
-The clean-room Intatis version should be a "workflow runner" where:
+The clean-room Egakium version should be a "workflow runner" where:
 
 - Workflow code coordinates tasks but cannot directly access files, shell, network, or secrets.
 - Every concrete operation still flows through AgentLoop, schema validation, `PermissionEngine`, `PathConfinement`, and append-only `EventLog`.
@@ -255,7 +255,7 @@ The clean-room Intatis version should be a "workflow runner" where:
 - Intermediate results are structured, not raw transcript dumps.
 - Token budget, max agents, max depth, and stop conditions are explicit.
 
-This aligns with Intatis' NEXT_TARGET priorities around recovery, observability, task status, permission UX, and artifact traceability.
+This aligns with Egakium' NEXT_TARGET priorities around recovery, observability, task status, permission UX, and artifact traceability.
 
 ## CROSS-CUTTING DESIGN MODEL
 
@@ -277,7 +277,7 @@ The critical design axis is "where does the plan live?"
 
 ## SECURITY AND PERMISSION LESSONS
 
-The official Claude Code docs reinforce several safety points that match Intatis' local rules:
+The official Claude Code docs reinforce several safety points that match Egakium' local rules:
 
 - Tool access must be explicit and narrow. A worker with inherited tools is convenient but risky.
 - Background work still needs visible permission prompts and status.
@@ -286,19 +286,19 @@ The official Claude Code docs reinforce several safety points that match Intatis
 - Direct agent communication needs mediation, summary limits, and secret scanning.
 - Workflow-level approval is not enough; individual tool calls still need policy checks.
 
-For Intatis, the non-negotiable constraints remain:
+For Egakium, the non-negotiable constraints remain:
 
 - `DeterministicPolicyGate` hard deny stays final.
 - `ModelPermissionReviewer` can only narrow.
 - `PermissionEngine` remains the only path from model tool call to execution.
 - `PathConfinement` remains mandatory for file outputs.
 - `MessageBus` plus `Mediator` remains the only agent-to-agent delivery path.
-- Browser/profile artifacts under `.intatis/browser` must not be treated as ordinary shareable artifacts.
+- Browser/profile artifacts under `.egakium/browser` must not be treated as ordinary shareable artifacts.
 - iOS must remain the restricted Chat subset.
 
-## FIT WITH INTATIS CURRENT ARCHITECTURE
+## FIT WITH EGAKIUM CURRENT ARCHITECTURE
 
-Current Intatis already has many primitives needed for a clean-room version of these patterns:
+Current Egakium already has many primitives needed for a clean-room version of these patterns:
 
 - `AgentLoop`: single agent tool loop.
 - `Orchestrator`: Cowork actor coordinating agents.
@@ -309,7 +309,7 @@ Current Intatis already has many primitives needed for a clean-room version of t
 - `TurnStatsProjection`: token/timing observability.
 - Browser/document/media tools: agent-visible capabilities with strict permission and path boundaries.
 
-The main gap is not "can Intatis spawn workers"; it is productization:
+The main gap is not "can Egakium spawn workers"; it is productization:
 
 - durable background session supervision,
 - reliable task recovery,
@@ -322,14 +322,14 @@ The main gap is not "can Intatis spawn workers"; it is productization:
 
 Use generic product names internally to avoid copying Claude Code names or branding:
 
-| Claude Code term | Intatis-safe concept | Suggested Intatis surface |
+| Claude Code term | Egakium-safe concept | Suggested Egakium surface |
 |---|---|---|
 | Subagents | Task-scoped workers | Cowork delegated tasks with scoped context and capability leases |
 | Agent view | Background session monitor | A Code/Cowork session board driven by EventLog state |
 | Agent teams | Collaborative task group | Cowork task graph with mediated direct messages and shared task status |
 | Dynamic workflows | Scripted task orchestration | Bounded workflow runner that spawns task contracts, not raw recursive loops |
 
-## IMPLEMENTATION GUIDANCE FOR INTATIS
+## IMPLEMENTATION GUIDANCE FOR EGAKIUM
 
 ### 1. Keep Delegation and Messaging Separate
 
@@ -359,7 +359,7 @@ Avoid giving workers full raw transcript by default.
 
 ### 3. Add a Session Supervisor Separately From Cowork
 
-An Intatis analogue of agent view should supervise whole sessions, not task-local workers. It should track:
+An Egakium analogue of agent view should supervise whole sessions, not task-local workers. It should track:
 
 - session id,
 - mode,
@@ -376,7 +376,7 @@ This can reuse `SessionHistoryStore` and append-only event logs.
 
 ### 4. Treat Agent Teams as Cowork, Not a New Parallel Feature
 
-Intatis Cowork should remain the team surface. The next product quality step is not adding another "team" abstraction; it is improving:
+Egakium Cowork should remain the team surface. The next product quality step is not adding another "team" abstraction; it is improving:
 
 - task graph visibility,
 - task ownership,
@@ -388,7 +388,7 @@ Intatis Cowork should remain the team surface. The next product quality step is 
 
 ### 5. Defer Dynamic Workflows Until Safety and Replay Are Strong
 
-Workflow orchestration is high leverage and high blast radius. Before adding it, Intatis should define:
+Workflow orchestration is high leverage and high blast radius. Before adding it, Egakium should define:
 
 - workflow file format,
 - script sandbox,
@@ -405,9 +405,9 @@ The workflow should coordinate AgentLoop tasks, not directly run shell or read/w
 ## OPEN QUESTIONS
 
 - How much of Claude Code's current behavior is product policy versus implementation detail is not fully knowable from public docs.
-- Agent teams are experimental and documented as having limitations; any Intatis design should treat that pattern as a signal, not a stable API contract.
-- Dynamic workflow details may change across Claude Code versions; Intatis should adopt the concept, not mirror the exact command surface.
-- Official docs mention worktrees as a supporting isolation primitive. Intatis currently has workspace leases and browser/profile confinement; a future parallel-edit design still needs an explicit file conflict/isolation strategy.
+- Agent teams are experimental and documented as having limitations; any Egakium design should treat that pattern as a signal, not a stable API contract.
+- Dynamic workflow details may change across Claude Code versions; Egakium should adopt the concept, not mirror the exact command surface.
+- Official docs mention worktrees as a supporting isolation primitive. Egakium currently has workspace leases and browser/profile confinement; a future parallel-edit design still needs an explicit file conflict/isolation strategy.
 
 ## VALIDATION_RESULT
 
@@ -420,11 +420,11 @@ The workflow should coordinate AgentLoop tasks, not directly run shell or read/w
 - Exact current model runtime id is unavailable.
 - I did not inspect Claude Code source code or private implementation, only public official documentation.
 - I did not verify Claude Code behavior in a live Claude Code install; this is documentation-based understanding.
-- No Intatis business source was modified.
+- No Egakium business source was modified.
 
 ## NEXT_RECOMMENDED_ACTION
 
-For Intatis, the next useful design action is to compare the current Cowork `TaskContract` / `CapabilityLease` / `MessageBus` implementation against the four-mode matrix above and decide whether the next local slice should be:
+For Egakium, the next useful design action is to compare the current Cowork `TaskContract` / `CapabilityLease` / `MessageBus` implementation against the four-mode matrix above and decide whether the next local slice should be:
 
 1. a background session supervisor,
 2. richer Cowork task/team status,

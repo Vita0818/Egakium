@@ -1,16 +1,16 @@
-# Intatis 持久多模态上下文：Codex CLI 参考实现、断点与最小闭环实施报告
+# Egakium 持久多模态上下文：Codex CLI 参考实现、断点与最小闭环实施报告
 
 ## 报告元数据
 
 - 调研日期：2026-08-09
-- Intatis 仓库：`/Users/vita/Vitemis/Intatis`
+- Egakium 仓库：`/Users/vita/Vitemis/Egakium`
 - 报告性质：源码审计、公开上游行为核对、事实修订、最小闭环实现与验证记录
 - 本轮状态：**已实现 durable Agent 用户图、原 call 工具图 FCO、active-history replay、
   summary-only compaction、route/permission fail-closed，并同步测试与项目文档**
 - 上游基线：OpenAI Codex CLI `0.145.0` / tag `rust-v0.145.0`
-- 上游固定 commit：Intatis 现有 provenance 记录将该 release 固定到
+- 上游固定 commit：Egakium 现有 provenance 记录将该 release 固定到
   `25af12f7e61572b0bc18ddb1008be543b91519b0`
-- 证据标记：`FACT` 为源码或官方文档直接证明；`INFERENCE` 为面向 Intatis 的设计判断；
+- 证据标记：`FACT` 为源码或官方文档直接证明；`INFERENCE` 为面向 Egakium 的设计判断；
   `UNKNOWN` 为本轮不能可靠确认的行为
 
 > 说明：本轮核查的上游源码归档自身没有 `.git`，因此行号事实按
@@ -19,7 +19,7 @@
 
 ## 一、交接结论
 
-这不是文档编辑器、PDF、OCR 或脱敏工具的问题，而是 **Intatis 平台级的 durable
+这不是文档编辑器、PDF、OCR 或脱敏工具的问题，而是 **Egakium 平台级的 durable
 multimodal context 合同没有闭合**。
 
 Codex CLI 已经证明两类图片都能进入后续模型上下文：
@@ -27,7 +27,7 @@ Codex CLI 已经证明两类图片都能进入后续模型上下文：
 1. 用户图片作为 user message 的原生 `input_image`；
 2. 工具图片作为原 `call_id` 对应的原生 `function_call_output` 多模态内容。
 
-本轮实施前，Intatis并非“完全不支持图片”，而是各层完成度不同：
+本轮实施前，Egakium并非“完全不支持图片”，而是各层完成度不同：
 
 - macOS Chat 与共享 Chat runtime 已能把用户图片保存进 `ArtifactStore`，在历史重建时
   重新加载；iOS 链接了同一底层能力，但当前 UI 尚没有等价的用户图片 picker；
@@ -43,10 +43,10 @@ Codex CLI 已经证明两类图片都能进入后续模型上下文：
 
 最重要的判断是：
 
-> Intatis 应借鉴 Codex 的“原生多模态 item、精确 call correlation、统一 replay”语义，
+> Egakium 应借鉴 Codex 的“原生多模态 item、精确 call correlation、统一 replay”语义，
 > 但不应照搬 Codex 把完整 base64 和绝对路径写进 rollout JSONL 的存储形式。
 
-Intatis 已有更适合自己的基础：EventLog 是 canonical truth，ArtifactStore 已能保存
+Egakium 已有更适合自己的基础：EventLog 是 canonical truth，ArtifactStore 已能保存
 二进制，MCP durable block 已有 hash/size/provenance。缺的是把这些能力连成一条：
 
 ```text
@@ -144,34 +144,34 @@ P0的CLI正向图片验收限定macOS；Linux在无经测试的bounded解码back
 - remote/local compaction；
 - Guardian 初始 review context 与 `view_image` 例外。
 
-### 3.3 Intatis 源码核查范围
+### 3.3 Egakium 源码核查范围
 
 本轮重点核查了：
 
-- `Packages/IntatisProtocol/Sources/ModelHistory.swift`
-- `Packages/IntatisProtocol/Sources/MCPResults.swift`
-- `Packages/IntatisProtocol/Sources/Event.swift`
-- `Packages/IntatisArtifacts/Sources/Artifact.swift`
-- `Packages/IntatisArtifacts/Sources/ArtifactStore.swift`
-- `Packages/IntatisProviders/Sources/Capability.swift`
-- `Packages/IntatisProviders/Sources/ChatProvider.swift`
-- `Packages/IntatisProviders/Sources/ToolCalling.swift`
-- `Packages/IntatisProviders/Sources/OpenAIToolCalling.swift`
-- `Packages/IntatisTools/Sources/ToolProtocol.swift`
-- `Packages/IntatisMCP/Sources/MCPToolExecution.swift`
-- `Packages/IntatisAgentKernel/Sources/MCPArtifactStoreToolSink.swift`
-- `Packages/IntatisAgentKernel/Sources/AgentLoop.swift`
-- `Packages/IntatisAgentKernel/Sources/AgentModelHistoryProjector.swift`
-- `Packages/IntatisAgentKernel/Sources/AgentModelHistoryCompactor.swift`
-- `Packages/IntatisAgentKernel/Sources/PermissionAuthorizationContextReporter.swift`
-- `Packages/IntatisConversation/Sources/ChatLoop.swift`
-- `Packages/IntatisCowork/Sources/Orchestrator.swift`
-- `Packages/IntatisCowork/Sources/PermissionReviewControlPlane.swift`
-- `Packages/IntatisSharedUI/Sources/ChatViewModel.swift`
-- `Apps/IntatisMac/Sources/CodeViewModel.swift`
-- `Apps/IntatisMac/Sources/CoworkViewModel.swift`
-- `Apps/intatis-cli/Sources/Attachments.swift`
-- `Apps/intatis-cli/Sources/Interactive.swift`
+- `Packages/EgakiumProtocol/Sources/ModelHistory.swift`
+- `Packages/EgakiumProtocol/Sources/MCPResults.swift`
+- `Packages/EgakiumProtocol/Sources/Event.swift`
+- `Packages/EgakiumArtifacts/Sources/Artifact.swift`
+- `Packages/EgakiumArtifacts/Sources/ArtifactStore.swift`
+- `Packages/EgakiumProviders/Sources/Capability.swift`
+- `Packages/EgakiumProviders/Sources/ChatProvider.swift`
+- `Packages/EgakiumProviders/Sources/ToolCalling.swift`
+- `Packages/EgakiumProviders/Sources/OpenAIToolCalling.swift`
+- `Packages/EgakiumTools/Sources/ToolProtocol.swift`
+- `Packages/EgakiumMCP/Sources/MCPToolExecution.swift`
+- `Packages/EgakiumAgentKernel/Sources/MCPArtifactStoreToolSink.swift`
+- `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift`
+- `Packages/EgakiumAgentKernel/Sources/AgentModelHistoryProjector.swift`
+- `Packages/EgakiumAgentKernel/Sources/AgentModelHistoryCompactor.swift`
+- `Packages/EgakiumAgentKernel/Sources/PermissionAuthorizationContextReporter.swift`
+- `Packages/EgakiumConversation/Sources/ChatLoop.swift`
+- `Packages/EgakiumCowork/Sources/Orchestrator.swift`
+- `Packages/EgakiumCowork/Sources/PermissionReviewControlPlane.swift`
+- `Packages/EgakiumSharedUI/Sources/ChatViewModel.swift`
+- `Apps/EgakiumMac/Sources/CodeViewModel.swift`
+- `Apps/EgakiumMac/Sources/CoworkViewModel.swift`
+- `Apps/egakium-cli/Sources/Attachments.swift`
+- `Apps/egakium-cli/Sources/Interactive.swift`
 
 源码、测试和说明冲突时，本报告以当前源码为准。
 
@@ -268,7 +268,7 @@ omitted placeholder，不会静默当作已看见：
 `codex-rs/core/src/context_manager/history.rs:324-342`，
 `codex-rs/core/src/context_manager/normalize.rs:318-344`。
 
-`INFERENCE`：Intatis P0 不应照搬这一降级。只要当前请求或仍存活history明确要求传递图片，
+`INFERENCE`：Egakium P0 不应照搬这一降级。只要当前请求或仍存活history明确要求传递图片，
 exact route不支持时应在网络前返回 `image_delivery_unsupported`；文字placeholder不能支持
 “模型已经完成视觉检查”的成功结果。
 
@@ -311,7 +311,7 @@ Image generation extension同样返回同一 call 的 content array：图片 dat
 `structured_content` 与普通 media `content`，转换逻辑会优先 structured JSON text，
 使普通 image/audio content 不进入同一个 provider output；encrypted exception 另算。
 
-`INFERENCE`：Intatis 已经把 `MCPStructuredToolResult.content` 与
+`INFERENCE`：Egakium 已经把 `MCPStructuredToolResult.content` 与
 `structuredContent` 分开持久化，实施时应支持两者并存，不应复制这一优先级丢媒体行为。
 
 ## 六、Codex 的 compaction 与权限审查边界
@@ -364,7 +364,7 @@ messages。原始图片可随整条 user message 保留，直到预算淘汰该�
 这不是可靠的“父图片直接传给 reviewer”合同；纯 data/http 图片、失效路径或模型没有
 主动调用时都不成立。
 
-## 七、Intatis 实施前状态矩阵
+## 七、Egakium 实施前状态矩阵
 
 本节记录本轮实现开始前的源码基线，用于解释后续改动为何必要；实现后的真实状态见第十五节。
 
@@ -391,56 +391,56 @@ messages。原始图片可随整条 user message 保留，直到预算淘汰该�
 
 关键源码证据：
 
-- Chat durable reload：`Packages/IntatisConversation/Sources/ChatLoop.swift:151-181`；
-- Chat GUI ArtifactID：`Packages/IntatisSharedUI/Sources/ChatViewModel.swift:381-421`；
-- CLI in-memory attachment：`Apps/intatis-cli/Sources/Attachments.swift:6-40`，
-  `Apps/intatis-cli/Sources/Interactive.swift:271-287,1249-1272`；
+- Chat durable reload：`Packages/EgakiumConversation/Sources/ChatLoop.swift:151-181`；
+- Chat GUI ArtifactID：`Packages/EgakiumSharedUI/Sources/ChatViewModel.swift:381-421`；
+- CLI in-memory attachment：`Apps/egakium-cli/Sources/Attachments.swift:6-40`，
+  `Apps/egakium-cli/Sources/Interactive.swift:271-287,1249-1272`；
 - Cowork durable attachments/current-turn resolve：
-  `Apps/IntatisMac/Sources/CoworkViewModel.swift:2535-2555,2742-2805`；显式 Retry恢复见
-  `Apps/IntatisMac/Sources/CoworkViewModel.swift:1047-1061,2887-2968`；
+  `Apps/EgakiumMac/Sources/CoworkViewModel.swift:2535-2555,2742-2805`；显式 Retry恢复见
+  `Apps/EgakiumMac/Sources/CoworkViewModel.swift:1047-1061,2887-2968`；
 - Cowork stable main-thread只属于exact `@main`，ordinary target为task-scoped：
-  `Packages/IntatisCowork/Sources/Orchestrator.swift:7517-7522`，
-  `Packages/IntatisAgentKernel/Sources/AgentLoop.swift:1127-1160`；
+  `Packages/EgakiumCowork/Sources/Orchestrator.swift:7517-7522`，
+  `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift:1127-1160`；
 - outbox/queued/whole-task retry的attempt与TurnID差异：
-  `Apps/IntatisMac/Sources/CoworkViewModel.swift:2898-2924`，
-  `Packages/IntatisCowork/Sources/Orchestrator.swift:3393-3407,3501-3514`，
-  `Packages/IntatisAgentKernel/Sources/AgentLoop.swift:522-531`；
+  `Apps/EgakiumMac/Sources/CoworkViewModel.swift:2898-2924`，
+  `Packages/EgakiumCowork/Sources/Orchestrator.swift:3393-3407,3501-3514`，
+  `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift:522-531`；
 - accepted user/outbox与稍后model-history的时序：
-  `Packages/IntatisProtocol/Sources/Event.swift:14-60`，
-  `Packages/IntatisConversation/Sources/SubmittedIntentStore.swift:632-660`，
-  `Packages/IntatisAgentKernel/Sources/AgentLoop.swift:688-709`；
+  `Packages/EgakiumProtocol/Sources/Event.swift:14-60`，
+  `Packages/EgakiumConversation/Sources/SubmittedIntentStore.swift:632-660`，
+  `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift:688-709`；
 - stable history attachment slots：
-  `Packages/IntatisProtocol/Sources/ModelHistory.swift:129-348`；
+  `Packages/EgakiumProtocol/Sources/ModelHistory.swift:129-348`；
 - direct schema gate与checkpoint覆盖边界：
-  `Packages/IntatisAgentKernel/Sources/AgentModelHistoryProjector.swift:1016-1020,1222-1226,1292-1302`；
+  `Packages/EgakiumAgentKernel/Sources/AgentModelHistoryProjector.swift:1016-1020,1222-1226,1292-1302`；
 - projector text-only：
-  `Packages/IntatisAgentKernel/Sources/AgentModelHistoryProjector.swift:1390-1502`；
+  `Packages/EgakiumAgentKernel/Sources/AgentModelHistoryProjector.swift:1390-1502`；
 - compactor text-only provider history：
-  `Packages/IntatisAgentKernel/Sources/AgentModelHistoryCompactor.swift:294-320`；
+  `Packages/EgakiumAgentKernel/Sources/AgentModelHistoryCompactor.swift:294-320`；
 - tool continuation text-only：
-  `Packages/IntatisAgentKernel/Sources/AgentLoop.swift:976-997,1680-1708`；
+  `Packages/EgakiumAgentKernel/Sources/AgentLoop.swift:976-997,1680-1708`；
 - provider string-only FCO：
-  `Packages/IntatisProviders/Sources/ToolCalling.swift:240-290`，
-  `Packages/IntatisProviders/Sources/OpenAIToolCalling.swift:688-735`；
+  `Packages/EgakiumProviders/Sources/ToolCalling.swift:240-290`，
+  `Packages/EgakiumProviders/Sources/OpenAIToolCalling.swift:688-735`；
 - tool message→FCO转换当前丢弃images：
-  `Packages/IntatisProviders/Sources/ToolCalling.swift:222-224,273-277`；
+  `Packages/EgakiumProviders/Sources/ToolCalling.swift:222-224,273-277`；
 - Responses/tool-search耦合：
-  `Packages/IntatisProviders/Sources/ToolCalling.swift:354-365,377-395`，
-  `Packages/IntatisProviders/Sources/OpenAIToolCalling.swift:160-173,534-542`；
+  `Packages/EgakiumProviders/Sources/ToolCalling.swift:354-365,377-395`，
+  `Packages/EgakiumProviders/Sources/OpenAIToolCalling.swift:160-173,534-542`；
 - MCP durable media block：
-  `Packages/IntatisMCP/Sources/MCPToolExecution.swift:439-475`，
-  `Packages/IntatisAgentKernel/Sources/MCPArtifactStoreToolSink.swift:32-62`；
+  `Packages/EgakiumMCP/Sources/MCPToolExecution.swift:439-475`，
+  `Packages/EgakiumAgentKernel/Sources/MCPArtifactStoreToolSink.swift:32-62`；
 - current ArtifactRef / legacy path event：
-  `Packages/IntatisArtifacts/Sources/Artifact.swift:19-47`，
-  `Packages/IntatisProtocol/Sources/MultimodalEvents.swift:8-26`；
+  `Packages/EgakiumArtifacts/Sources/Artifact.swift:19-47`，
+  `Packages/EgakiumProtocol/Sources/MultimodalEvents.swift:8-26`；
 - generated image / screenshot path-only：
-  `Packages/IntatisAgentKernel/Sources/ProviderImageGenerationToolService.swift:15-90`，
-  `Packages/IntatisTools/Sources/BrowserTools.swift:4439-4470`；
+  `Packages/EgakiumAgentKernel/Sources/ProviderImageGenerationToolService.swift:15-90`，
+  `Packages/EgakiumTools/Sources/BrowserTools.swift:4439-4470`；
 - reviewer text evidence：
-  `Packages/IntatisAgentKernel/Sources/PermissionAuthorizationContextReporter.swift:215-250,349-380`，
-  `Packages/IntatisCowork/Sources/PermissionReviewControlPlane.swift:761-790,2085-2115`。
+  `Packages/EgakiumAgentKernel/Sources/PermissionAuthorizationContextReporter.swift:215-250,349-380`，
+  `Packages/EgakiumCowork/Sources/PermissionReviewControlPlane.swift:761-790,2085-2115`。
 - 当前image token估算按ready URL字节计：
-  `Packages/IntatisAgentKernel/Sources/AgentTokenEstimator.swift:26-28`。
+  `Packages/EgakiumAgentKernel/Sources/AgentTokenEstimator.swift:26-28`。
 
 ## 八、实施前的精确根因
 
@@ -655,7 +655,7 @@ P0在`ToolCallingProviderCapabilities`最低增加`supportsUserImageInput`与
 `supportsFunctionOutputImageInput`。为避免给schema-v1 provider catalog的`[Capability]`新增未知enum
 值，P0不新增持久化catalog case：两个flag独立承载和检查，但首版使用同一个最窄代码allowlist——
 exact profile声明`.visionInput`，且exact request adapter为
-`ProviderRequestAdapter.openAI`。这个adapter就是对Intatis已实现OpenAI Responses lowering的显式
+`ProviderRequestAdapter.openAI`。这个adapter就是对Egakium已实现OpenAI Responses lowering的显式
 wire opt-in，不再增加第二个“native route”schema字段。
 
 因此P0正向映射为`wire == .openai`、effective
@@ -914,7 +914,7 @@ release-only外部验证；旧reader则另以`v0.41` exact source snapshot编译
 - 将`.visionInput`与effective `.openAI` request adapter合取为`supportsUserImageInput`，unsupported
   route在任何user-image网络请求前typed fail；该显式wire opt-in的user image同样强制Responses，
   compatible/legacy/OpenRouter/unknown adapter默认false，Slice 1不得依赖后续FCO slice补gate；
-- Code GUI只接入共享`IntatisMacComposerAttachmentAccessory`、import modifier与attachment store，
+- Code GUI只接入共享`EgakiumMacComposerAttachmentAccessory`、import modifier与attachment store，
   不另做composer或第二套图片入口；
 - Cowork不改ingestion payload、outbox schema或user event；只增加一个纯Retry planner来保留既有
   identity。outbox canonicalization Retry仍是submission attempt 1；restored queued exact task不新增
@@ -1076,7 +1076,7 @@ CLI Chat/Code进程级session恢复、reviewer直接看图、audio、GC/reachabi
 - 本轮上游归档没有 `.git`，固定commit映射依赖仓库现有provenance；
 - Codex legacy remote `/responses/compact` server是否回传原图片，公开客户端源码不能保证；
 - Codex未追踪到的全局机制是否清理所有 `codex-clipboard-*` kept temp files；
-- Intatis真实OpenAI/OpenAI-compatible endpoint对多模态FCO的完整兼容矩阵；
+- Egakium真实OpenAI/OpenAI-compatible endpoint对多模态FCO的完整兼容矩阵；
 - Linux无新增依赖时可安全覆盖哪些图片格式；
 - 当前所有ArtifactStore实例/导出路径未来是否存在跨session共享所有权；
 - 图片token的provider精确计量与remote compaction摘要质量。
@@ -1085,7 +1085,7 @@ CLI Chat/Code进程级session恢复、reviewer直接看图、audio、GC/reachabi
 
 以下是本轮实际采用的合同，可继续用于代码复核或后续增量任务：
 
-> 在 Intatis 中实现 durable multimodal context 主链。使用 session ArtifactStore 支撑的
+> 在 Egakium 中实现 durable multimodal context 主链。使用 session ArtifactStore 支撑的
 > immutable typed image references，关闭AgentKernel的durable user-image replay与MCP
 > structured-result image FCO缺口。最少代码原则是“保留现有
 > String/attachmentIDs/AgentMessage.images，让一份image reference贯穿active direct model history，
@@ -1172,7 +1172,7 @@ CLI Chat/Code进程级session恢复、reviewer直接看图、audio、GC/reachabi
 实际验证结果：
 
 - `DurableOwnerOnlyFileTests` 2/2、`ArtifactImageResolverTests` 10/10、
-  `IntatisProvidersToolCallingTests` 36/36、`AgentToolOutputLoweringTests` 6/6、
+  `EgakiumProvidersToolCallingTests` 36/36、`AgentToolOutputLoweringTests` 6/6、
   `DurableMultimodalAgentLoopTests` 9/9、`CLIAttachmentTests` 4/4，均为0 failures；
 - `ModelHistoryMediaBatchEventLogTests` 7/7、`SubmittedIntentStoreTests` 13/13，均为0 failures；前者覆盖
   same-turn/call result与完整settlement identity，后者覆盖Retry planner及outbox冻结payload保真；
@@ -1182,9 +1182,9 @@ CLI Chat/Code进程级session恢复、reviewer直接看图、audio、GC/reachabi
 - 从`v0.41` commit `e5f64ed`归档源码并临时编译`LegacyMediaSchemaFixtureTests`：3 tests / 0 failures，
   旧projector拒绝schema-v2 direct item及v1 checkpoint后的schema-v2 direct suffix，旧protocol拒绝
   schema-v2 checkpoint；
-- `swift build --disable-sandbox --target IntatisCLI`退出0；`IntatisMac` macOS Debug与`IntatisiOS`
+- `swift build --disable-sandbox --target EgakiumCLI`退出0；`EgakiumMac` macOS Debug与`EgakiumiOS`
   generic Simulator Debug无签名构建均退出0，只有仓库既有warning；
-- 真实端点smoke的opt-in测试壳已编入当前`IntatisCLITests`；未设置开关时必须skip且不发请求，真实
+- 真实端点smoke的opt-in测试壳已编入当前`EgakiumCLITests`；未设置开关时必须skip且不发请求，真实
   credential/network调用仍未执行；
 - 当前完整`swift test --disable-sandbox`成功构建全部targets，并先完成Tools 209 tests（15 skipped）
   与Skills 29 tests、均0 failures；随后在既有SharedUI
