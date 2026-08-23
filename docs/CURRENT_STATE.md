@@ -36,7 +36,7 @@
 > provider-driven 多元素工作流，不得把这些缺口误写成 renderer 仍未接入。
 
 文档状态：当前源码摘要
-最近源码核对：2026-08-18
+最近源码核对：2026-08-20
 最近产品方向核对：2026-08-18
 产品基线：v0.4（build 50）
 
@@ -458,14 +458,19 @@ profiles 与外部 MCP client。macOS/Linux 的 stdio、sandbox、bwrap/guard �
   该气泡使用原生 `Glass.regular` 且不再叠加 accent 蓝色描边。assistant/agent/system 对话正文
   （包括失败/中断回复）直接落在 conversation canvas；tool、error、permission、Goal/Task 等
   专用结构化状态继续使用 Material 边界。
-- iOS 与 macOS 已统一品牌/session/Settings 的 serif 标题和系统 sans 正文/控件，两端使用
+- iOS 与 macOS 的 app-owned 界面文字现统一由 bundled JetBrains Mono 2.304 渲染：标题、正文、
+  控件、输入、metadata、代码和 Markdown 的拉丁字形全部使用 exact 静态 TTF；字体缺失或
+  PostScript identity 不符会在启动预检时明确失败，不依赖用户安装。JetBrains Mono 不覆盖 CJK，
+  Core Text 的原生 cascade 因而继续让中文使用相应苹方（PingFang）家族；LaTeX attachment 仍由
+  exact iosMath 2.5.0 的既有数学字体排版，不接受界面字体覆盖。两端继续使用
   model/usage + action/input/voice/Send-or-Stop 的两排 composer；voice 始终紧邻主操作左侧，
   不占用或复制唯一的 Send↔Stop 槽位。composer 的 compact secondary/voice control 另显式固定
   40pt 外层布局与圆形 `contentShape`，使屏幕上完整圆形控件与真实点击区域一致，而不是只让内部
   SF Symbol 字形响应点击。macOS Chat 与 Cowork 的 paperclip、附件数量/移除菜单、文件 importer
   和 URL drop modifier 现在是同一套共享 surface；Code 与 iOS Chat 的现有能力边界不随之扩大。
-- rich text 使用仓内经审计的 Microsoft SwiftStreamingMarkdown thin derivative 与
-  exact iosMath Apple-native 数学排版；plain-safe 仍是运行时救援路径。
+- rich text 使用仓内经审计的 Microsoft SwiftStreamingMarkdown thin derivative；正文、标题、列表、
+  表格、代码块与 selection surface 从 caller `MarkdownRenderConfig` 接收 JetBrains Mono，exact
+  iosMath 继续独立承担 Apple-native 数学排版；plain-safe 也使用相同界面字体，仍是运行时救援路径。
 - macOS Chat/Code/Cowork history 使用最多 16-row eager page 与显式分页，避免旧的 rich +
   lazy session-entry layout cycle。旧性能数字只保留在 Git/report 历史，不是当前 release
   readiness 证明。
@@ -518,7 +523,8 @@ profiles 与外部 MCP client。macOS/Linux 的 stdio、sandbox、bwrap/guard �
   terminal Seatbelt/default-network-deny 与 iOS linkage boundary 均保留。
 - 旧 schema 与未知 future event 的兼容/fail-closed 规则不得因文档或版本更新而改变。
 - 第三方代码、prompt、字体和依赖来源以 `NOTICE.md`、`ThirdPartyNotices/`、vendor ledger
-  与 `docs/OPEN_SOURCE_REUSE.md` 为准。本轮版本/文档校准没有新增依赖。
+  与 `docs/OPEN_SOURCE_REUSE.md` 为准。JetBrains Mono 2.304 的 official release/archive、十个静态
+  face SHA-256、OFL 1.1 与 AUTHORS 由 `ThirdPartyNotices/JetBrainsMono.md` 固定。
 
 ## 最近验证状态
 

@@ -1089,10 +1089,15 @@ private struct IOSChatModelMenu: View {
 struct EgakiumiOSApp: App {
     @StateObject private var env = IOSAppEnvironment()
 
+    init() {
+        EgakiumTypography.preflight()
+    }
+
     var body: some Scene {
         WindowGroup {
             IOSRootView()
                 .environmentObject(env)
+                .egakiumInterfaceTypography()
         }
     }
 }

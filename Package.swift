@@ -254,7 +254,12 @@ let package = Package(
                     condition: .when(platforms: [.macOS, .iOS])
                 ),
             ],
-            path: "Packages/EgakiumSharedUI/Sources"
+            path: "Packages/EgakiumSharedUI",
+            exclude: ["Tests"],
+            sources: ["Sources"],
+            resources: [
+                .copy("Resources/Fonts"),
+            ]
         ),
         // v0.6 — CLI: Swift-native `egakium` command (chat + code agent), talks to
         // any OpenAI-compatible endpoint via env vars.

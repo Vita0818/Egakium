@@ -825,7 +825,7 @@ struct WorkspaceSessionHome: View {
 
                     VStack(alignment: .leading, spacing: 14) {
                         Image(systemName: icon)
-                            .font(.system(size: 28, weight: .semibold))
+                            .egakiumFont(size: 28, weight: .semibold)
                             .foregroundStyle(EgakiumTheme.accent(scheme))
                             .frame(width: 64, height: 64)
                         Text(primaryTitle)
@@ -1368,16 +1368,16 @@ struct CoworkSessionView: View {
     private var goalEditorSheet: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Edit Goal")
-                .font(.title2.bold())
+                .egakiumFont(.title2, weight: .bold)
             Text("Edit the durable objective and its requirements. Enter one success criterion or constraint per line. Leaving token budget empty means no Goal budget. A paused Goal remains paused.")
-                .font(.callout)
+                .egakiumFont(.callout)
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Objective")
-                    .font(.caption.bold())
+                    .egakiumFont(.caption, weight: .bold)
                 TextEditor(text: $goalObjectiveDraft)
-                    .font(.body)
+                    .egakiumFont(.body)
                     .frame(minWidth: 500, minHeight: 90)
                     .padding(8)
                     .overlay {
@@ -1391,14 +1391,14 @@ struct CoworkSessionView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text("Success criteria")
-                        .font(.caption.bold())
+                        .egakiumFont(.caption, weight: .bold)
                     Spacer()
                     Text("One per line")
-                        .font(.caption2)
+                        .egakiumFont(.caption2)
                         .foregroundStyle(.tertiary)
                 }
                 TextEditor(text: $goalSuccessCriteriaDraft)
-                    .font(.body)
+                    .egakiumFont(.body)
                     .frame(minHeight: 82)
                     .padding(8)
                     .overlay {
@@ -1412,14 +1412,14 @@ struct CoworkSessionView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text("Constraints")
-                        .font(.caption.bold())
+                        .egakiumFont(.caption, weight: .bold)
                     Spacer()
                     Text("One per line")
-                        .font(.caption2)
+                        .egakiumFont(.caption2)
                         .foregroundStyle(.tertiary)
                 }
                 TextEditor(text: $goalConstraintsDraft)
-                    .font(.body)
+                    .egakiumFont(.body)
                     .frame(minHeight: 82)
                     .padding(8)
                     .overlay {
@@ -1432,7 +1432,7 @@ struct CoworkSessionView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Token budget (optional)")
-                    .font(.caption.bold())
+                    .egakiumFont(.caption, weight: .bold)
                 TextField("No budget", text: $goalTokenBudgetDraft)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 220)
@@ -1442,7 +1442,7 @@ struct CoworkSessionView: View {
 
             if let validationMessage = goalEditorValidationMessage {
                 Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
+                    .egakiumFont(.caption)
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("cowork.goal.editor.validation")
@@ -1538,7 +1538,7 @@ private struct CoworkInferenceAccessory: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
+                        .egakiumFont(size: 10, weight: .semibold)
                         .foregroundStyle(EgakiumTheme.tertiaryText(scheme))
                         .accessibilityHidden(true)
                 }
@@ -1758,6 +1758,10 @@ struct EgakiumMacApp: App {
     private var applicationDelegate
     #endif
 
+    init() {
+        EgakiumTypography.preflight()
+    }
+
     private var launchAppearance: ColorScheme? {
         #if DEBUG || EGAKIUM_RENDERER_VALIDATION
         let arguments = ProcessInfo.processInfo.arguments
@@ -1778,6 +1782,7 @@ struct EgakiumMacApp: App {
 
     var body: some Scene {
         WindowGroup {
+            Group {
             #if DEBUG || EGAKIUM_RENDERER_VALIDATION
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-EgakiumPhaseLLifecycleFixture") {
@@ -1812,6 +1817,8 @@ struct EgakiumMacApp: App {
             #else
             EgakiumProductionRootView(launchAppearance: launchAppearance)
             #endif
+            }
+            .egakiumInterfaceTypography()
         }
         .defaultSize(width: 1100, height: 760)
 

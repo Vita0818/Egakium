@@ -450,9 +450,9 @@ struct CoworkProjectSettingsSheet: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Cowork Project")
-                        .font(.headline)
+                        .egakiumFont(.headline)
                     Text(vm.sessionID.rawValue)
-                        .font(.caption)
+                        .egakiumFont(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -472,7 +472,7 @@ struct CoworkProjectSettingsSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("Workspaces")
-                        .font(.caption.bold())
+                        .egakiumFont(.caption, weight: .bold)
                         .foregroundStyle(.secondary)
                     Spacer()
                     Button(action: addWorkspace) {
@@ -488,7 +488,7 @@ struct CoworkProjectSettingsSheet: View {
 
             if let settingsError {
                 Text(settingsError)
-                    .font(.caption)
+                    .egakiumFont(.caption)
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -522,21 +522,21 @@ struct CoworkProjectSettingsSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("Agent inference profiles")
-                        .font(.caption.bold())
+                        .egakiumFont(.caption, weight: .bold)
                         .foregroundStyle(.secondary)
                     Spacer()
                     Text("Rebind applies after the current invocation boundary")
-                        .font(.caption2)
+                        .egakiumFont(.caption2)
                         .foregroundStyle(.secondary)
                 }
                 ForEach(ordinaryAgents) { agent in
                     HStack(spacing: 10) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("@\(agent.name)")
-                                .font(.caption.bold())
+                                .egakiumFont(.caption, weight: .bold)
                             Text(agent.inferenceDisplayLabel
                                 ?? EgakiumLocalization.string("Inference profile unavailable"))
-                                .font(.caption2)
+                                .egakiumFont(.caption2)
                                 .foregroundStyle(agent.inferenceResolution.requiresAttention
                                     ? EgakiumTheme.accent(scheme)
                                     : .secondary)
@@ -574,7 +574,7 @@ struct CoworkProjectSettingsSheet: View {
         if vm.needsPrimaryWorkspaceAuthorization || vm.permissionReviewerStatus.canRetry {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Recovery")
-                    .font(.caption.bold())
+                    .egakiumFont(.caption, weight: .bold)
                     .foregroundStyle(.secondary)
                 HStack(spacing: 10) {
                     if vm.needsPrimaryWorkspaceAuthorization {
@@ -606,7 +606,7 @@ struct CoworkProjectSettingsSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             formRow("Main agent") {
                 Text("@\(draft.mainAgentName)")
-                    .font(.body.weight(.medium))
+                    .egakiumFont(.body, weight: .medium)
                     .foregroundStyle(.primary)
             }
             formRow("Default inference profile (new agents)") {
@@ -614,7 +614,7 @@ struct CoworkProjectSettingsSheet: View {
                     if inferenceProfileOptions.isEmpty {
                         legacyModelPicker
                         Text("Exact inference profiles are unavailable; the legacy provider/model default is retained.")
-                            .font(.caption2)
+                            .egakiumFont(.caption2)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
@@ -649,7 +649,7 @@ struct CoworkProjectSettingsSheet: View {
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 150)
                     Text("Reserved before each request; provider tokenization and output-limit support may vary.")
-                        .font(.caption)
+                        .egakiumFont(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -666,7 +666,7 @@ struct CoworkProjectSettingsSheet: View {
                                         @ViewBuilder content: () -> Content) -> some View {
         HStack(alignment: .center, spacing: 12) {
             Text(EgakiumLocalization.string(title))
-                .font(.caption.bold())
+                .egakiumFont(.caption, weight: .bold)
                 .foregroundStyle(.secondary)
                 .frame(width: 210, alignment: .leading)
             content()
@@ -677,7 +677,7 @@ struct CoworkProjectSettingsSheet: View {
     @ViewBuilder private var workspaceList: some View {
         if vm.project.workspaces.isEmpty {
             Text("No workspace directories")
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
         } else {
             VStack(spacing: 7) {
@@ -688,11 +688,11 @@ struct CoworkProjectSettingsSheet: View {
                             .frame(width: 18)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(workspace.displayName)
-                                .font(.caption.bold())
+                                .egakiumFont(.caption, weight: .bold)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                             Text(workspace.path)
-                                .font(.caption2)
+                                .egakiumFont(.caption2)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
@@ -701,7 +701,7 @@ struct CoworkProjectSettingsSheet: View {
                         Spacer(minLength: 8)
                         if let agentName = workspace.agentName {
                             Text("@\(agentName)")
-                                .font(.caption2.bold())
+                                .egakiumFont(.caption2, weight: .bold)
                                 .foregroundStyle(.secondary)
                         }
                         Button {

@@ -604,6 +604,80 @@ Current patch-group-12 evidence (2026-07-31):
   validation were not run for patch group 12. The automated evidence above
   does not by itself establish renderer release readiness.
 
+### 13. Caller-owned typography reaches every rendered text sink
+
+Paths:
+
+- `Sources/MarkdownText/UI/CodeBlockView.swift`
+- `Sources/MarkdownText/UI/OrderedListView.swift`
+- `Sources/MarkdownText/UI/UnorderedListView.swift`
+- `Sources/MarkdownText/UI/TableView.swift`
+- `Sources/MarkdownText/UI/TextSelection/SelectableTextView.swift`
+- containing Egakium revision:
+  `Packages/EgakiumSharedUI/Sources/EgakiumTypography.swift`
+- containing Egakium revision:
+  `Packages/EgakiumSharedUI/Sources/MessageRendering/EgakiumMicrosoftMarkdownPipeline.swift`
+- containing Egakium revision:
+  `Packages/EgakiumSharedUI/Resources/Fonts/**`
+- containing Egakium revision:
+  `Packages/EgakiumSharedUI/Tests/{EgakiumTypographyTests,MessageRenderingTests}.swift`
+- containing Egakium revision:
+  `NOTICE.md`, `ThirdPartyNotices/{JetBrainsMono,MarkdownRendering}.md`, and
+  the typography sections of `docs/**`
+
+Changes and reason:
+
+- Remove the remaining view-level uses of the package-private default
+  `Typography` from code-block content/chrome, list fallback metrics, table
+  citation baseline metrics, and the full-document selection surface. These
+  sinks now consume the caller's existing `MarkdownRenderConfig` fonts.
+- Keep the public default configuration unchanged for independent upstream
+  consumers and previews. Egakium's product facade supplies exact bundled
+  JetBrains Mono platform fonts for prose, headings, tables, links, inline
+  code, code blocks, citations, and selection text.
+- Do not place JetBrains Mono files in the Microsoft derivative or relicense
+  them as Microsoft assets. The unmodified font files remain an independent
+  Egakium SharedUI dependency under SIL OFL 1.1 and are inventoried in
+  `ThirdPartyNotices/JetBrainsMono.md`.
+- Do not change `InlineMathAttachment` or assign a JetBrains face to
+  `MTMathUILabel`. Accepted LaTeX still uses iosMath's existing default math
+  font and separately audited resource bundle; only the surrounding text size
+  and baseline geometry continue to flow through the existing attachment
+  contract.
+
+Regression obligations:
+
+- Assert every bundled JetBrains Mono face resolves by its exact PostScript
+  name and Chinese glyphs still resolve through PingFang.
+- Assert the Egakium render configuration uses JetBrains Mono for paragraph,
+  strong, link, and code text while retaining the existing LaTeX mode.
+- Exercise code blocks, ordered/unordered lists, tables, selection UI, Light/
+  Dark, Dynamic Type, formula attachment layout, and the existing strict
+  concurrency/ownership suite.
+- Verify final macOS/iOS products contain the ten exact TTF files and the
+  complete OFL/AUTHORS/notice resources; missing assets must fail rather than
+  silently selecting another Latin font.
+
+Current patch-group-13 evidence (2026-08-20):
+
+- Root focused SwiftPM passed 66/66: `EgakiumTypographyTests` 3/3,
+  `MessageRenderingTests` 41/41, and `ThreadLayoutTests` 22/22. These cover
+  exact face and PingFang resolution, caller font configuration, Dynamic Type,
+  live LaTeX streaming/reentry, and production-shaped layout regression.
+- XcodeGen, EgakiumMac ARM64 Debug unsigned, and EgakiumiOS universal
+  Simulator Debug unsigned builds succeeded. Both final Apps contain exactly
+  ten JetBrains Mono TTFs with the declared hashes plus the complete
+  OFL/AUTHORS/notice resources.
+- The root `EgakiumSharedUI` production-configuration targeted Release build
+  completed successfully with the same exact pinned Markdown/iosMath graph.
+- Product-source scans found no direct SwiftUI system/semantic font override;
+  `InlineMathAttachment.swift` still has no font assignment or named-font
+  selection, so iosMath keeps the current math face.
+- The derivative's standalone full suite was attempted, but its independent
+  iosMath Git fetch made no progress and was interrupted before test execution
+  after a bounded wait. It is not counted as a pass or renderer failure; rerun
+  it when that package-local dependency cache can be populated.
+
 ## Current validation evidence
 
 Unless explicitly identified as patch-group-10 or patch-group-12 evidence

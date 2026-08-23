@@ -223,6 +223,22 @@ pinned BoringSSL source are recorded in
 `ThirdPartyNotices/MCPHTTPTransport.md`; neither BoringSSL identity may be used
 as provenance for the other.
 
+## JetBrains Mono interface font dependency
+
+Egakium's app-owned macOS/iOS interface and Markdown text use ten unmodified
+static TTF faces from **JetBrains Mono 2.304**, official tag `v2.304` at commit
+`cd5227bd1f61dff3bbd6c814ceaf7ffd95e947d9`. The fonts are distributed under
+the SIL Open Font License 1.1. Exact release-asset and per-font SHA-256 values,
+the selected face inventory, the complete OFL text, and the official author
+list are preserved in `ThirdPartyNotices/JetBrainsMono.md` and
+`ThirdPartyNotices/Licenses/JetBrainsMono-2.304-*`.
+
+The App constructs fonts directly from the bundled bytes; it does not require
+or prefer a user-installed copy. Chinese glyphs continue through Apple's
+default Core Text cascade to PingFang. This dependency does not replace or
+modify iosMath's independently licensed formula fonts; LaTeX continues to use
+the existing iosMath typeface and layout path.
+
 ## Feature and asset status
 
 - Syntax highlighting is disabled. The current root dependency graph contains

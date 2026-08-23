@@ -15,7 +15,7 @@ public struct EgakiumThirdPartyNoticesView: View {
     public var body: some View {
         ScrollView {
             Text(verbatim: text)
-                .font(.system(.footnote, design: .monospaced))
+                .egakiumFont(.footnote)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)

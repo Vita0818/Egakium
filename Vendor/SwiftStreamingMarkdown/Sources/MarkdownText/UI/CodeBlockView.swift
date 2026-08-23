@@ -29,12 +29,28 @@ struct CodeBlockView: View {
     config.codeBlockConfig.foregroundColor ?? Color.Static.Stone.Stone350
   }
 
+  private var codeTextFonts: TextFonts {
+    let scale = config.inlineStyle.codeTextFont.pointSize / 15.0
+    return TextFonts(
+      normal: config.inlineStyle.codeTextFont,
+      italic: nil,
+      bold: nil,
+      boldItalic: nil,
+      preferredLetterSpacing: -0.12 * scale,
+      preferredLineHeight: 20.0 * scale
+    )
+  }
+
+  private var chromeTextFonts: TextFonts {
+    config.tableStyle.textFonts
+  }
+
   @ViewBuilder
   var codeblock: some View {
     ScrollView(.horizontal) {
       HStack(alignment: .top) {
         Text(code)
-          .font(Typography.codeTextFonts)
+          .font(codeTextFonts)
           .foregroundStyle(Color.Theme.Component.CodeBlock.Foreground.FunctionParameter)
           .textSelection(.enabled)
           .transition(.opacity)
@@ -53,7 +69,7 @@ struct CodeBlockView: View {
     VStack(spacing: 0) {
       HStack(alignment: .top) {
         Text(language)
-          .font(Typography.smallTextFonts)
+          .font(chromeTextFonts)
           .foregroundStyle(foregroundColor)
         Spacer()
         Button {
@@ -69,7 +85,7 @@ struct CodeBlockView: View {
           HStack(alignment: .firstTextBaseline, spacing: 6.0) {
             Image(systemName: "doc.on.doc")
             Text(copied ? String.codeCopiedLabel : String.codeCopyLabel)
-              .font(Typography.smallTextFonts)
+              .font(chromeTextFonts)
           }
           .foregroundStyle(foregroundColor)
           .contentShape(Rectangle())

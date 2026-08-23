@@ -10,6 +10,7 @@ struct UnorderedListView: View {
 
   let items: [MarkdownListItem]
   let nestedLevel: Int
+  @Environment(\.markdownConfig) private var config: MarkdownRenderConfig
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8, content: {
@@ -19,7 +20,10 @@ struct UnorderedListView: View {
           if let firstChild = items[idx].children.first {
             if case .paragraph(_, let contents) = firstChild {
               // Wrap the SingleBlockView to provide proper baseline alignment
-              ListItemContentWrapper(paragraphContents: contents) {
+              ListItemContentWrapper(
+                paragraphContents: contents,
+                fallbackFont: config.paragraphStyle.textFonts.normal
+              ) {
                 SingleBlockView(renderable: firstChild)
               }
               .accessibilityLabel(Text(listItemAccessibilityLabel(

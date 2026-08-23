@@ -2,7 +2,7 @@
 
 文档状态：当前开源复用政策
 生效日期：2026-07-12
-最近核对：2026-08-18
+最近核对：2026-08-20
 产品基线：v0.4（build 50）
 
 ## 项目立场
@@ -140,6 +140,31 @@ external-runtime 以独立 helper/process/service 运行上游实现
   签名、Hardened Runtime、sandbox、更新、进程清理和资源占用。组件不可用时必须 typed unavailable/
   fail closed，不得切换到仓内自研同能力后端。不得把它们隐式带入 iOS target。
 - 外部 runtime 必须通过受控协议接入 Egakium，由 Egakium 继续拥有权限决定、工作区授权、事件审计和用户可见状态；不得让上游 runtime 成为不可审计的第二事实源。
+
+## JetBrains Mono 当前准入结论
+
+- 用户于 2026-08-20 明确选择 JetBrains Mono 作为 Egakium app-owned macOS/iOS 界面与 Markdown
+  拉丁主字体。目标 capability 是字体字形与度量；官方 JetBrains Mono release 已直接提供，项目不
+  自制等价字体或转换格式。
+- 上游为 `https://github.com/JetBrains/JetBrainsMono`，固定 tag `v2.304` / commit
+  `cd5227bd1f61dff3bbd6c814ceaf7ffd95e947d9`。官方 `JetBrainsMono-2.304.zip` 为
+  5,622,857 bytes，SHA-256
+  `6f6376c6ed2960ea8a963cd7387ec9d76e3f629125bc33d1fdcd7eb7012f7bbf`。
+- 复用形式是 `dependency` + unmodified bundled font assets。实际范围只有 Light、Regular、Medium、
+  SemiBold、Bold 及其 Italic 共十个 static TTF；不采用 NL、variable、WOFF2、source/build script、
+  JetBrains IDE/UI/品牌资产。逐文件 SHA-256 见 `ThirdPartyNotices/JetBrainsMono.md`。
+- 字体许可证为 SIL Open Font License 1.1；完整 upstream `OFL.txt` 与 `AUTHORS.txt` 原样保存在
+  `ThirdPartyNotices/Licenses/JetBrainsMono-2.304-*`，根 `NOTICE.md` 已登记。字体未修改、未改名，
+  不单独出售，也不以 JetBrains 名义宣传认可关系。
+- `EgakiumSharedUI` 从 `Bundle.module` 读取 exact TTF，验证 PostScript name 后直接创建 immutable
+  `CGFont`/`CTFont`，不调用远端、不安装系统字体、不依赖用户机器已有同名字体，也不存在另一个
+  Latin renderer fallback。资源缺失、损坏或 identity 漂移在启动 preflight fail closed。
+- JetBrains Mono 不提供中文 glyph；Core Text 的原生 missing-glyph cascade 保持不变，实际机械
+  验证中文命中 PingFang。该回退是 Apple 文本栈对缺失字符的既有字形选择，不是 capability-
+  substitution backend。其他缺失 script/symbol 仍由系统 cascade 负责。
+- LaTeX 是明文例外：SwiftStreamingMarkdown 只把 JetBrains Mono 交给普通 Markdown/代码文本；
+  `InlineMathAttachment` 不改 `MTMathUILabel.font`，公式继续由 exact iosMath 2.5.0 的现有默认数学字体
+  与独立资源 bundle 排版。JetBrains Mono 不进入或替换 iosMath 的八套 math-font inventory。
 
 ## 每次复用前的检查清单
 

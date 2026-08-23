@@ -60,6 +60,16 @@ bounds paragraph measurement memoization to the latest exact width. This is a
 local derivative patch; it does not change the upstream basis, license,
 parser dependency, or iosMath dependency.
 
+The derivative additionally ensures that code blocks, list fallback metrics,
+table attachment metrics, and the full-document selection surface consume the
+caller's existing `MarkdownRenderConfig` font set rather than bypassing it
+through package-private default fonts. Egakium uses that supported
+configuration seam to provide its independently licensed JetBrains Mono
+interface font. No JetBrains font file is copied into or licensed as part of
+the Microsoft derivative; its exact assets and OFL terms are recorded in
+`ThirdPartyNotices/JetBrainsMono.md`. The iosMath attachment path remains
+separate and continues to use its existing default math font.
+
 ## iosMath integration
 
 - Upstream: <https://github.com/kostub/iosMath>

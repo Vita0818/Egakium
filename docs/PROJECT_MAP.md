@@ -14,7 +14,7 @@
 > 或 native bridge。
 
 文档状态：当前仓库地图
-最近源码地图自查：2026-08-18
+最近源码地图自查：2026-08-20
 最近目标文档核对：2026-08-18
 产品基线：v0.4（build 50）
 
@@ -198,7 +198,11 @@ macOS 唯一发行 target 是 Developer ID/direct-distribution `EgakiumMac`。
 - `Packages/EgakiumConversation/Sources/SessionActivityHistoryStore.swift` 是 app-facing recent-session recency projection：一次读取 EventLog，同时统计 event count，并 newest-first 查找 durable `turn_outcome`；只有 legacy session 回退 assistant/agent completion。file size/mtime 只作为 cache invalidation signature，`SessionHistoryStore` 的文件 mtime 不再是 UI 排序权威。
 - `Apps/EgakiumMac/Sources/SessionRuntimeManager.swift` 继续持有 exact session runtime，并直接组合各 ViewModel 的 published data-plane activity，发布 active→idle 的低频 settlement；`EgakiumMacRootView.swift` 只重扫该 settlement 所属的 Chat / Code / Cowork 列表。macOS 与 iOS 的 `AppConfig` / `IOSConfig` 都通过 Conversation projection 取得同一排序，iOS 也在 Chat busy→idle 后刷新 history。
 - `Packages/EgakiumSharedUI/Sources/ThreadSurfaces.swift` 负责 composer 唯一主操作位的 Send↔native destructive Stop 切换，以及 phase-local `EgakiumThinkingElapsedLabel`；Mac Chat、共享 Code / Cowork 接入同一 Stop 几何与取消入口。
-- `Packages/EgakiumSharedUI/Sources/EgakiumTypography.swift` 是 macOS/iOS 共用的字体角色事实源：品牌与页面标题使用系统 serif，Chat/正文/控件使用系统 sans，技术值使用系统 monospaced；iOS 在相同名义字号与字重之上通过 `@ScaledMetric` 保留 Dynamic Type。
+- `Packages/EgakiumSharedUI/Sources/EgakiumTypography.swift` 是 macOS/iOS 共用的字体角色事实源：
+  从 `Resources/Fonts` 的 exact JetBrains Mono 2.304 TTF 直接创建 `CGFont`/`CTFont`，覆盖 app-owned
+  标题、正文、控件、输入、metadata、技术值与 Markdown 拉丁字形；中文继续使用 Core Text 默认
+  cascade 的 PingFang，LaTeX 继续使用 iosMath 数学字体。语义 modifier 与既有 `@ScaledMetric`
+  共同保留 iOS Dynamic Type；启动 preflight 拒绝缺失/错误 face 与非 PingFang 中文回退。
 
 ## 目录结构总览
 
@@ -223,7 +227,7 @@ Egakium/
 ├── Makefile           build/test/release/install/app 便利 target
 ├── NOTICE.md          项目来源、当前上游采用状态 + 第三方依赖声明
 ├── OpenSource/        独立上游研究 checkout；父仓库只跟踪 26 个 mode-160000 pointer
-├── ThirdPartyNotices/ OKF/Yams / Markdown / syntax / math / MCP SDK / tool_search / HTTP / Swift Crypto / Codex Skill 采用声明
+├── ThirdPartyNotices/ OKF/Yams / Markdown / math / JetBrains Mono / MCP SDK / tool_search / HTTP / Swift Crypto / Codex Skill 采用声明
 ├── ThirdPartyStandards/ byte-exact 第三方标准；当前含 Open Knowledge Format v0.2
 ├── Vendor/            仓内维护的第三方派生源码
 │   ├── SwiftStreamingMarkdown/ Microsoft v0.6.0 thin derivative
@@ -279,7 +283,7 @@ Egakium/
 |---|---|---|---|---|
 | `EgakiumMac` | application | macOS 26+ | `com.Vita0818.EgakiumMac` | 完整 Chat/Code/Cowork + Skills；Chat 的透明 hosted search 合同不变，Code/Cowork 对受支持的 exact agent route 另注册独立 `hosted_web_search` Tool，无 UI 或浏览器耦合。Code/Cowork exact `@main` 在 canonical `embedding_model` + `reranker_model` 均可解析时经 optional augmenter 获得 `build_knowledge` / path-aware `search_knowledge`，外部目录由 exact NSOpenPanel/security-scoped bookmark + `KnowledgeLease` 授权；缺配置时不广告工具并在现有状态面提示。无 Knowledge 管理 UI，Chat/reviewer/GoalVerifier/普通 worker/iOS 无此工具面。DeveloperID/non-sandbox workbench 支持 stdio/HTTP 与显式启用的全局 Skill roots |
 | `EgakiumMacAppStore` | legacy application（非发行） | macOS 26+ | `com.Vita0818.EgakiumMac` | 源码中尚未删除的旧 App Sandbox/HTTP-only target；不属于产品、默认构建、回归或 release gate |
-| `EgakiumiOS` | application | iOS 26+ | `com.Vita0818.Egakium` | 7 个 chat 子集 products；iOS root 在唯一原生 `NavigationStack` 内组合 Chat canvas、顶部 sidebar/session/new、82% 的 `Egakium`/Chat/Recent/New/Settings 抽屉与两排 composer（model/usage；paperclip/input/voice/Send-or-Stop）；品牌/session/Settings 标题为系统 serif，正文与控件为系统 sans；Settings 支持系统 Files 导入 Egakium JSON/JSONC；根 `Egakium.icon` 编译为 iPhone/iPad 主图标；与 macOS 共用当前 exact-route hosted-search planner和 Chat-only 自动命名协调器，并通过 per-session revision/seq metadata relay 即时更新对应标题；无可见搜索 UI并支持结构化 citations；通用照片/文件附件尚未接通；无 `EgakiumKnowledge`/MCP client runtime/transport/product surface，也无 Tools/Permission/AgentKernel/Cowork |
+| `EgakiumiOS` | application | iOS 26+ | `com.Vita0818.Egakium` | 7 个 chat 子集 products；iOS root 在唯一原生 `NavigationStack` 内组合 Chat canvas、顶部 sidebar/session/new、82% 的 `Egakium`/Chat/Recent/New/Settings 抽屉与两排 composer（model/usage；paperclip/input/voice/Send-or-Stop）；app-owned 标题、正文与控件的拉丁字形统一使用 bundled JetBrains Mono，中文由系统回退为 PingFang，公式字体保持 iosMath；Settings 支持系统 Files 导入 Egakium JSON/JSONC；根 `Egakium.icon` 编译为 iPhone/iPad 主图标；与 macOS 共用当前 exact-route hosted-search planner和 Chat-only 自动命名协调器，并通过 per-session revision/seq metadata relay 即时更新对应标题；无可见搜索 UI并支持结构化 citations；通用照片/文件附件尚未接通；无 `EgakiumKnowledge`/MCP client runtime/transport/product surface，也无 Tools/Permission/AgentKernel/Cowork |
 | `egakium-cli` | executable | CLI（macOS/Linux） | — | Code/Cowork + Skills + external MCP client；Code/Cowork exact route 可按 capability/lease 注册独立 provider-hosted `hosted_web_search`。两个 Knowledge role 配齐时 shipping Code/Cowork 组合 concrete Knowledge augmenter，支持自然语言 workspace/external `store_path`、显式 permission 后的 exact CLI `KnowledgeLease`、build/search/rerank；缺配置时提示且不广告工具。没有 mount command 或独立 Knowledge UI；macOS/Linux 支持 stdio/HTTP，CLI 持有 exact session MCP owner |
 
 Chat 托管搜索的用户确认合同见 `docs/CHAT_HOSTED_SEARCH.md`。目标 runtime 只有当前所选 exact
@@ -369,15 +373,16 @@ route，使用 required hosted-search request，且只经 `ToolRegistry` / `Tool
   生成一张非空“错误信息”卡片，Cowork 通过 exact `SubmissionID` 保留 Retry。EventLog、
   projection、runtime 与 permission 语义不变。
 - iOS UI 信息架构：`Apps/EgakiumiOS/Sources/EgakiumiOSApp.swift` 保持单一
-  `NavigationStack` + Chat-only root；顶部为 sidebar、serif session title 与 New，约
-  82% 左抽屉复用 `EgakiumSessionHistoryList`，组织 serif `Egakium`、选中 Chat、Recent/New
+  `NavigationStack` + Chat-only root；顶部为 sidebar、JetBrains Mono session title 与 New，约
+  82% 左抽屉复用 `EgakiumSessionHistoryList`，组织 JetBrains Mono `Egakium`、选中 Chat、Recent/New
   和底部 Settings。底部通过 `ThreeColumnShell` 参数化共享两排 composer：第一排是
   model glass `Menu` 与可用 usage，第二排是 paperclip Chat 功能菜单、输入、voice 和唯一
   Send/Stop；voice 紧邻主操作左侧，iOS 的 glass merge spacing 固定为 0，使各个 8pt 间隔的
   控件保持独立形状；composer 专用 icon modifier 给 action/voice/Send/Stop 统一 40×40 外框，并在
   iOS 使用 `.small` native control size 纠正 `.regular` glass 的可见膨胀，macOS 仍使用 `.regular`。
   关闭状态支持从 24pt 左缘水平右滑打开抽屉；侧栏内水平左滑关闭，两者都用
-  方向优势阈值避免抢占聊天和 Recent 的垂直滚动。品牌/session/Settings 标题使用系统 serif，正文与原生控件使用系统 sans；
+  方向优势阈值避免抢占聊天和 Recent 的垂直滚动。所有 app-owned 拉丁字形使用 bundled JetBrains
+  Mono，中文保持 PingFang 回退，LaTeX 继续使用 iosMath 数学字体；
   根 `Egakium.icon` 由 iOS target 编译为主图标。产品图仍不链接本地 agent/workspace。
 - 2026-07-31/08-02 conversation chrome（由 2026-08-13 用户气泡表面收口补充）：`ThreadSurfaces.swift` 还定义 user-header policy、低对比结构化 surface、可选 subtitle 的 workspace thread header、单行 session history row 与原生 `GlassEffectContainer`/glass surface helper；`Views.swift` / `EgakiumChatScreen.swift` / `CodeViews.swift` 统一省略 user sender label，并只让 user row 使用原生 regular Liquid Glass 气泡，assistant/agent/system 对话行直接继承 canvas；active Chat/Code/Cowork header 只显示 session title。`CodeViews.swift` 的 `PermissionCard` / `PermissionResolutionNoticeView` 使用默认折叠、structured secret-safe details、窄宽自适应 actions，并支持由 Cowork rail 接管外层 surface；`CoworkViews.swift` 把 pending/resolved permission 放到 glass rail 第一位；`EgakiumMacRootView.swift` 的 sidebar 品牌块只保留 `Egakium`，Recent item 只传 session name 而不生成 event/date/path/runtime detail；`PhaseCPermissionFixtureView.swift` 提供不接 provider/EventLog/executor 的真实生产组件视觉验收面。
 - 当前 UI 配色规范：`docs/CURRENT_UI_COLOR_SYSTEM.md`（系统原生表面 + Liquid Glass：动态 macOS window / sidebar、仅用户消息使用 regular glass 气泡、其余 conversation row 继承 canvas、专用结构化内容 Material、导航与交互功能层玻璃、系统语义色、iOS 边界与验收清单）

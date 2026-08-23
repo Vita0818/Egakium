@@ -966,9 +966,20 @@ final class MessageRenderingTests: XCTestCase {
         let scaled = EgakiumMicrosoftMarkdownRenderState.makeConfiguration(
             style: .standard(.light),
             typography: .accessibility3)
-        XCTAssertEqual(
+        XCTAssertNotEqual(
             baseline.paragraphStyle.textFonts,
             MarkdownRenderConfig.default.paragraphStyle.textFonts)
+        #if canImport(AppKit)
+        XCTAssertEqual(
+            baseline.paragraphStyle.textFonts.normal.fontName,
+            "JetBrainsMono-Regular")
+        XCTAssertEqual(
+            baseline.paragraphStyle.textFonts.bold?.fontName,
+            "JetBrainsMono-SemiBold")
+        XCTAssertEqual(
+            baseline.inlineStyle.codeTextFont.fontName,
+            "JetBrainsMono-Regular")
+        #endif
         XCTAssertEqual(
             scaled.paragraphStyle.textFonts.normal.pointSize,
             baseline.paragraphStyle.textFonts.normal.pointSize

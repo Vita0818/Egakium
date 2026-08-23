@@ -11,7 +11,7 @@
 - Review 检查新增 wrapper/adapter/facade 是否仅为官方 API 必需的最薄接线；发现核心能力复制、第二实现或静默降级即判定失败。
 
 文档状态：当前验证矩阵
-最近核对：2026-08-18
+最近核对：2026-08-20
 产品基线：v0.4（build 50）
 
 历史测试数量、性能数字和事故复验保留在 Git 历史及 dated reports；它们不能替代当前
@@ -26,6 +26,82 @@ working tree 的验证。这里只记录现行命令、release gate 和最近一
 - iOS 验证只覆盖 Chat 子集，不得链接 Tools、Permission、AgentKernel、Cowork 或 MCP。
 - SwiftPM 测试中的 sandbox、managed terminal Seatbelt、Linux bwrap/guard、权限与路径
   围栏仍是产品安全边界，不能因为不做 App Store 而跳过。
+
+## JetBrains Mono 产品字体（2026-08-20）
+
+本轮把 app-owned macOS/iOS UI、plain-safe 与 Markdown/代码的拉丁字体统一为 bundled exact
+JetBrains Mono 2.304；中文保持 Core Text → PingFang 回退，LaTeX 保持 iosMath 2.5.0 数学字体。
+验证命令包括：
+
+```sh
+shasum -a 256 Packages/EgakiumSharedUI/Resources/Fonts/*.ttf \
+  ThirdPartyNotices/Licenses/JetBrainsMono-2.304-*
+
+git diff --name-only -- '*.swift' | xargs swiftc -parse
+xcodegen generate
+
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumMac \
+  -configuration Debug -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath build/egakium-font-xcode \
+  -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile \
+  COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
+
+xcodebuild -project Egakium.xcodeproj -scheme EgakiumiOS \
+  -configuration Debug -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath build/egakium-font-xcode \
+  -disableAutomaticPackageResolution -onlyUsePackageVersionsFromResolvedFile \
+  COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
+
+swift test --disable-sandbox --disable-automatic-resolution \
+  --filter 'EgakiumTypographyTests|MessageRenderingTests'
+
+swift build --disable-sandbox --disable-automatic-resolution \
+  -c release --target EgakiumSharedUI
+
+rg -n -U --glob '*.swift' \
+  '\.font\(\s*\.(system|largeTitle|title|title2|title3|headline|subheadline|body|callout|footnote|caption|caption2)|font\(\.system' \
+  Apps/EgakiumMac/Sources Apps/EgakiumiOS/Sources Packages/EgakiumSharedUI/Sources
+
+rg -n 'label\.font\s*=|fontWithName|MTFontName' \
+  Vendor/SwiftStreamingMarkdown/Sources/MarkdownText/UI/Paragraph/InlineMathAttachment.swift
+```
+
+真实结果：
+
+- official `JetBrainsMono-2.304.zip` SHA-256 为
+  `6f6376c6ed2960ea8a963cd7387ec9d76e3f629125bc33d1fdcd7eb7012f7bbf`；十个 selected static
+  TTF 与 OFL/AUTHORS 的逐文件 hash 全部匹配 `ThirdPartyNotices/JetBrainsMono.md`；
+- Swift parse 与 XcodeGen 均通过；`EgakiumMac` ARM64 Debug unsigned、`EgakiumiOS` universal
+  Simulator Debug unsigned build 均 `BUILD SUCCEEDED`。这也实际编译通过 macOS `CTFont → NSFont`
+  与 iOS `CTFont → UIFont` bridge、SwiftPM font resource accessor、root preflight 和所有被替换的
+  app/SharedUI call sites；`EgakiumSharedUI` production configuration 的 targeted Release build 也完成，
+  只有仓库既有 unused-result / deprecated API warning；
+- focused SwiftPM 通过 66/66、0 failures：`EgakiumTypographyTests` 3/3，机械验证 ten-face exact
+  PostScript identity、JetBrains Latin 与 PingFang Chinese resolution；`MessageRenderingTests` 41/41，
+  验证普通/strong/inline-code font、Dynamic Type scaling、plain/rich publication、LaTeX mode 与 live
+  formula streaming/reentry 没有回归；`ThreadLayoutTests` 22/22，覆盖 composer/rail/thread/CEF host
+  source contract 和 360-cycle production-shaped geometry host；
+- macOS/iOS 最终 App 各自只有一份 `Egakium_EgakiumSharedUI.bundle`，其中恰有十个 TTF；逐项
+  SHA-256 与仓库一致。两个 App 也都包含 `ThirdPartyNotices/JetBrainsMono.md`、完整 OFL 1.1 和
+  upstream AUTHORS；
+- product source scan 对 direct SwiftUI system/semantic font declarations返回零命中；当前有 342 个
+  explicit `egakiumFont` call sites，其他 app-owned Text/control 由两端 root default 继承同一字体。
+  vendored Markdown 的 code block、list fallback、table metric 与 full-selection sinks 已改为消费
+  caller `MarkdownRenderConfig`；
+- `InlineMathAttachment.swift` 对 `label.font =`、`fontWithName` 与 `MTFontName` 返回零命中；公式只继续
+  设置原有 `fontSize` / mode / TeX / color，因此不会被 JetBrains Mono 覆盖；两个最终 App 的
+  `iosMath_iosMath.bundle` 仍各含原有八个 OTF 数学字体；
+- 独立 `Vendor/SwiftStreamingMarkdown` 全套 `swift test` 在建立其私有 package cache 时，iosMath
+  Git fetch 长时间无进度，按有界等待人工中止为 130，尚未进入 test execution，不能记为通过或
+  renderer failure。相同 pinned iosMath 2.5.0 已由根项目两端 build 和上述 41 个 renderer tests
+  实际使用；后续网络正常时仍应补跑 vendored full suite；
+- 直接用 Xcode package scheme 运行 tests 的一次尝试返回 scheme 未配置 test action（exit 66），
+  随后使用上述受外层托管 sandbox 约束的 SwiftPM `--disable-sandbox` 入口成功完成 66 项定向测试。
+
+本轮未运行完整 root SwiftPM suite、Release、Developer ID 签名/公证、真实 GUI Light/Dark、Dynamic
+Type/VoiceOver/clipboard 或设备截图检查；这些不能从 compile、Core Text glyph probe 或 bundle
+inventory 外推。System-owned window chrome、file/permission panels 与 SF Symbols 仍由 Apple 绘制，
+不属于 app-authored Latin text family。
 
 ## Egakium v0.4 版本推进（2026-08-18）
 

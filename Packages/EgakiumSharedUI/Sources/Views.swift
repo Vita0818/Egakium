@@ -133,7 +133,7 @@ struct ThreadView: View {
             }
             if let errorText = presentedErrorText {
                 Text(errorText)
-                    .font(.caption)
+                    .egakiumFont(.caption)
                     .foregroundStyle(.red)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
@@ -335,14 +335,14 @@ public struct EgakiumMessageCitationsView: View {
         if !links.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 Text(EgakiumLocalization.string("Sources"))
-                    .font(.caption.weight(.semibold))
+                    .egakiumFont(.caption, weight: .semibold)
                     .foregroundStyle(.secondary)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(links) { link in
                             Link(destination: link.url) {
                                 Label(link.title, systemImage: "link")
-                                    .font(.caption)
+                                    .egakiumFont(.caption)
                                     .lineLimit(1)
                             }
                             .buttonStyle(.bordered)

@@ -763,24 +763,34 @@ final class EgakiumMicrosoftMarkdownRenderState: ObservableObject {
         return MarkdownRenderConfig(
             shouldAnimateText: false,
             blockQuoteStyle: .init(
-                textFonts: defaults.blockQuoteStyle.textFonts.egakiumScaled(by: scale),
+                textFonts: defaults.blockQuoteStyle.textFonts
+                    .egakiumJetBrainsMonoScaled(by: scale),
                 textColor: style.secondaryText),
             headingStyle: .init(
-                h1Font: defaults.headingStyle.h1Font.egakiumScaled(by: scale),
-                h2Font: defaults.headingStyle.h2Font.egakiumScaled(by: scale),
-                h3Font: defaults.headingStyle.h3Font.egakiumScaled(by: scale),
-                h4Font: defaults.headingStyle.h4Font.egakiumScaled(by: scale),
-                h5Font: defaults.headingStyle.h5Font.egakiumScaled(by: scale),
-                h6Font: defaults.headingStyle.h6Font.egakiumScaled(by: scale),
+                h1Font: defaults.headingStyle.h1Font
+                    .egakiumJetBrainsMonoScaled(by: scale),
+                h2Font: defaults.headingStyle.h2Font
+                    .egakiumJetBrainsMonoScaled(by: scale),
+                h3Font: defaults.headingStyle.h3Font
+                    .egakiumJetBrainsMonoScaled(by: scale),
+                h4Font: defaults.headingStyle.h4Font
+                    .egakiumJetBrainsMonoScaled(by: scale),
+                h5Font: defaults.headingStyle.h5Font
+                    .egakiumJetBrainsMonoScaled(by: scale),
+                h6Font: defaults.headingStyle.h6Font
+                    .egakiumJetBrainsMonoScaled(by: scale),
                 textColor: style.primaryText),
             orderedListStyle: .init(
-                textFonts: defaults.orderedListStyle.textFonts.egakiumScaled(by: scale),
+                textFonts: defaults.orderedListStyle.textFonts
+                    .egakiumJetBrainsMonoScaled(by: scale),
                 textColor: style.primaryText),
             paragraphStyle: .init(
-                textFonts: defaults.paragraphStyle.textFonts.egakiumScaled(by: scale),
+                textFonts: defaults.paragraphStyle.textFonts
+                    .egakiumJetBrainsMonoScaled(by: scale),
                 textColor: style.primaryText),
             tableStyle: .init(
-                textFonts: defaults.tableStyle.textFonts.egakiumScaled(by: scale),
+                textFonts: defaults.tableStyle.textFonts
+                    .egakiumJetBrainsMonoScaled(by: scale),
                 headerTextColor: style.primaryText,
                 regularTextColor: style.primaryText,
                 headerBackgroundColor: style.stroke.opacity(0.12),
@@ -788,18 +798,24 @@ final class EgakiumMicrosoftMarkdownRenderState: ObservableObject {
                 actionButtonColor: style.secondaryText),
             inlineStyle: .init(
                 boldTextColor: style.primaryText,
-                linkTextFont: egakiumScaledFont(
-                    defaults.inlineStyle.linkTextFont,
-                    by: scale),
+                linkTextFont: EgakiumTypography.platformFont(
+                    size: defaults.inlineStyle.linkTextFont.pointSize * scale,
+                    weight: .regular),
                 linkTextColor: style.accent,
-                codeTextFont: egakiumScaledFont(
-                    defaults.inlineStyle.codeTextFont,
-                    by: scale),
+                codeTextFont: EgakiumTypography.platformFont(
+                    size: defaults.inlineStyle.codeTextFont.pointSize * scale,
+                    weight: .regular),
                 codeTextColor: style.primaryText,
                 codeBackgroundColor: style.stroke.opacity(0.18),
                 codeUnderlineColor: style.stroke),
             textContextMenu: nil,
-            citationConfig: .default,
+            citationConfig: .init(
+                isEnabled: false,
+                font: EgakiumTypography.platformFont(
+                    size: defaults.citationConfig.font.pointSize * scale,
+                    weight: .medium),
+                textColor: defaults.citationConfig.textColor,
+                backgroundColor: defaults.citationConfig.backgroundColor),
             codeBlockConfig: .init(
                 backgroundColor: style.stroke.opacity(0.14),
                 foregroundColor: style.secondaryText),
@@ -812,28 +828,30 @@ final class EgakiumMicrosoftMarkdownRenderState: ObservableObject {
 }
 
 private extension TextFonts {
-    func egakiumScaled(by scale: CGFloat) -> TextFonts {
-        guard scale != 1 else { return self }
+    func egakiumJetBrainsMonoScaled(by scale: CGFloat) -> TextFonts {
         return TextFonts(
-            normal: egakiumScaledFont(normal, by: scale),
-            italic: italic.map { egakiumScaledFont($0, by: scale) },
-            bold: bold.map { egakiumScaledFont($0, by: scale) },
-            boldItalic: boldItalic.map { egakiumScaledFont($0, by: scale) },
+            normal: EgakiumTypography.platformFont(
+                size: normal.pointSize * scale,
+                weight: .regular),
+            italic: italic.map {
+                EgakiumTypography.platformFont(
+                    size: $0.pointSize * scale,
+                    weight: .regular,
+                    italic: true)
+            },
+            bold: bold.map {
+                EgakiumTypography.platformFont(
+                    size: $0.pointSize * scale,
+                    weight: .semibold)
+            },
+            boldItalic: boldItalic.map {
+                EgakiumTypography.platformFont(
+                    size: $0.pointSize * scale,
+                    weight: .semibold,
+                    italic: true)
+            },
             preferredLetterSpacing: preferredLetterSpacing.map { $0 * scale },
             preferredLineHeight: preferredLineHeight.map { $0 * scale })
     }
-}
-
-private func egakiumScaledFont(
-    _ font: MDFont,
-    by scale: CGFloat
-) -> MDFont {
-    guard scale != 1 else { return font }
-    let size = font.pointSize * scale
-#if canImport(AppKit)
-    return NSFont(descriptor: font.fontDescriptor, size: size) ?? font
-#elseif canImport(UIKit)
-    return UIFont(descriptor: font.fontDescriptor, size: size)
-#endif
 }
 #endif

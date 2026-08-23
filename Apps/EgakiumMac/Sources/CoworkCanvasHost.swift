@@ -36,11 +36,11 @@ struct CoworkCanvasHost: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(EgakiumLocalization.string("Session Canvas"))
-                    .font(.headline)
+                    .egakiumFont(.headline)
                 Text(
                     document?.relativeIndexPath
                         ?? EgakiumLocalization.string("Preparing index.html…"))
-                    .font(.caption.monospaced())
+                    .egakiumFont(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .textSelection(.enabled)

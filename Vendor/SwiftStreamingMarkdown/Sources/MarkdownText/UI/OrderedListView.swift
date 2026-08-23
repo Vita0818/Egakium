@@ -22,7 +22,10 @@ struct OrderedListView: View {
           if let firstChild = items[idx].children.first {
             if case .paragraph(_, let contents) = firstChild {
               // Wrap the SingleBlockView to provide proper baseline alignment. This is to fix the mis-alignment when the view is rendered off-screen, e.g. snapshot.
-              ListItemContentWrapper(paragraphContents: contents) {
+              ListItemContentWrapper(
+                paragraphContents: contents,
+                fallbackFont: config.orderedListStyle.textFonts.normal
+              ) {
                 SingleBlockView(renderable: firstChild)
               }
               .accessibilityLabel(Text(markdownListAccessibilityLabel(
@@ -48,10 +51,16 @@ struct OrderedListView: View {
 // Wrapper to provide proper baseline alignment for UIViewRepresentable content
 struct ListItemContentWrapper<Content: View>: View {
   let paragraphContents: NSMutableAttributedString
+  let fallbackFont: MDFont
   let content: () -> Content
 
-  init(paragraphContents: NSMutableAttributedString, @ViewBuilder content: @escaping () -> Content) {
+  init(
+    paragraphContents: NSMutableAttributedString,
+    fallbackFont: MDFont,
+    @ViewBuilder content: @escaping () -> Content
+  ) {
     self.paragraphContents = paragraphContents
+    self.fallbackFont = fallbackFont
     self.content = content
   }
 
@@ -77,7 +86,7 @@ struct ListItemContentWrapper<Content: View>: View {
     if let font = firstFont(in: paragraphContents) {
       return font
     }
-    return Typography.base.mdFont
+    return fallbackFont
   }
 
   private func firstCharacterCitationAttachment(in attributedString: NSAttributedString) -> InlineCitationAttachment? {

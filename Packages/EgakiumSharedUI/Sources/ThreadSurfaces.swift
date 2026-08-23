@@ -310,7 +310,7 @@ struct EgakiumThreadErrorList: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     if let title = error.title {
                         Text(title)
-                            .font(.caption.bold())
+                            .egakiumFont(.caption, weight: .bold)
                             .foregroundStyle(style.primaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -321,7 +321,7 @@ struct EgakiumThreadErrorList: View {
                             onRetrySubmission(submissionID)
                         }
                         .buttonStyle(.borderless)
-                        .font(.caption.bold())
+                        .egakiumFont(.caption, weight: .bold)
                         .accessibilityIdentifier(
                             "submission.\(submissionID.rawValue).retry")
                     }
@@ -329,7 +329,7 @@ struct EgakiumThreadErrorList: View {
             }
             ForEach(error.details, id: \.self) { detail in
                 Text(detail)
-                    .font(.caption)
+                    .egakiumFont(.caption)
                     .foregroundStyle(style.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
@@ -1514,7 +1514,7 @@ public struct EgakiumJumpToLatestButton: View {
             Label(
                 EgakiumLocalization.string("Jump to latest"),
                 systemImage: "arrow.down.to.line")
-                .font(.caption.bold())
+                .egakiumFont(.caption, weight: .bold)
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
@@ -1641,7 +1641,7 @@ public struct EgakiumThreadHistoryPager: View {
             }
 
             Text(rangeLabel)
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
 
@@ -1663,7 +1663,7 @@ public struct EgakiumThreadHistoryPager: View {
                 .accessibilityIdentifier("\(accessibilityPrefix).latest")
             }
         }
-        .font(.caption.bold())
+        .egakiumFont(.caption, weight: .bold)
         .buttonStyle(.bordered)
         .controlSize(.small)
         .padding(.vertical, 4)
@@ -2008,7 +2008,7 @@ public extension View {
     /// Gives native compact glass buttons a stable visual diameter instead of
     /// leaving their size to each SF Symbol's intrinsic bounds.
     func egakiumComposerIconLabel() -> some View {
-        font(.system(size: 15, weight: .semibold))
+        egakiumFont(size: 15, weight: .semibold)
             .frame(
                 width: EgakiumComposerControlMetrics.iconLabelExtent,
                 height: EgakiumComposerControlMetrics.iconLabelExtent)
@@ -2052,10 +2052,10 @@ public struct EgakiumTurnStatsSummaryView: View {
     public var body: some View {
         HStack(spacing: 7) {
             Image(systemName: "speedometer")
-                .font(.system(size: 11, weight: .semibold))
+                .egakiumFont(size: 11, weight: .semibold)
                 .foregroundStyle(style.tertiaryText)
             Text(summary)
-                .font(.system(size: 12, weight: .medium))
+                .egakiumFont(size: 12, weight: .medium)
                 .foregroundStyle(style.secondaryText)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -2229,7 +2229,7 @@ public struct EgakiumComposerUsageStrip: View {
                 .foregroundStyle(style.secondaryText)
                 .monospacedDigit()
         }
-        .font(.system(size: 11, weight: .medium))
+        .egakiumFont(size: 11, weight: .medium)
         .lineLimit(1)
     }
 
@@ -2329,14 +2329,14 @@ public struct EgakiumSessionHistoryList: View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 8) {
                 Text(title)
-                    .font(.system(size: 12, weight: .semibold))
+                    .egakiumFont(size: 12, weight: .semibold)
                     .foregroundStyle(style.secondaryText)
                     .lineLimit(1)
                 Spacer(minLength: 0)
                 Button(action: onNew) {
                     Label(newTitle, systemImage: "plus")
                         .labelStyle(.iconOnly)
-                        .font(.system(size: 12, weight: .semibold))
+                        .egakiumFont(size: 12, weight: .semibold)
                         .frame(width: 24, height: 24)
                 }
                 .controlSize(.small)
@@ -2350,7 +2350,7 @@ public struct EgakiumSessionHistoryList: View {
 
             if items.isEmpty {
                 Text(emptyTitle)
-                    .font(.system(size: 12, weight: .medium))
+                    .egakiumFont(size: 12, weight: .medium)
                     .foregroundStyle(style.tertiaryText)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.vertical, 8)
@@ -2403,19 +2403,19 @@ private struct EgakiumSessionHistoryRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: item.systemImage)
-                .font(.system(size: 12, weight: .medium))
+                .egakiumFont(size: 12, weight: .medium)
                 .foregroundStyle(item.isSelected ? style.accent : style.tertiaryText)
                 .frame(width: 16, height: 16)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
-                    .font(.system(size: 12, weight: item.isSelected ? .semibold : .medium))
+                    .egakiumFont(size: 12, weight: item.isSelected ? .semibold : .medium)
                     .foregroundStyle(item.isSelected ? style.primaryText : style.secondaryText)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 if !item.detail.isEmpty {
                     Text(item.detail)
-                        .font(.system(size: 11, weight: .regular))
+                        .egakiumFont(size: 11, weight: .regular)
                         .foregroundStyle(style.tertiaryText)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -2451,10 +2451,10 @@ public struct EgakiumRecoveryAdviceView: View {
             Label(
                 EgakiumLocalization.string(advice.title),
                 systemImage: advice.retryable ? "arrow.clockwise" : "info.circle")
-                .font(.caption.bold())
+                .egakiumFont(.caption, weight: .bold)
                 .foregroundStyle(tint)
             Text(EgakiumLocalization.string(advice.detail))
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(style.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -2948,7 +2948,7 @@ public struct EgakiumThreadThinkingRow: View {
                 EgakiumThinkingElapsedLabel(
                     label: label,
                     phaseID: phaseID)
-                    .font(.system(size: 12, weight: .medium))
+                    .egakiumFont(size: 12, weight: .medium)
                     .foregroundStyle(style.secondaryText)
                 Spacer(minLength: 0)
             }

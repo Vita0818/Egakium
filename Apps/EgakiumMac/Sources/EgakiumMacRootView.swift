@@ -708,14 +708,14 @@ private struct SessionRenameSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Rename Session")
-                .font(.headline)
+                .egakiumFont(.headline)
             TextField("Session name", text: $name)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(rename)
 
             if let errorText {
                 Text(errorText)
-                    .font(.caption)
+                    .egakiumFont(.caption)
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -855,7 +855,7 @@ private struct EgakiumSidebarModeRow: View {
     private var content: some View {
         HStack(spacing: 10) {
             Image(systemName: systemImage)
-                .font(.system(size: 14, weight: .semibold))
+                .egakiumFont(size: 14, weight: .semibold)
                 .foregroundStyle(selected
                     ? EgakiumTheme.accent(scheme)
                     : EgakiumTheme.softText(scheme))
@@ -880,7 +880,7 @@ private struct EgakiumSidebarSettingsRow: View {
     var body: some View {
         HStack(spacing: 9) {
             Image(systemName: "gearshape")
-                .font(.system(size: 13, weight: .medium))
+                .egakiumFont(size: 13, weight: .medium)
                 .foregroundStyle(selected ? EgakiumTheme.accent(scheme) : EgakiumTheme.softText(scheme))
                 .frame(width: 20)
             Text(EgakiumLocalization.string("Settings"))

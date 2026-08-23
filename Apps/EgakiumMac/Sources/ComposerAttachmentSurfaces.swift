@@ -55,7 +55,7 @@ struct EgakiumMacComposerAttachmentAccessory: View {
                             .font(EgakiumTypography.body(13, .semibold))
                             .foregroundStyle(.primary)
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 10, weight: .semibold))
+                            .egakiumFont(size: 10, weight: .semibold)
                             .foregroundStyle(.secondary)
                             .accessibilityHidden(true)
                     }

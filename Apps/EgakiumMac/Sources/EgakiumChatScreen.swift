@@ -259,7 +259,7 @@ private struct EgakiumChatSessionScreen: View {
         VStack(spacing: 12) {
             Spacer()
             Image(systemName: "sparkle")
-                .font(.system(size: 30, weight: .semibold))
+                .egakiumFont(size: 30, weight: .semibold)
                 .foregroundStyle(EgakiumTheme.accent(scheme))
             .frame(width: 76, height: 76)
 
@@ -375,7 +375,7 @@ struct EgakiumChatModelMenu: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Image(systemName: "chevron.down")
-                .font(.system(size: 10, weight: .semibold))
+                .egakiumFont(size: 10, weight: .semibold)
                 .foregroundStyle(EgakiumTheme.tertiaryText(scheme))
         }
         .frame(
@@ -992,7 +992,7 @@ struct EgakiumSettingsPanel: View {
                 Spacer()
                 Button(action: addProvider) {
                     Image(systemName: "plus")
-                        .font(.system(size: 13, weight: .semibold))
+                        .egakiumFont(size: 13, weight: .semibold)
                 }
                 .buttonStyle(.plain)
                 .help("Add provider")
@@ -1059,7 +1059,7 @@ struct EgakiumSettingsPanel: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 7) {
                     Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 12, weight: .medium))
+                        .egakiumFont(size: 12, weight: .medium)
                         .foregroundStyle(selected ? EgakiumTheme.accent(scheme) : EgakiumTheme.tertiaryText(scheme))
                     Text(provider.title)
                         .font(EgakiumType.body(13, .semibold))
@@ -1183,7 +1183,7 @@ struct EgakiumSettingsPanel: View {
     private func removeModelButton(providerIndex: Int, modelIndex: Int) -> some View {
         Button(action: { removeModel(providerIndex: providerIndex, modelIndex: modelIndex) }) {
             Image(systemName: "trash")
-                .font(.system(size: 13, weight: .medium))
+                .egakiumFont(size: 13, weight: .medium)
                 .foregroundStyle(EgakiumTheme.tertiaryText(scheme))
         }
         .buttonStyle(.plain)

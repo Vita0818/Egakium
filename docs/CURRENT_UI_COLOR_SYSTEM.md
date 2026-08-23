@@ -1,7 +1,7 @@
 # CURRENT_UI_COLOR_SYSTEM — 系统原生表面与 Liquid Glass 规范
 
 文档状态：当前 UI 实施规范
-最近核对日期：2026-08-16
+最近核对日期：2026-08-20
 产品基线：v0.4（build 50）
 
 > Egakium 不再把“系统外观”解释为固定的纯白和纯黑。页面、侧栏、内容层与控制层均使用 Apple 平台的动态语义资源；在支持的系统上，导航与交互控件采用原生 Liquid Glass。`docs/UI_COLOR_SYSTEM.md` 只保存上一版香槟金 / 暖中性色方案，不随当前方案修改。
@@ -95,7 +95,7 @@
 - `Packages/EgakiumSharedUI/Sources/Views.swift`：共享 Chat 消息和 composer；仅用户消息使用 glass 气泡，其余对话角色继承系统 canvas。
 - `Packages/EgakiumSharedUI/Sources/CodeViews.swift`、`CoworkViews.swift`、`ArtifactViews.swift`：各产品面的内容层 / 功能层映射。
 - `Apps/EgakiumMac/Sources/EgakiumChatScreen.swift`、`EgakiumMacApp.swift`：macOS Chat、设置与 home CTA。
-- `Apps/EgakiumiOS/Sources/EgakiumiOSApp.swift`：iOS serif 标题角色、顶部 session header、
+- `Apps/EgakiumiOS/Sources/EgakiumiOSApp.swift`：iOS JetBrains Mono/PingFang 字体角色、顶部 session header、
   macOS 同层级抽屉、两排 composer 接线、Settings 与根 Icon Composer resource 选择。
 
 Apple 官方设计与 API 依据：
@@ -116,7 +116,7 @@ Apple 官方设计与 API 依据：
 - macOS Chat / Code / Cowork 与 iOS Chat 的 Light / Dark 运行态都曾经过视觉核对；其中 macOS
   Chat/Code 属于入口隐藏前的既有证据，不代表当前 sidebar 仍可进入这两个模式。不能只用源码搜索
   或固定像素值推断当前可见 UI。
-- thread header 显示 session display name；Code / Cowork header 使用紧凑顶部留白且 Cowork 不常驻 permission-reviewer 横幅；消息无 agent 头像与通用 Agent badge；正常 agent 回复无外层卡片；agent 名称旁有本地化三级时间元数据；macOS sidebar 模式为带图标的竖向三行且仅选中行使用玻璃，Recent New `+` 为 30×30 原生圆形 glass；macOS composer 第一排保持 40pt、关闭态仅模型名的 model/profile glass 菜单左、usage 右，第二排保持已有 action 左、输入居中、voice 紧邻唯一 Send/Stop 左侧。iOS 顶部固定 sidebar/session/new，抽屉为 serif `Egakium`、选中 Chat、Recent/New 和底部 Settings，空页无 onboarding/建议卡；底部同样为 model/usage 第一排和 paperclip/input/voice/Send-or-Stop 第二排。两平台标题使用系统 serif、正文与控件使用系统 sans；两平台第二排 action/voice/stop/Send 与单行输入均为 40pt，输入变为多行时按钮底边不漂移；Cowork 宽屏 rail 第一位为权限审查、其后为 Agents/Goal/Tasks 且无 Git，pending 时 rail 固定；无法容纳 rail 时只显示一个权限兜底卡且不复制 Goal/Tasks。
+- thread header 显示 session display name；Code / Cowork header 使用紧凑顶部留白且 Cowork 不常驻 permission-reviewer 横幅；消息无 agent 头像与通用 Agent badge；正常 agent 回复无外层卡片；agent 名称旁有本地化三级时间元数据；macOS sidebar 模式为带图标的竖向三行且仅选中行使用玻璃，Recent New `+` 为 30×30 原生圆形 glass；macOS composer 第一排保持 40pt、关闭态仅模型名的 model/profile glass 菜单左、usage 右，第二排保持已有 action 左、输入居中、voice 紧邻唯一 Send/Stop 左侧。iOS 顶部固定 sidebar/session/new，抽屉为 JetBrains Mono `Egakium`、选中 Chat、Recent/New 和底部 Settings，空页无 onboarding/建议卡；底部同样为 model/usage 第一排和 paperclip/input/voice/Send-or-Stop 第二排。两平台所有 app-owned 拉丁字形使用 bundled JetBrains Mono、中文保持 PingFang 回退，LaTeX 保持 iosMath 数学字体；两平台第二排 action/voice/stop/Send 与单行输入均为 40pt，输入变为多行时按钮底边不漂移；Cowork 宽屏 rail 第一位为权限审查、其后为 Agents/Goal/Tasks 且无 Git，pending 时 rail 固定；无法容纳 rail 时只显示一个权限兜底卡且不复制 Goal/Tasks。
 - macOS 与 iOS touched targets 均可编译，全量 SwiftPM 测试通过。
 
 静态复核重点：
@@ -185,9 +185,9 @@ rg -n 'glassEffect|GlassEffectContainer|buttonStyle\(\.glass|regularMaterial|win
 - Chat、Code、Cowork 和共享 iOS Chat 的用户气泡继续靠右并保留既有 Material/宽度合同，但不再重复显示 `You`；assistant、agent、system 的 structured identity header 与 agent timestamp 保留。macOS sidebar 品牌块只显示 `Egakium`。当前可见的 active Cowork session header 和 sidebar Recent row 只显示 session name；入口隐藏但仍保留实现的 Chat/Code surface 继续遵守同一规则。不得在名称下显示灰色 model/provider/host、workspace/state、agent/running、event/date/path/runtime metadata；空态首页与 Settings 的说明性 subtitle 不属于 session metadata，继续保留。
 - Computer Use 使用独立 bundle 的离线 Phase C fixture 验证了 Light/Dark、默认折叠、详情展开、automatic non-actionable 与 approved notice；另以本轮构建打开真实历史 Chat，只读确认侧栏品牌副标题、active session subtitle、Recent session detail 和用户气泡 `You` 均消失，并在 Cowork history 再核对单行 session row；未发送 provider 请求。当前截图与逐项对比记录见根目录 `design-qa.md`。
 
-## 14. 2026-08-02 iOS 与 macOS 设计语言统一（取代同日全局 serif 记录）
+## 14. 2026-08-02 iOS 与 macOS 设计语言统一（历史字体选择由第 23 节取代）
 
-- iOS 不再在 App 根视图设置全局 `.fontDesign(.serif)`。与 macOS 相同，serif 只用于
+- 以下 system serif/sans 分工记录当时的设计状态，当前字体选择以第 23 节为准。iOS 不再在 App 根视图设置全局 `.fontDesign(.serif)`。与 macOS 相同，serif 只用于
   品牌 `Egakium`、当前 session 和 Settings 页面标题；正文、composer、按钮、菜单、
   表单与状态使用 Apple 系统 sans + Dynamic Type。Markdown/plain fallback、代码块、
   公式和第三方声明继续与 macOS 共用 renderer 的语义字体，不增加字体文件。
@@ -339,3 +339,24 @@ rg -n 'glassEffect|GlassEffectContainer|buttonStyle\(\.glass|regularMaterial|win
   unsigned build 与 EgakiumiOS generic Simulator Debug unsigned build 均通过。测试直接复现同一 timeout
   同时来自失败 submission 与 `.error` 的截图场景，确认右栏去重为一项并保留 Retry；未启动 App 或
   fixture，长错误滚动、Light/Dark 与窄宽实际像素仍需手动观察。
+
+## 23. 2026-08-20 JetBrains Mono 产品字体
+
+- macOS 与 iOS 的 app-owned typography 现在只有一个拉丁主家族：bundled JetBrains Mono 2.304。
+  品牌、session/page title、正文、控件、菜单 label、输入、caption、metadata、技术值、plain-safe、
+  Markdown 正文/标题/列表/表格/链接/inline code/code block/selection surface 都使用该家族；不再按
+  serif/sans/monospaced 分配不同 Latin family。
+- `EgakiumSharedUI` 直接从 SwiftPM resource bundle 的十个 exact static TTF 构造 `CGFont`/`CTFont`，
+  不注册持久系统字体，也不依赖用户安装。启动 preflight 核对完整 face/PostScript inventory；资源
+  缺失或被替换会显式失败，不会切回系统 Latin 字体。
+- JetBrains Mono 没有中文 glyph。Core Text 的原生 missing-glyph cascade 不被重写，因此简体/繁体
+  中文仍使用 Apple 的 PingFang family；测试机械断言中文 family 以 `PingFang` 开头。
+- LaTeX 公式是唯一字体例外。Markdown 仍创建 live TextKit 2 `MTMathUILabel` attachment，
+  `InlineMathAttachment` 不设置 JetBrains font；iosMath 2.5.0 继续使用既有默认数学字体、math table、
+  intrinsic layout 和 exact literal fallback。界面字体资源与 iosMath 八套数学字体的许可证/清单分开。
+- Dynamic Type 继续进入语义 font modifier 与 Markdown typography revision；固定几何使用的 explicit
+  point size 继续保持原名义尺寸/字重。SF Symbols、系统 window chrome、系统 file/permission panel
+  等 OS-owned drawing 仍由 Apple 控制，不属于 app-authored Latin text family。
+- 上游 tag/commit、official archive SHA-256、十个 TTF SHA-256、OFL 1.1 与 AUTHORS 见
+  `ThirdPartyNotices/JetBrainsMono.md`。最终验收必须核对 macOS/iOS App 内资源 inventory、实际 Core
+  Text Latin/PingFang resolution、Markdown/代码/公式对照、Light/Dark、Dynamic Type 和两端构建。

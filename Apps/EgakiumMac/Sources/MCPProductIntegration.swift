@@ -8,6 +8,7 @@ import EgakiumConversation
 import EgakiumCore
 import EgakiumMCP
 import EgakiumProtocol
+import EgakiumSharedUI
 import SwiftUI
 #if !EGAKIUM_MAC_APP_STORE
 import EgakiumMCPStdio
@@ -1903,7 +1904,7 @@ private struct MCPServerInventoryRow: View {
                 .frame(width: 22)
             VStack(alignment: .leading, spacing: 3) {
                 Text(server.displayName)
-                    .font(.body.weight(.semibold))
+                    .egakiumFont(.body, weight: .semibold)
                     .lineLimit(1)
                 HStack(spacing: 5) {
                     Text(server.alias)
@@ -1920,7 +1921,7 @@ private struct MCPServerInventoryRow: View {
                             .accessibilityLabel("Signed in")
                     }
                 }
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
             }
             Spacer()
@@ -2018,15 +2019,15 @@ private struct MCPServerDetailView: View {
                 record.transport == .stdio
                     ? "terminal.fill"
                     : "network")
-                .font(.title2)
+                .egakiumFont(.title2)
                 .frame(width: 34, height: 34)
                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
             VStack(alignment: .leading, spacing: 3) {
                 Text(record.displayName)
-                    .font(.title3.bold())
+                    .egakiumFont(.title3, weight: .bold)
                 Text(
                     "\(record.alias) · \(record.serverID.rawValue)")
-                    .font(.caption.monospaced())
+                    .egakiumFont(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
             }
@@ -2301,10 +2302,10 @@ private struct MCPServerDetailView: View {
                     observation in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(observation.sessionID.rawValue)
-                            .font(.body.monospaced())
+                            .egakiumFont(.body)
                         Text(
                             "\(observation.metrics.counters.values.reduce(0, +)) bounded metric events · observed \(observation.observedAt.formatted())")
-                            .font(.caption)
+                            .egakiumFont(.caption)
                             .foregroundStyle(.secondary)
                     }
                     Divider()
@@ -2388,16 +2389,14 @@ private struct MCPServerDetailView: View {
                                     {
                                         HStack {
                                             Text(row.0)
-                                                .font(
-                                                    .body
-                                                        .weight(
-                                                            .semibold))
+                                                .egakiumFont(
+                                                    .body,
+                                                    weight: .semibold)
                                             Spacer()
                                             if let badge =
                                                     row.2 {
                                                 Text(badge)
-                                                    .font(
-                                                        .caption2)
+                                                    .egakiumFont(.caption2)
                                                     .padding(
                                                         .horizontal,
                                                         6)
@@ -2410,7 +2409,7 @@ private struct MCPServerDetailView: View {
                                             }
                                         }
                                         Text(row.1)
-                                            .font(.caption)
+                                            .egakiumFont(.caption)
                                             .foregroundStyle(
                                                 .secondary)
                                             .textSelection(
@@ -2426,7 +2425,7 @@ private struct MCPServerDetailView: View {
                     } label: {
                         Text(
                             "\(live.sessionID.rawValue) / \(live.agentID.rawValue) · \(live.connection.bindingIdentity.connectionGeneration.rawValue)")
-                            .font(.caption.monospaced())
+                            .egakiumFont(.caption)
                     }
                 }
             }
@@ -2470,7 +2469,7 @@ private struct MCPSetupGuidanceBody: View {
                     "Run Test & Save, then attach the immutable revision to a Code or Cowork session.")
                 Text(
                     "This App Store build is remote-only by linkage and cannot launch a local MCP executable.")
-                    .font(.caption)
+                    .egakiumFont(.caption)
                     .foregroundStyle(.secondary)
             case (.macDeveloperID, .stdio),
                  (.macCLI, .stdio):
@@ -2488,7 +2487,7 @@ private struct MCPSetupGuidanceBody: View {
                     "Run Test & Save. Egakium captures and revalidates the exact launch artifacts before every managed start.")
                 Text(
                     "Egakium does not run an install command, arbitrary shell string, or an unverified executable on behalf of this form.")
-                    .font(.caption)
+                    .egakiumFont(.caption)
                     .foregroundStyle(.secondary)
             case (.linuxCLI, .stdio):
                 guidanceStep(
@@ -2502,7 +2501,7 @@ private struct MCPSetupGuidanceBody: View {
                     "Add the exact executable and launch closure, then run egakium mcp test before attaching it.")
                 Text(
                     "Linux stdio fails closed when bwrap is unavailable; there is no unsandboxed fallback.")
-                    .font(.caption)
+                    .egakiumFont(.caption)
                     .foregroundStyle(.orange)
             case (.macDeveloperID, .streamableHTTP),
                  (.macCLI, .streamableHTTP),
@@ -2527,7 +2526,7 @@ private struct MCPSetupGuidanceBody: View {
     ) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Text("\(number)")
-                .font(.caption.bold())
+                .egakiumFont(.caption, weight: .bold)
                 .frame(width: 20, height: 20)
                 .background(
                     Color.accentColor.opacity(0.15),
@@ -2576,7 +2575,7 @@ private struct MCPDetailLine: View {
     var body: some View {
         LabeledContent {
             Text(value)
-                .font(.body.monospaced())
+                .egakiumFont(.body)
                 .textSelection(.enabled)
                 .multilineTextAlignment(.trailing)
         } label: {
@@ -2595,7 +2594,7 @@ private struct MCPDiagnosticRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(summary)
                 Text(code)
-                    .font(.caption.monospaced())
+                    .egakiumFont(.caption)
                     .foregroundStyle(.secondary)
             }
         } icon: {
@@ -2834,7 +2833,7 @@ private struct MCPServerEditorSheet: View {
                     .allowInsecureLoopbackDevelopmentHTTP {
                     Text(
                         "Development only. Plain HTTP is accepted only for this exact loopback endpoint; OAuth, redirects, proxies, and non-loopback hosts remain blocked.")
-                        .font(.caption)
+                        .egakiumFont(.caption)
                         .foregroundStyle(.orange)
                 }
             }
@@ -2866,7 +2865,7 @@ private struct MCPServerEditorSheet: View {
                 text: $draft.tlsPublicKeyPins)
             Text(
                 "Leave pins empty to use system trust only. Each pin is SHA-256 over the certificate DER SubjectPublicKeyInfo and is enforced by the production libcurl transport.")
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
         }
         MCPKeyValueEditor(
@@ -2885,7 +2884,7 @@ private struct MCPServerEditorSheet: View {
                     text: $draft.bearerToken)
                 Text(
                     "The token is written to Keychain and only its opaque reference is saved.")
-                    .font(.caption)
+                    .egakiumFont(.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -2921,7 +2920,7 @@ private struct MCPServerEditorSheet: View {
                     text: $draft.oauthScopes)
                 Text(
                     "Freeze & Sign In predicts one exact immutable revision and binds the inactive token to that revision and catalog challenge. The authorization origin, resource, account, and scopes are shown before the browser opens; only the matching Test proof and catalog save can activate it.")
-                    .font(.caption)
+                    .egakiumFont(.caption)
                     .foregroundStyle(.secondary)
                 if let preparedSession {
                     LabeledContent(
@@ -2932,7 +2931,7 @@ private struct MCPServerEditorSheet: View {
                                 .serverRevision.rawValue)
                     Text(
                         "Editing is locked until Test & Save succeeds or you cancel this prepared transaction.")
-                        .font(.caption)
+                        .egakiumFont(.caption)
                         .foregroundStyle(.orange)
                 }
             }
@@ -2974,7 +2973,7 @@ private struct MCPServerEditorSheet: View {
             }
             Text(
                 "Test captures every listed executable, interpreter, script, package entrypoint, lockfile, and helper with no-follow identity checks. Save and launch reverify the same closure. macOS rejects helper-process authority because it cannot prove descendant process-group containment; exact helper execution is available only in the guarded Linux CLI runtime.")
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
         }
         Section("Process") {
@@ -2999,7 +2998,7 @@ private struct MCPServerEditorSheet: View {
                 text: $draft.networkOrigins)
             Text(
                 "Managed stdio remains inside the permission, workspace, sandbox, and durable execution boundaries. It is not linked into the App Store build.")
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
         }
     }
@@ -3024,7 +3023,7 @@ private struct MCPServerEditorSheet: View {
                 text: $draft.maximumProtocolVersion)
             Text(
                 "codex-compat provides the conservative client surface. standard-extended enables the full negotiated roots, sampling, elicitation, subscription, completion, and task client features when their real host services are installed.")
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
         }
         Section("Default authority") {
@@ -3033,7 +3032,7 @@ private struct MCPServerEditorSheet: View {
                 text: $draft.environmentID)
             Text(
                 "Changing this stable identity forces a new exact connection generation and invalidates older remembered authority.")
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
             Toggle(
                 "Required by default",
@@ -3091,7 +3090,7 @@ private struct MCPServerEditorSheet: View {
             }
             Text(
                 "Each override is bound to one exact remote tool name. Duplicate or empty names fail closed when the draft is tested.")
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
         }
         Section("Required capabilities") {
@@ -3137,7 +3136,7 @@ private struct MCPServerEditorSheet: View {
         Section {
             Text(
                 "Test & Save performs a real isolated initialize and complete negotiated discovery for this exact draft. Only the matching proof may commit a new immutable catalog revision.")
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
         }
     }
@@ -3260,7 +3259,7 @@ private struct MCPKeyValueEditor: View {
             }
             Text(
                 "Secret rows are stored in Keychain. Literal rows pass conservative secret screening before they can be saved.")
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
         }
     }
@@ -3298,7 +3297,7 @@ private struct MCPSecretReferenceEditor: View {
             }
             Text(
                 "These compatibility environment names never read the ambient process environment. Each value is an explicit Keychain SecretRef and is injected only into the exact authorized stdio generation.")
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
         }
     }
@@ -3311,10 +3310,10 @@ private struct MCPMultilineField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(title)
-                .font(.caption)
+                .egakiumFont(.caption)
                 .foregroundStyle(.secondary)
             TextEditor(text: $text)
-                .font(.body.monospaced())
+                .egakiumFont(.body)
                 .frame(minHeight: 72)
                 .overlay(
                     RoundedRectangle(cornerRadius: 6)
