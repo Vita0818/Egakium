@@ -1,6 +1,6 @@
 import Foundation
-import EgakiumProviders
-import EgakiumProtocol
+import IntatisProviders
+import IntatisProtocol
 import XCTest
 @testable import EgakiumCLI
 

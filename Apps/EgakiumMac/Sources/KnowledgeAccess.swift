@@ -1,9 +1,9 @@
-#if canImport(SwiftUI) && !EGAKIUM_MAC_APP_STORE
+#if canImport(SwiftUI)
 import Foundation
 import AppKit
-import EgakiumCore
-import EgakiumKnowledge
-import EgakiumProtocol
+import IntatisCore
+import IntatisKnowledge
+import IntatisProtocol
 
 enum KnowledgeAccess {
     /// Host seam used by session/permission ownership code to revoke one

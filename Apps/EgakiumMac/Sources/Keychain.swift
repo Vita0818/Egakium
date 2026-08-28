@@ -1,7 +1,7 @@
 #if canImport(SwiftUI)
 import Foundation
-import EgakiumCore
-import EgakiumProviders
+import IntatisCore
+import IntatisProviders
 
 /// Resolves provider secrets from configuration files, environment variables,
 /// and explicit secret files. Legacy `.keychain` refs are treated as config refs
@@ -24,7 +24,7 @@ public final class ConfigSecretResolver: SecretResolver, @unchecked Sendable {
         case .environment:
             guard let value = ProcessInfo.processInfo.environment[ref.account],
                   !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                throw EgakiumError.notFound("environment secret '\(ref.account)'")
+                throw IntatisError.notFound("environment secret '\(ref.account)'")
             }
             secret = value
         case .file:
@@ -33,7 +33,7 @@ public final class ConfigSecretResolver: SecretResolver, @unchecked Sendable {
             secret = try Self.readAuthFileSecret(providerID: ref.account)
         case .providerConfig:
             guard Self.isAllowedProviderConfigPath(ref.service) else {
-                throw EgakiumError.notFound("provider config is not an Egakium-owned or explicitly selected config")
+                throw IntatisError.notFound("provider config is not a Egakium-owned or explicitly selected config")
             }
             secret = try Self.readProviderConfigSecret(providerID: ref.account, path: ref.service)
         }
@@ -128,7 +128,7 @@ public final class ConfigSecretResolver: SecretResolver, @unchecked Sendable {
         guard let value = String(data: data, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
             !value.isEmpty else {
-            throw EgakiumError.notFound("empty secret file '\(path)'")
+            throw IntatisError.notFound("empty secret file '\(path)'")
         }
         return value
     }
@@ -148,7 +148,7 @@ public final class ConfigSecretResolver: SecretResolver, @unchecked Sendable {
                 }
             }
         }
-        throw EgakiumError.notFound("auth file secret for provider '\(providerID)'")
+        throw IntatisError.notFound("auth file secret for provider '\(providerID)'")
     }
 
     private static func readProviderConfigSecret(providerID: String, path: String) throws -> String {
@@ -156,7 +156,7 @@ public final class ConfigSecretResolver: SecretResolver, @unchecked Sendable {
         guard FileManager.default.fileExists(atPath: url.path),
               let data = try? jsonCompatibleData(from: url),
               let object = try? JSONSerialization.jsonObject(with: data) else {
-            throw EgakiumError.notFound("provider config secret for provider '\(providerID)'")
+            throw IntatisError.notFound("provider config secret for provider '\(providerID)'")
         }
         for candidate in authProviderIDCandidates(from: providerID) {
             if let secret = authSecret(in: object,
@@ -165,7 +165,7 @@ public final class ConfigSecretResolver: SecretResolver, @unchecked Sendable {
                 return secret
             }
         }
-        throw EgakiumError.notFound("provider config secret for provider '\(providerID)'")
+        throw IntatisError.notFound("provider config secret for provider '\(providerID)'")
     }
 
     private static func authFileContainsSecret(providerID: String, url: URL) -> Bool {

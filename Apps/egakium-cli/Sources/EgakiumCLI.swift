@@ -1,5 +1,6 @@
 import Foundation
-import EgakiumMCP
+import IntatisCore
+import IntatisMCP
 
 func mcpCLIExitCode(for error: Error) -> Int32 {
     if let requested = error as? MCPCLIProcessExit {
@@ -17,6 +18,7 @@ func mcpCLIExitCode(for error: Error) -> Int32 {
 @main
 struct EgakiumCLI {
     static func main() async {
+        try! IntatisHostApplication.configure(name: "Egakium")
         let args = Array(CommandLine.arguments.dropFirst())
         let command = args.first ?? ""
         do {
@@ -36,8 +38,8 @@ struct EgakiumCLI {
             case "mcp":
                 try await runMCPCommand(args.dropFirst())
             case "exec":
-                try await runExecCommand(
-                    args.dropFirst())
+                throw IntatisError.config(
+                    "egakium exec belongs to the retired Swift AgentKernel path and is disabled. Use egakium code or egakium cowork, which run Codex App Server.")
             case "diagnose-hang":
                 try await runDiagnoseHangCommand(
                     args.dropFirst())

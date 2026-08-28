@@ -1,12 +1,12 @@
 import Foundation
-import EgakiumCore
-import EgakiumProtocol
-import EgakiumProviders
-import EgakiumConversation
-import EgakiumTools
-import EgakiumPermission
-import EgakiumAgentKernel
-import EgakiumCowork
+import IntatisCore
+import IntatisProtocol
+import IntatisProviders
+import IntatisConversation
+import IntatisTools
+import IntatisPermission
+import IntatisAgentKernel
+import IntatisCowork
 
 // Built-in fake models — let `egakium selftest` prove the chat + code paths work
 // offline, with no API key and no network. They drive the exact same ChatLoop /
@@ -298,7 +298,7 @@ func runSelfTest() async throws {
         routeID: "route-a",
         model: "model-alpha",
         variantID: "careful") else {
-        throw EgakiumError.config("offline profile fixture did not compile")
+        throw IntatisError.config("offline profile fixture did not compile")
     }
 
     // Change route A's upstream while retaining both route credentials and all
@@ -323,7 +323,7 @@ func runSelfTest() async throws {
             routeID: "route-b",
             model: "model-beta",
             variantID: "deep") else {
-        throw EgakiumError.config("offline multi-route profiles did not compile")
+        throw IntatisError.config("offline multi-route profiles did not compile")
     }
 
     let exactRegistry = ProviderRegistry(

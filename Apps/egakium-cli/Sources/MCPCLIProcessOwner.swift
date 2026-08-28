@@ -1,10 +1,10 @@
 import Foundation
-import EgakiumAgentKernel
-import EgakiumConversation
-import EgakiumCore
-import EgakiumMCP
-import EgakiumProtocol
-import EgakiumTools
+import IntatisAgentKernel
+import IntatisConversation
+import IntatisCore
+import IntatisMCP
+import IntatisProtocol
+import IntatisTools
 
 struct MCPCLIProcessOwnerKey:
     Hashable, Sendable
@@ -220,7 +220,7 @@ func makeMCPCLIInteractiveCodeSession(
             WorkspaceRootIdentity.capture(
                 rootPath: canonicalWorkspace.path)
     else {
-        throw EgakiumError.permissionDenied(
+        throw IntatisError.permissionDenied(
             "The CLI Code workspace identity cannot be proven.")
     }
     try await context.bindInteractiveSessionLog(log)
@@ -319,7 +319,7 @@ actor MCPCLIInteractiveCodeHost {
         -> MCPCLIInteractiveCodeActivation
     {
         guard acceptsActivation else {
-            throw EgakiumError.config(
+            throw IntatisError.config(
                 "The CLI Code MCP host is shutting down.")
         }
         if let activation { return activation }
@@ -440,7 +440,7 @@ actor MCPCLIInteractiveCoworkHost {
         -> MCPCLIInteractiveCoworkActivation
     {
         guard acceptsActivation else {
-            throw EgakiumError.config(
+            throw IntatisError.config(
                 "The CLI Cowork MCP host is shutting down.")
         }
         if let activation { return activation }

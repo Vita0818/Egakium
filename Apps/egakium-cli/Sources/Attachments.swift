@@ -1,5 +1,5 @@
 import Foundation
-import EgakiumProviders
+import IntatisProviders
 
 struct PendingImageAttachment {
     var name: String

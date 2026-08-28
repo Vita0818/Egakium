@@ -47,17 +47,23 @@ cat > "$plist" <<'PLIST_HEADER'
 PLIST_HEADER
 
 for scheme in \
-	EgakiumCore \
-	EgakiumProtocol \
-	EgakiumProviders \
-	EgakiumConversation \
-	EgakiumArtifacts \
-	EgakiumMultimodal \
-	EgakiumSharedUI \
-	EgakiumTools \
-	EgakiumPermission \
-	EgakiumAgentKernel \
-	EgakiumCowork
+	EgakiumCanvas \
+	IntatisCore \
+	IntatisProtocol \
+	IntatisProviders \
+	IntatisConversation \
+	IntatisArtifacts \
+	IntatisMultimodal \
+	IntatisSharedUI \
+	IntatisTools \
+	IntatisKnowledge \
+	IntatisSkills \
+	IntatisPermission \
+	IntatisMCP \
+	IntatisMCPStdio \
+	IntatisAgentKernel \
+	IntatisCowork \
+	IntatisCodexRuntime
 do
 	cat >> "$plist" <<PLIST_SCHEME
 		<key>$scheme.xcscheme</key>
@@ -78,3 +84,10 @@ cat >> "$plist" <<'PLIST_FOOTER'
 </dict>
 </plist>
 PLIST_FOOTER
+
+# XcodeGen does not mirror the root SwiftPM lockfile into the generated
+# workspace. Keep Xcode and command-line SwiftPM on the same direct Intatis
+# dependency resolution without allowing Xcode to create a second lockfile.
+workspace_swiftpm_dir="$project_dir/project.xcworkspace/xcshareddata/swiftpm"
+mkdir -p "$workspace_swiftpm_dir"
+cp "$repo_root/Package.resolved" "$workspace_swiftpm_dir/Package.resolved"

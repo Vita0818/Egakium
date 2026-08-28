@@ -208,6 +208,20 @@ inspect_release_app() {
         && -f "$app/Contents/Resources/ThirdPartyNotices/CEF/CREDITS.html" ]] \
         || fail "Release App is missing CEF/Chromium notices"
 
+    local codex_runtime="$app/Contents/Resources/CodexRuntime/arm64"
+    local codex_executable="$codex_runtime/codex"
+    [[ -f "$codex_executable" && ! -L "$codex_executable" ]] \
+        || fail "Release App is missing the exact Intatis Codex runtime"
+    [[ "$(/usr/bin/lipo -archs "$codex_executable")" == "arm64" ]] \
+        || fail "Release Codex runtime must be exactly arm64"
+    [[ -f "$codex_runtime/runtime-manifest.json" \
+        && -f "$codex_runtime/SHA256SUMS.txt" \
+        && -f "$codex_runtime/ThirdPartyNotices/runtime.spdx.json" \
+        && -f "$codex_runtime/ThirdPartyNotices/LICENSES.txt" ]] \
+        || fail "Release App is missing the Codex runtime manifest/license closure"
+    "$project_root/scripts/validate-codex-runtime.sh" \
+        "$codex_runtime" arm64 "" static
+
     local helper helper_executable helper_architectures
     for helper in \
         "EgakiumMac Helper" \
@@ -232,6 +246,52 @@ inspect_release_app() {
         || fail "Release version contains unsafe filename characters"
     [[ "$build_number" != *[^A-Za-z0-9._-]* ]] \
         || fail "Release build number contains unsafe filename characters"
+}
+
+sign_codex_runtime() {
+    local app="$1"
+    local identity="$2"
+    local executable="$app/Contents/Resources/CodexRuntime/arm64/codex"
+    typeset -a preserve
+    preserve=()
+    if /usr/bin/codesign -d "$executable" >/dev/null 2>&1; then
+        preserve=(--preserve-metadata=entitlements,requirements,identifier)
+    fi
+    /usr/bin/codesign \
+        --force \
+        --sign "$identity" \
+        --options runtime \
+        --timestamp \
+        $preserve \
+        "$executable"
+}
+
+refresh_codex_runtime_integrity() {
+    local app="$1"
+    local runtime_root="$app/Contents/Resources/CodexRuntime/arm64"
+    local manifest="$runtime_root/runtime-manifest.json"
+    local binary_sha256
+    binary_sha256="$(/usr/bin/shasum -a 256 "$runtime_root/codex" \
+        | /usr/bin/awk '{print $1}')"
+    [[ -n "$binary_sha256" ]] \
+        || fail "could not hash the signed Codex runtime"
+    /usr/bin/plutil -replace binary_sha256 -string "$binary_sha256" "$manifest"
+    (
+        cd "$runtime_root"
+        /usr/bin/find . -type f ! -path './SHA256SUMS.txt' \
+            -exec /usr/bin/shasum -a 256 {} + \
+            | LC_ALL=C /usr/bin/sort \
+            > SHA256SUMS.txt
+    )
+    "$project_root/scripts/validate-codex-runtime.sh" \
+        "$runtime_root" arm64 "$signing_identity" static
+}
+
+validate_signed_codex_runtime() {
+    local app="$1"
+    "$project_root/scripts/validate-codex-runtime.sh" \
+        "$app/Contents/Resources/CodexRuntime/arm64" \
+        arm64 "$signing_identity" execute
 }
 
 sign_cef_runtime() {
@@ -589,6 +649,7 @@ if [[ -n "$resume_release_dir" ]]; then
         || fail "recovery App build number does not match its state"
     require_current_project_version
     verify_signed_release_app "$staged_app"
+    validate_signed_codex_runtime "$staged_app"
     print -- "Resuming preserved Egakium $version (build $build_number) release state."
 else
     xcodegen_path="$(command -v xcodegen || true)"
@@ -625,8 +686,12 @@ else
     inspect_release_app "$build_staged_app"
     require_current_project_version
 
-    print -- "Signing Egakium.app with Developer ID and Hardened Runtime..."
+    print -- "Signing CEF and exact Codex runtime with Developer ID..."
     sign_cef_runtime "$build_staged_app" "$signing_identity"
+    sign_codex_runtime "$build_staged_app" "$signing_identity"
+    refresh_codex_runtime_integrity "$build_staged_app"
+
+    print -- "Signing Egakium.app with Developer ID and Hardened Runtime..."
     /usr/bin/codesign \
         --force \
         --sign "$signing_identity" \
@@ -635,11 +700,13 @@ else
         --entitlements "$entitlements" \
         "$build_staged_app"
     verify_signed_release_app "$build_staged_app"
+    validate_signed_codex_runtime "$build_staged_app"
 
     create_recovery_directory "$build_staged_app"
     inspect_release_app "$staged_app"
     require_current_project_version
     verify_signed_release_app "$staged_app"
+    validate_signed_codex_runtime "$staged_app"
     pause_for_notarization_network_if_requested
 fi
 

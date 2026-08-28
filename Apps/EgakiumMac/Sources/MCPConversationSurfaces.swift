@@ -1,9 +1,9 @@
 #if canImport(SwiftUI)
 import Foundation
-import EgakiumCore
-import EgakiumMCP
-import EgakiumProtocol
-import EgakiumSharedUI
+import IntatisCore
+import IntatisMCP
+import IntatisProtocol
+import IntatisSharedUI
 import SwiftUI
 
 // MARK: - Host boundary
@@ -359,9 +359,9 @@ struct MCPPendingExternalContextControl: View {
             Menu {
                 Text(
                     count == 1
-                        ? EgakiumLocalization.string(
+                        ? IntatisLocalization.string(
                             "1 untrusted MCP context item will be attached to the next message only.")
-                        : EgakiumLocalization.format(
+                        : IntatisLocalization.format(
                             "%lld untrusted MCP context items will be attached to the next message only.",
                             Int64(count)))
                 Button(
@@ -370,7 +370,7 @@ struct MCPPendingExternalContextControl: View {
                     action: onCancel)
             } label: {
                 Label(
-                    EgakiumLocalization.format(
+                    IntatisLocalization.format(
                         "%lld MCP",
                         Int64(count)),
                     systemImage: "text.badge.checkmark")
@@ -811,10 +811,10 @@ private struct MCPResourceCatalogRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                 Text(subtitle)
-                    .egakiumFont(.caption)
+                    .font(IntatisTypography.system(.caption))
                     .foregroundStyle(.secondary)
                 Text(detail)
-                    .egakiumFont(.caption2)
+                    .font(IntatisTypography.system(.caption2, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
@@ -943,11 +943,11 @@ private struct MCPResourceBrowserDetail: View {
                         TextField(
                             "Resource URI",
                             text: $model.readURI)
-                            .egakiumFont(.body)
+                            .font(IntatisTypography.system(.body, design: .monospaced))
                         HStack {
                             Text(
                                 "Server-provided content is untrusted. Reading never grants the URI local-file or network authority.")
-                                .egakiumFont(.caption)
+                                .font(IntatisTypography.system(.caption))
                                 .foregroundStyle(.secondary)
                             Spacer()
                             Button("Read Resource") {
@@ -1005,9 +1005,9 @@ private struct MCPResourceBrowserDetail: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(title)
-                .egakiumFont(.title2, weight: .semibold)
+                .font(IntatisTypography.system(.title2, weight: .semibold))
             Text(server)
-                .egakiumFont(.headline)
+                .font(IntatisTypography.system(.headline))
             if let summary {
                 Text(summary)
                     .foregroundStyle(.secondary)
@@ -1018,7 +1018,7 @@ private struct MCPResourceBrowserDetail: View {
                 }
                 Text("Catalog \(revision)")
             }
-            .egakiumFont(.caption)
+            .font(IntatisTypography.system(.caption, design: .monospaced))
             .foregroundStyle(.secondary)
         }
     }
@@ -1032,7 +1032,7 @@ private struct MCPResourceBlockView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(block.uri)
-                    .egakiumFont(.caption)
+                    .font(IntatisTypography.system(.caption, design: .monospaced))
                     .textSelection(.enabled)
                 Spacer()
                 Text(
@@ -1040,13 +1040,13 @@ private struct MCPResourceBlockView: View {
                         fromByteCount:
                             Int64(block.byteCount),
                         countStyle: .file))
-                    .egakiumFont(.caption)
+                    .font(IntatisTypography.system(.caption))
                     .foregroundStyle(.secondary)
             }
             switch block.kind {
             case .inlineText:
                 Text(block.text ?? "")
-                    .egakiumFont(.body)
+                    .font(IntatisTypography.system(.body, design: .monospaced))
                     .textSelection(.enabled)
                     .frame(
                         maxWidth: .infinity,
@@ -1072,7 +1072,7 @@ private struct MCPResourceBlockView: View {
                     .foregroundStyle(.orange)
             }
             Text("SHA-256 \(block.sha256)")
-                .egakiumFont(.caption2)
+                .font(IntatisTypography.system(.caption2, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
         }
@@ -1231,7 +1231,7 @@ private struct MCPPromptPickerView: View {
                                         ?? prompt.name)
                                 Text(
                                     "\(prompt.serverAlias) · \(prompt.name)")
-                                    .egakiumFont(.caption)
+                                    .font(IntatisTypography.system(.caption))
                                     .foregroundStyle(
                                         .secondary)
                             }
@@ -1253,17 +1253,20 @@ private struct MCPPromptPickerView: View {
                         spacing: 16)
                     {
                         Text(prompt.title ?? prompt.name)
-                            .egakiumFont(.title2, weight: .semibold)
+                            .font(
+                                IntatisTypography.system(
+                                    .title2,
+                                    weight: .semibold))
                         Text(
                             "\(prompt.serverAlias) · \(prompt.name)")
-                            .egakiumFont(.headline)
+                            .font(IntatisTypography.system(.headline))
                         if let summary = prompt.summary {
                             Text(summary)
                                 .foregroundStyle(.secondary)
                         }
                         Text(
                             "Catalog \(prompt.rawCatalogRevision.rawValue)")
-                            .egakiumFont(.caption)
+                            .font(IntatisTypography.system(.caption, design: .monospaced))
                             .foregroundStyle(.secondary)
 
                         GroupBox("Arguments") {
@@ -1283,7 +1286,9 @@ private struct MCPPromptPickerView: View {
                                             if argument.required {
                                                 Text(
                                                     "Required")
-                                                    .egakiumFont(.caption)
+                                                    .font(
+                                                        IntatisTypography.system(
+                                                            .caption))
                                                     .foregroundStyle(
                                                         .orange)
                                             }
@@ -1368,7 +1373,7 @@ private struct MCPPromptPickerView: View {
                         HStack {
                             Text(
                                 "Server prompt content remains untrusted and can only be inserted after this preview.")
-                                .egakiumFont(.caption)
+                                .font(IntatisTypography.system(.caption))
                                 .foregroundStyle(.secondary)
                             Spacer()
                             Button("Preview Prompt") {
@@ -1446,7 +1451,7 @@ private struct MCPPromptPreviewView: View {
                     id: \.offset
                 ) { _, message in
                     Text(MCPConversationJSON.text(message))
-                        .egakiumFont(.body)
+                        .font(IntatisTypography.system(.body, design: .monospaced))
                         .textSelection(.enabled)
                         .frame(
                             maxWidth: .infinity,
@@ -1460,7 +1465,7 @@ private struct MCPPromptPreviewView: View {
                 HStack {
                     Text(
                         "Source: \(preview.serverAlias) / \(preview.promptName)")
-                        .egakiumFont(.caption)
+                        .font(IntatisTypography.system(.caption))
                         .foregroundStyle(.secondary)
                     Spacer()
                     if didInsert {
@@ -1581,7 +1586,10 @@ private struct MCPServerInstructionsView: View {
                         Text(
                             item.server.serverRevision
                                 .rawValue)
-                            .egakiumFont(.caption)
+                            .font(
+                                IntatisTypography.system(
+                                    .caption,
+                                    design: .monospaced))
                             .foregroundStyle(
                                 .secondary)
                             .lineLimit(1)
@@ -1602,7 +1610,10 @@ private struct MCPServerInstructionsView: View {
                         spacing: 16)
                     {
                         Text(item.serverAlias)
-                            .egakiumFont(.title2, weight: .semibold)
+                            .font(
+                                IntatisTypography.system(
+                                    .title2,
+                                    weight: .semibold))
                         Text(
                             "Server instructions are display-only and untrusted by default.")
                             .foregroundStyle(
@@ -1613,7 +1624,10 @@ private struct MCPServerInstructionsView: View {
                                 spacing: 8)
                             {
                                 Text(item.text)
-                                    .egakiumFont(.body)
+                                    .font(
+                                        IntatisTypography.system(
+                                            .body,
+                                            design: .monospaced))
                                     .textSelection(
                                         .enabled)
                                     .frame(
@@ -1631,13 +1645,16 @@ private struct MCPServerInstructionsView: View {
                                 Text(
                                     "Policy \(item.policyRevision.rawValue)")
                             }
-                            .egakiumFont(.caption)
+                            .font(
+                                IntatisTypography.system(
+                                    .caption,
+                                    design: .monospaced))
                             .padding(4)
                         }
                         HStack {
                             Text(
                                 "Using these instructions creates provenance-tagged untrusted context for exactly the next message; it never becomes a system or developer instruction.")
-                                .egakiumFont(.caption)
+                                .font(IntatisTypography.system(.caption))
                                 .foregroundStyle(
                                     .secondary)
                             Spacer()
@@ -1947,10 +1964,10 @@ private struct MCPRemoteTaskCard: View {
                 Label(
                     task.operation.rawValue,
                     systemImage: stateIcon)
-                    .egakiumFont(.headline)
+                    .font(IntatisTypography.system(.headline))
                 Spacer()
                 Text(task.state.rawValue)
-                    .egakiumFont(.caption, weight: .semibold)
+                    .font(IntatisTypography.system(.caption, weight: .semibold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(
@@ -1960,15 +1977,15 @@ private struct MCPRemoteTaskCard: View {
             }
             Text(
                 task.authority.server.serverID.rawValue)
-                .egakiumFont(.body)
+                .font(IntatisTypography.system(.body, design: .monospaced))
             Text(task.taskID.rawValue)
-                .egakiumFont(.caption2)
+                .font(IntatisTypography.system(.caption2, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
             HStack {
                 Text(
                     "Revision \(task.stateRevision) · Updated \(task.lastUpdatedAt.formatted(date: .abbreviated, time: .standard))")
-                    .egakiumFont(.caption)
+                    .font(IntatisTypography.system(.caption))
                     .foregroundStyle(.secondary)
                 Spacer()
                 if !isTerminal {
@@ -2133,20 +2150,20 @@ struct MCPCallCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(call.toolName)
-                        .egakiumFont(.headline)
+                        .font(IntatisTypography.system(.headline))
                     Text(call.serverAlias)
-                        .egakiumFont(.caption)
+                        .font(IntatisTypography.system(.caption))
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Label(
                     call.state.rawValue,
                     systemImage: stateIcon)
-                    .egakiumFont(.caption, weight: .semibold)
+                    .font(IntatisTypography.system(.caption, weight: .semibold))
                     .foregroundStyle(stateColor)
             }
             Text(call.argumentSummary)
-                .egakiumFont(.body)
+                .font(IntatisTypography.system(.body, design: .monospaced))
                 .lineLimit(4)
                 .textSelection(.enabled)
             HStack {
@@ -2160,7 +2177,7 @@ struct MCPCallCard: View {
                         date: .abbreviated,
                         time: .standard))
             }
-            .egakiumFont(.caption)
+            .font(IntatisTypography.system(.caption))
             .foregroundStyle(.secondary)
 
             if let fraction = call.progressFraction {
@@ -2172,7 +2189,7 @@ struct MCPCallCard: View {
             }
             if let progress = call.progressSummary {
                 Text(progress)
-                    .egakiumFont(.caption)
+                    .font(IntatisTypography.system(.caption))
             }
             if let result = call.resultSummary {
                 Text(result)
@@ -2185,7 +2202,7 @@ struct MCPCallCard: View {
                         id: \.self
                     ) { source in
                         Text(source)
-                            .egakiumFont(.caption)
+                            .font(IntatisTypography.system(.caption, design: .monospaced))
                             .textSelection(.enabled)
                     }
                 }

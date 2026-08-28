@@ -1,13 +1,13 @@
 import Foundation
-import EgakiumAgentKernel
-import EgakiumConversation
-import EgakiumCore
-import EgakiumCowork
-import EgakiumKnowledge
-import EgakiumPermission
-import EgakiumProtocol
-import EgakiumProviders
-import EgakiumTools
+import IntatisAgentKernel
+import IntatisConversation
+import IntatisCore
+import IntatisCowork
+import IntatisKnowledge
+import IntatisPermission
+import IntatisProtocol
+import IntatisProviders
+import IntatisTools
 import XCTest
 @testable import EgakiumCLI
 
@@ -341,7 +341,7 @@ final class CLIProviderAdapterTests: XCTestCase {
                     "models": ["chat-model": ["name": "Chat"]],
                 ],
                 "embedding": [
-                    "npm": "egakium:siliconflow-v1",
+                    "npm": "intatis:siliconflow-v1",
                     "options": [
                         "baseURL": "https://embedding.example.invalid/v1",
                         "apiKey": "{env:EGAKIUM_TEST_EMBEDDING_KEY}",
@@ -349,7 +349,7 @@ final class CLIProviderAdapterTests: XCTestCase {
                     "models": [String: Any](),
                 ],
                 "reranker": [
-                    "npm": "egakium:cohere-v2",
+                    "npm": "intatis:cohere-v2",
                     "options": [
                         "baseURL": "https://reranker.example.invalid/v2",
                         "apiKey": "{env:EGAKIUM_TEST_RERANKER_KEY}",
@@ -476,7 +476,7 @@ final class CLIProviderAdapterTests: XCTestCase {
 
         let notice = try XCTUnwrap(
             cliKnowledgeToolsConfigurationNotice(config: config))
-        XCTAssertTrue(notice.contains("explicit egakium:siliconflow-v1"))
+        XCTAssertTrue(notice.contains("explicit intatis:siliconflow-v1"))
         XCTAssertNil(makeCLIKnowledgeToolAugmenter(
             config: config,
             registry: registry))

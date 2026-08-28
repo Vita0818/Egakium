@@ -2,13 +2,11 @@
 import AppKit
 import CryptoKit
 import Foundation
-import EgakiumMCP
-import EgakiumProtocol
-import EgakiumSharedUI
+import IntatisMCP
+import IntatisProtocol
+import IntatisSharedUI
 import SwiftUI
-#if !EGAKIUM_MAC_APP_STORE
-import EgakiumMCPStdio
-#endif
+import IntatisMCPStdio
 
 enum MCPImportConflictChoice:
     String, CaseIterable, Identifiable
@@ -138,12 +136,6 @@ extension AppMCPService {
                     case .streamableHTTP:
                         artifact = nil
                     case .stdio:
-                        #if EGAKIUM_MAC_APP_STORE
-                        throw MCPManagementError
-                            .unsupportedTransport(
-                                .stdio,
-                                .macAppStore)
-                        #else
                         guard let files =
                                 launchClosures[
                                     proposal.proposalID],
@@ -171,7 +163,6 @@ extension AppMCPService {
                                                 .trimmingCharacters(
                                                     in: .whitespacesAndNewlines))
                                     })
-                        #endif
                     }
                     let configuration =
                         try proposal.makeConfiguration(
@@ -513,7 +504,7 @@ struct MCPImportServerSheet: View {
             }
             LabeledContent("Source fingerprint") {
                 Text(preview.sourceFingerprint)
-                    .egakiumFont(.caption)
+                    .font(IntatisTypography.system(.caption, design: .monospaced))
                     .textSelection(.enabled)
             }
             LabeledContent("Parser version") {
@@ -527,7 +518,7 @@ struct MCPImportServerSheet: View {
             }
             Text(
                 "Preview never displays imported secret values. Test & Import migrates them directly from bounded in-memory staging to Keychain, tests every exact draft, then commits the catalog as one atomic batch.")
-                .egakiumFont(.caption)
+                .font(IntatisTypography.system(.caption))
                 .foregroundStyle(.secondary)
         }
         if !preview.issues.isEmpty {
@@ -539,7 +530,7 @@ struct MCPImportServerSheet: View {
                     Label {
                         Text(
                             "\(issue.code.rawValue) · \(issue.path)")
-                            .egakiumFont(.body)
+                            .font(IntatisTypography.system(.body, design: .monospaced))
                     } icon: {
                         Image(systemName:
                             issue.blocking
@@ -561,9 +552,9 @@ struct MCPImportServerSheet: View {
                 ) { descriptor in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(descriptor.kind.rawValue)
-                            .egakiumFont(.body, weight: .semibold)
+                            .font(IntatisTypography.system(.body, weight: .semibold))
                         Text(descriptor.fieldPath)
-                            .egakiumFont(.caption)
+                            .font(IntatisTypography.system(.caption, design: .monospaced))
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -577,11 +568,11 @@ struct MCPImportServerSheet: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(
                         "\(proposal.alias) — \(proposal.displayName)")
-                        .egakiumFont(.body, weight: .semibold)
+                        .font(IntatisTypography.system(.body, weight: .semibold))
                     switch proposal.transport {
                     case .streamableHTTP(let http):
                         Text(http.endpoint)
-                            .egakiumFont(.caption)
+                            .font(IntatisTypography.system(.caption, design: .monospaced))
                             .textSelection(.enabled)
                         if MCPImportEndpointPolicy
                             .isInsecureLoopbackDevelopmentHTTP(
@@ -599,28 +590,22 @@ struct MCPImportServerSheet: View {
                                         .proposalID) {
                                 Text(
                                     "Development only. Plain HTTP is accepted only for this exact loopback endpoint; OAuth, redirects, proxies, and non-loopback hosts remain blocked.")
-                                    .egakiumFont(.caption)
+                                    .font(IntatisTypography.system(.caption))
                                     .foregroundStyle(
                                         .orange)
                             }
                         }
                     case .stdio(let stdio):
                         Text(stdio.command)
-                            .egakiumFont(.caption)
+                            .font(IntatisTypography.system(.caption, design: .monospaced))
                             .textSelection(.enabled)
                         if !stdio.arguments.isEmpty {
                             Text(
                                 "Imported arguments: \(stdio.arguments.joined(separator: " "))")
-                                .egakiumFont(.caption)
+                                .font(IntatisTypography.system(.caption, design: .monospaced))
                                 .foregroundStyle(.secondary)
                                 .textSelection(.enabled)
                         }
-                        #if EGAKIUM_MAC_APP_STORE
-                        Label(
-                            "Managed stdio cannot be imported by this App Store build.",
-                            systemImage: "xmark.octagon")
-                            .foregroundStyle(.red)
-                        #else
                         let closure = launchClosure(
                             proposal.proposalID,
                             importedCommand:
@@ -671,9 +656,8 @@ struct MCPImportServerSheet: View {
                         }
                         Text(
                             "Declare the complete launch closure explicitly: exactly one executable plus every interpreter, script, package entrypoint, lockfile, and helper. Egakium does not infer files from imported arguments.")
-                            .egakiumFont(.caption)
+                            .font(IntatisTypography.system(.caption))
                             .foregroundStyle(.secondary)
-                        #endif
                     }
                 }
             }
@@ -690,7 +674,7 @@ struct MCPImportServerSheet: View {
                             "\(conflict.alias)-imported")
                     VStack(alignment: .leading, spacing: 6) {
                         Text(conflict.alias)
-                            .egakiumFont(.body, weight: .semibold)
+                            .font(IntatisTypography.system(.body, weight: .semibold))
                         Picker(
                             "Resolution",
                             selection: binding.choice
@@ -717,7 +701,7 @@ struct MCPImportServerSheet: View {
                         }
                         Text(
                             "No conflict is overwritten implicitly.")
-                            .egakiumFont(.caption)
+                            .font(IntatisTypography.system(.caption))
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -793,17 +777,6 @@ struct MCPImportServerSheet: View {
               !model.isWorking else {
             return false
         }
-        #if EGAKIUM_MAC_APP_STORE
-        if workspace.parsed.preview.proposals.contains(
-            where: {
-                if case .stdio = $0.transport {
-                    return true
-                }
-                return false
-            }) {
-            return false
-        }
-        #else
         let skipped = Set(
             workspace.plan.conflicts.compactMap {
                 model.resolutions[$0.proposalID]?
@@ -831,7 +804,6 @@ struct MCPImportServerSheet: View {
                 }
             }
         }
-        #endif
         for conflict in workspace.plan.conflicts {
             guard let value =
                     model.resolutions[

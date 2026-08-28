@@ -1,8 +1,9 @@
 #if canImport(SwiftUI) && canImport(AppKit)
 import SwiftUI
 import AppKit
-import EgakiumCore
-import EgakiumSharedUI
+import IntatisCore
+import EgakiumCanvas
+import IntatisSharedUI
 
 struct CoworkCanvasHost: View {
     @State private var reloadRevision: UInt64 = 0
@@ -35,12 +36,12 @@ struct CoworkCanvasHost: View {
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(EgakiumLocalization.string("Session Canvas"))
-                    .egakiumFont(.headline)
+                Text(IntatisLocalization.string("Session Canvas"))
+                    .font(IntatisTypography.system(.headline))
                 Text(
                     document?.relativeIndexPath
-                        ?? EgakiumLocalization.string("Preparing index.html…"))
-                    .egakiumFont(.caption)
+                        ?? IntatisLocalization.string("Preparing index.html…"))
+                    .font(IntatisTypography.system(.caption))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .textSelection(.enabled)
@@ -52,7 +53,7 @@ struct CoworkCanvasHost: View {
                 reloadRevision &+= 1
             } label: {
                 Label(
-                    EgakiumLocalization.string("Reload Canvas"),
+                    IntatisLocalization.string("Reload Canvas"),
                     systemImage: "arrow.clockwise")
             }
             .disabled(document == nil || !cefIsAvailable)
@@ -82,13 +83,13 @@ struct CoworkCanvasHost: View {
         } else if let errorMessage {
             ContentUnavailableView {
                 Label(
-                    EgakiumLocalization.string("Canvas Unavailable"),
+                    IntatisLocalization.string("Canvas Unavailable"),
                     systemImage: "exclamationmark.triangle")
             } description: {
                 Text(errorMessage)
             } actions: {
                 if let onRetry {
-                    Button(EgakiumLocalization.string("Retry")) {
+                    Button(IntatisLocalization.string("Retry")) {
                         onRetry()
                     }
                 }
@@ -96,7 +97,7 @@ struct CoworkCanvasHost: View {
         } else {
             VStack(spacing: 12) {
                 ProgressView()
-                Text(EgakiumLocalization.string("Preparing Session Canvas…"))
+                Text(IntatisLocalization.string("Preparing Session Canvas…"))
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -114,7 +115,7 @@ struct CoworkCanvasHost: View {
     private func canvasUnavailable(_ message: String) -> some View {
         ContentUnavailableView {
             Label(
-                EgakiumLocalization.string("Canvas Unavailable"),
+                IntatisLocalization.string("Canvas Unavailable"),
                 systemImage: "exclamationmark.triangle")
         } description: {
             Text(message)

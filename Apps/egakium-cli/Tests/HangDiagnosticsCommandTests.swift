@@ -1,11 +1,11 @@
 import Foundation
-import EgakiumCore
+import IntatisCore
 import XCTest
 @testable import EgakiumCLI
 
 final class HangDiagnosticsCommandTests: XCTestCase {
     func testParserRequiresExactPIDAndResolvesRelativeOutput() throws {
-        let current = URL(fileURLWithPath: "/tmp/egakium-diagnostics-test")
+        let current = URL(fileURLWithPath: "/tmp/intatis-diagnostics-test")
         let options = try CLIDiagnoseHangOptions.parse(
             ["--pid", "4321", "--output", "captures"][...],
             currentDirectoryURL: current)
@@ -23,47 +23,47 @@ final class HangDiagnosticsCommandTests: XCTestCase {
     }
 
     func testProcessValidationRequiresCurrentUserExactExecutableAndBundle() {
-        let valid = CLIEgakiumProcessIdentity(
+        let valid = CLIIntatisProcessIdentity(
             processIdentifier: 42,
             ownerUserIdentifier: 501,
             executableName: "EgakiumMac",
-            bundleIdentifier: "com.Vita0818.EgakiumMac")
-        XCTAssertNoThrow(try CLIEgakiumProcessValidator.validate(
+            bundleIdentifier: "com.Vita0818.Egakium")
+        XCTAssertNoThrow(try CLIIntatisProcessValidator.validate(
             valid,
             currentUserIdentifier: 501))
 
-        XCTAssertThrowsError(try CLIEgakiumProcessValidator.validate(
+        XCTAssertThrowsError(try CLIIntatisProcessValidator.validate(
             .init(
                 processIdentifier: 42,
                 ownerUserIdentifier: 502,
                 executableName: "EgakiumMac",
-                bundleIdentifier: "com.Vita0818.EgakiumMac"),
+                bundleIdentifier: "com.Vita0818.Egakium"),
             currentUserIdentifier: 501)) {
                 XCTAssertEqual(
                     $0 as? CLIDiagnoseHangError,
                     .targetNotOwnedByCurrentUser)
             }
-        XCTAssertThrowsError(try CLIEgakiumProcessValidator.validate(
+        XCTAssertThrowsError(try CLIIntatisProcessValidator.validate(
             .init(
                 processIdentifier: 42,
                 ownerUserIdentifier: 501,
                 executableName: "EgakiumMac-copy",
-                bundleIdentifier: "com.Vita0818.EgakiumMac"),
+                bundleIdentifier: "com.Vita0818.Egakium"),
             currentUserIdentifier: 501)) {
                 XCTAssertEqual(
                     $0 as? CLIDiagnoseHangError,
-                    .targetIsNotEgakium)
+                    .targetIsNotIntatis)
             }
-        XCTAssertThrowsError(try CLIEgakiumProcessValidator.validate(
+        XCTAssertThrowsError(try CLIIntatisProcessValidator.validate(
             .init(
                 processIdentifier: 42,
                 ownerUserIdentifier: 501,
                 executableName: "EgakiumMac",
-                bundleIdentifier: "example.not-egakium"),
+                bundleIdentifier: "example.not-intatis"),
             currentUserIdentifier: 501)) {
                 XCTAssertEqual(
                     $0 as? CLIDiagnoseHangError,
-                    .targetIsNotEgakium)
+                    .targetIsNotIntatis)
             }
     }
 
@@ -75,7 +75,7 @@ final class HangDiagnosticsCommandTests: XCTestCase {
         let explicitParent = parent.appendingPathComponent("selected")
         let now = Date(timeIntervalSince1970: 10_000)
 
-        let recentStore = EgakiumHangDiagnosticBundleStore(
+        let recentStore = IntatisHangDiagnosticBundleStore(
             rootURL: defaultRoot)
         _ = try await recentStore.writeBundle(
             manifest: .init(
@@ -86,11 +86,11 @@ final class HangDiagnosticsCommandTests: XCTestCase {
                 applicationVersion: "0.12",
                 buildVersion: "7",
                 metrics: .init(counters: [
-                    EgakiumDiagnosticCounter.mainThreadIncidents.rawValue: 1,
+                    IntatisDiagnosticCounter.mainThreadIncidents.rawValue: 1,
                 ])))
 
         let runner = RecordingHangCaptureRunner()
-        let report = try await captureEgakiumHang(
+        let report = try await captureIntatisHang(
             options: .init(
                 processIdentifier: 4321,
                 outputParentURL: explicitParent),
@@ -99,7 +99,7 @@ final class HangDiagnosticsCommandTests: XCTestCase {
                     processIdentifier: 4321,
                     ownerUserIdentifier: 501,
                     executableName: "EgakiumMac",
-                    bundleIdentifier: "com.Vita0818.EgakiumMac")),
+                    bundleIdentifier: "com.Vita0818.Egakium")),
             runner: runner,
             now: now,
             currentUserIdentifier: 501,
@@ -122,7 +122,7 @@ final class HangDiagnosticsCommandTests: XCTestCase {
                 "--style",
                 "compact",
                 "--predicate",
-                "processIdentifier == 4321 AND subsystem == \"com.Vita0818.Egakium\"",
+                "processIdentifier == 4321 AND subsystem == \"com.Vita0818.Intatis\"",
             ])
 
         let bundle = explicitParent
@@ -141,7 +141,7 @@ final class HangDiagnosticsCommandTests: XCTestCase {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let manifest = try decoder.decode(
-            EgakiumHangDiagnosticManifest.self,
+            IntatisHangDiagnosticManifest.self,
             from: manifestData)
         XCTAssertEqual(manifest.source, .externalCapture)
         XCTAssertEqual(manifest.mainThreadDelayMilliseconds, 2_250)
@@ -163,7 +163,7 @@ final class HangDiagnosticsCommandTests: XCTestCase {
         let defaultRoot = parent.appendingPathComponent("default")
         let runner = RecordingHangCaptureRunner(sampleStatus: 1)
 
-        let report = try await captureEgakiumHang(
+        let report = try await captureIntatisHang(
             options: .init(
                 processIdentifier: 123,
                 outputParentURL: nil),
@@ -172,7 +172,7 @@ final class HangDiagnosticsCommandTests: XCTestCase {
                     processIdentifier: 123,
                     ownerUserIdentifier: 501,
                     executableName: "EgakiumMac",
-                    bundleIdentifier: "com.Vita0818.EgakiumMac")),
+                    bundleIdentifier: "com.Vita0818.Egakium")),
             runner: runner,
             now: Date(timeIntervalSince1970: 20_000),
             currentUserIdentifier: 501,
@@ -194,7 +194,7 @@ final class HangDiagnosticsCommandTests: XCTestCase {
         let defaultRoot = parent.appendingPathComponent("default")
         let runner = RecordingHangCaptureRunner(throwSample: true)
 
-        let report = try await captureEgakiumHang(
+        let report = try await captureIntatisHang(
             options: .init(
                 processIdentifier: 123,
                 outputParentURL: nil),
@@ -203,7 +203,7 @@ final class HangDiagnosticsCommandTests: XCTestCase {
                     processIdentifier: 123,
                     ownerUserIdentifier: 501,
                     executableName: "EgakiumMac",
-                    bundleIdentifier: "com.Vita0818.EgakiumMac")),
+                    bundleIdentifier: "com.Vita0818.Egakium")),
             runner: runner,
             now: Date(timeIntervalSince1970: 20_001),
             currentUserIdentifier: 501,
@@ -231,12 +231,12 @@ final class HangDiagnosticsCommandTests: XCTestCase {
     }
 }
 
-private struct FixedProcessInspector: CLIEgakiumProcessInspecting {
-    let identity: CLIEgakiumProcessIdentity
+private struct FixedProcessInspector: CLIIntatisProcessInspecting {
+    let identity: CLIIntatisProcessIdentity
 
     func inspect(
         processIdentifier: Int32
-    ) throws -> CLIEgakiumProcessIdentity {
+    ) throws -> CLIIntatisProcessIdentity {
         XCTAssertEqual(processIdentifier, identity.processIdentifier)
         return identity
     }

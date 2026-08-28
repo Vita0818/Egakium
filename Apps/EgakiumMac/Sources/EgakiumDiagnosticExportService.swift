@@ -1,20 +1,20 @@
 #if canImport(AppKit)
 import AppKit
 import Foundation
-import EgakiumCore
-import EgakiumSharedUI
+import IntatisCore
+import IntatisSharedUI
 
 #if canImport(Darwin)
 import Darwin
 #endif
 
-struct EgakiumDiagnosticExportResult: Sendable {
+struct IntatisDiagnosticExportResult: Sendable {
     let archiveFileName: String
     let archiveByteCount: Int
     let collectionErrorCount: Int
 }
 
-enum EgakiumDiagnosticExportError: Error, LocalizedError {
+enum IntatisDiagnosticExportError: Error, LocalizedError {
     case couldNotPrepare
     case archiveFailed(String)
     case archiveTooLarge
@@ -34,13 +34,13 @@ enum EgakiumDiagnosticExportError: Error, LocalizedError {
 }
 
 @MainActor
-enum EgakiumDiagnosticExportService {
+enum IntatisDiagnosticExportService {
     static func suggestedArchiveName(now: Date = Date()) -> String {
         "Egakium-Diagnostics-\(fileTimestamp(now)).zip"
     }
 
     static func export(to destinationURL: URL) async throws
-        -> EgakiumDiagnosticExportResult
+        -> IntatisDiagnosticExportResult
     {
         let catalog = AppConfig.providerCatalog
         let library = try FileManager.default.url(
@@ -48,8 +48,8 @@ enum EgakiumDiagnosticExportService {
             in: .userDomainMask,
             appropriateFor: nil,
             create: true)
-        let hangRoot = try? EgakiumHangDiagnosticBundleStore.defaultRootURL()
-        let context = EgakiumDiagnosticExportContext(
+        let hangRoot = try? IntatisHangDiagnosticBundleStore.defaultRootURL()
+        let context = IntatisDiagnosticExportContext(
             generatedAt: Date(),
             destinationURL: destinationURL,
             applicationSupportRoot: AppConfig.appSupportDir(),
@@ -77,15 +77,15 @@ enum EgakiumDiagnosticExportService {
             selectedVariantID: catalog.selectedVariantID,
             providerCount: catalog.providers.count,
             modelCount: catalog.providers.reduce(0) { $0 + $1.models.count },
-            rendererMode: EgakiumMessageRendererMode.resolve(
+            rendererMode: IntatisMessageRendererMode.resolve(
                 persistedRawValue: UserDefaults.standard.string(
-                    forKey: EgakiumMessageRendererMode.defaultsKey),
+                    forKey: IntatisMessageRendererMode.defaultsKey),
                 arguments: ProcessInfo.processInfo.arguments).rawValue,
             performanceMetrics: try? JSONEncoder().encode(
-                EgakiumPerformanceDiagnostics.shared.snapshot()))
+                IntatisPerformanceDiagnostics.shared.snapshot()))
 
         let work = Task.detached(priority: .utility) {
-            try EgakiumDiagnosticBundleBuilder(context: context).build()
+            try IntatisDiagnosticBundleBuilder(context: context).build()
         }
         return try await withTaskCancellationHandler {
             try await work.value
@@ -114,7 +114,7 @@ enum EgakiumDiagnosticExportService {
     }
 }
 
-private struct EgakiumDiagnosticExportContext: Sendable {
+private struct IntatisDiagnosticExportContext: Sendable {
     let generatedAt: Date
     let destinationURL: URL
     let applicationSupportRoot: URL
@@ -136,7 +136,7 @@ private struct EgakiumDiagnosticExportContext: Sendable {
     let performanceMetrics: Data?
 }
 
-private struct EgakiumDiagnosticExportManifest: Codable {
+private struct IntatisDiagnosticExportManifest: Codable {
     struct Application: Codable {
         let name: String
         let version: String?
@@ -199,7 +199,7 @@ private struct EgakiumDiagnosticExportManifest: Codable {
     var collectionErrors: [CollectionError]
 }
 
-private struct EgakiumDiagnosticBundleBuilder {
+private struct IntatisDiagnosticBundleBuilder {
     private static let maximumEventBytesPerSession = 8 * 1_024 * 1_024
     private static let maximumTotalEventInputBytes = 64 * 1_024 * 1_024
     private static let maximumSessionCount = 100
@@ -207,10 +207,10 @@ private struct EgakiumDiagnosticBundleBuilder {
     private static let maximumCrashBytes = 4 * 1_024 * 1_024
     private static let maximumArchiveBytes = 96 * 1_024 * 1_024
 
-    let context: EgakiumDiagnosticExportContext
+    let context: IntatisDiagnosticExportContext
     private let fileManager = FileManager.default
 
-    func build() throws -> EgakiumDiagnosticExportResult {
+    func build() throws -> IntatisDiagnosticExportResult {
         try Task.checkCancellation()
         let temporaryRoot = fileManager.temporaryDirectory.appendingPathComponent(
             "Egakium-Diagnostic-\(UUID().uuidString)",
@@ -288,7 +288,7 @@ private struct EgakiumDiagnosticBundleBuilder {
         try Task.checkCancellation()
         let archiveURL = temporaryRoot.appendingPathComponent(
             "\(bundleName).zip")
-        let execution = try EgakiumDiagnosticFixedProcessRunner.run(
+        let execution = try IntatisDiagnosticFixedProcessRunner.run(
             executableURL: URL(fileURLWithPath: "/usr/bin/ditto"),
             arguments: [
                 "-c", "-k", "--keepParent", bundleRoot.path, archiveURL.path,
@@ -296,29 +296,29 @@ private struct EgakiumDiagnosticBundleBuilder {
             timeoutSeconds: 30,
             maximumOutputBytes: 1 * 1_024 * 1_024)
         guard execution.succeeded else {
-            let detail = EgakiumHangDiagnosticTextSanitizer.sanitize(
+            let detail = IntatisHangDiagnosticTextSanitizer.sanitize(
                 String(decoding: execution.standardError, as: UTF8.self),
                 sensitivePaths: sensitivePaths,
                 maximumBytes: 1_024)
-            throw EgakiumDiagnosticExportError.archiveFailed(detail)
+            throw IntatisDiagnosticExportError.archiveFailed(detail)
         }
 
         let archiveData = try Data(contentsOf: archiveURL, options: .mappedIfSafe)
         guard archiveData.count <= Self.maximumArchiveBytes else {
-            throw EgakiumDiagnosticExportError.archiveTooLarge
+            throw IntatisDiagnosticExportError.archiveTooLarge
         }
         try DurableOwnerOnlyFile.writeAtomically(
             archiveData,
             to: context.destinationURL,
             temporaryPrefix: ".egakium-diagnostic-")
-        return EgakiumDiagnosticExportResult(
+        return IntatisDiagnosticExportResult(
             archiveFileName: context.destinationURL.lastPathComponent,
             archiveByteCount: archiveData.count,
             collectionErrorCount: manifest.collectionErrors.count)
     }
 
-    private func makeManifest() -> EgakiumDiagnosticExportManifest {
-        EgakiumDiagnosticExportManifest(
+    private func makeManifest() -> IntatisDiagnosticExportManifest {
+        IntatisDiagnosticExportManifest(
             schemaVersion: 1,
             generatedAt: context.generatedAt,
             application: .init(
@@ -364,7 +364,7 @@ private struct EgakiumDiagnosticBundleBuilder {
 
     private func collectSessions(
         bundleRoot: URL,
-        manifest: inout EgakiumDiagnosticExportManifest
+        manifest: inout IntatisDiagnosticExportManifest
     ) {
         let keys: Set<URLResourceKey> = [
             .contentModificationDateKey,
@@ -420,13 +420,13 @@ private struct EgakiumDiagnosticBundleBuilder {
                 continue
             }
             do {
-                let snapshot = try EgakiumDiagnosticSnapshotReader.readTail(
+                let snapshot = try IntatisDiagnosticSnapshotReader.readTail(
                     from: events,
                     maximumBytes: min(
                         Self.maximumEventBytesPerSession,
                         remainingInputBytes))
                 remainingInputBytes -= snapshot.data.count
-                let redacted = EgakiumDiagnosticEventLogRedactor.redact(snapshot)
+                let redacted = IntatisDiagnosticEventLogRedactor.redact(snapshot)
                 let relativePath = "sessions/\(name)/events.redacted.jsonl"
                 try write(
                     redacted.data,
@@ -457,11 +457,11 @@ private struct EgakiumDiagnosticBundleBuilder {
 
     private func collectUnifiedLog(
         bundleRoot: URL,
-        manifest: inout EgakiumDiagnosticExportManifest
+        manifest: inout IntatisDiagnosticExportManifest
     ) {
         guard !Task.isCancelled else { return }
         do {
-            let execution = try EgakiumDiagnosticFixedProcessRunner.run(
+            let execution = try IntatisDiagnosticFixedProcessRunner.run(
                 executableURL: URL(fileURLWithPath: "/usr/bin/log"),
                 arguments: [
                     "show",
@@ -501,11 +501,11 @@ private struct EgakiumDiagnosticBundleBuilder {
 
     private func collectProxyConfiguration(
         bundleRoot: URL,
-        manifest: inout EgakiumDiagnosticExportManifest
+        manifest: inout IntatisDiagnosticExportManifest
     ) {
         guard !Task.isCancelled else { return }
         do {
-            let execution = try EgakiumDiagnosticFixedProcessRunner.run(
+            let execution = try IntatisDiagnosticFixedProcessRunner.run(
                 executableURL: URL(fileURLWithPath: "/usr/sbin/scutil"),
                 arguments: ["--proxy"],
                 timeoutSeconds: 5,
@@ -533,7 +533,7 @@ private struct EgakiumDiagnosticBundleBuilder {
 
     private func collectHangDiagnostics(
         bundleRoot: URL,
-        manifest: inout EgakiumDiagnosticExportManifest
+        manifest: inout IntatisDiagnosticExportManifest
     ) {
         guard let root = context.hangDiagnosticsRoot else {
             manifest.collectionErrors.append(.init(
@@ -583,7 +583,7 @@ private struct EgakiumDiagnosticBundleBuilder {
                 let source = directory.appendingPathComponent(fileName)
                 guard fileManager.fileExists(atPath: source.path) else { continue }
                 do {
-                    let snapshot = try EgakiumDiagnosticSnapshotReader.readTail(
+                    let snapshot = try IntatisDiagnosticSnapshotReader.readTail(
                         from: source,
                         maximumBytes: 4 * 1_024 * 1_024)
                     try writeSanitizedText(
@@ -607,7 +607,7 @@ private struct EgakiumDiagnosticBundleBuilder {
 
     private func collectCrashReports(
         bundleRoot: URL,
-        manifest: inout EgakiumDiagnosticExportManifest
+        manifest: inout IntatisDiagnosticExportManifest
     ) {
         let keys: Set<URLResourceKey> = [
             .contentModificationDateKey,
@@ -640,7 +640,7 @@ private struct EgakiumDiagnosticBundleBuilder {
         for (index, report) in reports.prefix(Self.maximumCrashCount).enumerated() {
             if Task.isCancelled { return }
             do {
-                let snapshot = try EgakiumDiagnosticSnapshotReader.readTail(
+                let snapshot = try IntatisDiagnosticSnapshotReader.readTail(
                     from: report.0,
                     maximumBytes: Self.maximumCrashBytes)
                 let ext = report.0.pathExtension.lowercased()
@@ -668,9 +668,9 @@ private struct EgakiumDiagnosticBundleBuilder {
         sourceByteCount: Int? = nil,
         sourceWasTruncated: Bool,
         bundleRoot: URL,
-        manifest: inout EgakiumDiagnosticExportManifest
+        manifest: inout IntatisDiagnosticExportManifest
     ) throws {
-        let sanitized = EgakiumHangDiagnosticTextSanitizer.sanitize(
+        let sanitized = IntatisHangDiagnosticTextSanitizer.sanitize(
             String(decoding: rawData, as: UTF8.self),
             sensitivePaths: sensitivePaths,
             maximumBytes: 8 * 1_024 * 1_024)
@@ -692,7 +692,7 @@ private struct EgakiumDiagnosticBundleBuilder {
         sourceByteCount: Int,
         truncated: Bool,
         bundleRoot: URL,
-        manifest: inout EgakiumDiagnosticExportManifest
+        manifest: inout IntatisDiagnosticExportManifest
     ) throws {
         try writeOwnerOnly(data, relativePath: relativePath, bundleRoot: bundleRoot)
         manifest.files.append(.init(
@@ -711,7 +711,7 @@ private struct EgakiumDiagnosticBundleBuilder {
         let components = relativePath.split(separator: "/").map(String.init)
         guard !components.isEmpty,
               components.allSatisfy(isSafeLeafName) else {
-            throw EgakiumDiagnosticExportError.couldNotPrepare
+            throw IntatisDiagnosticExportError.couldNotPrepare
         }
         var destination = bundleRoot
         for component in components.dropLast() {
@@ -736,7 +736,7 @@ private struct EgakiumDiagnosticBundleBuilder {
     private func record(
         source: String,
         error: Error,
-        manifest: inout EgakiumDiagnosticExportManifest
+        manifest: inout IntatisDiagnosticExportManifest
     ) {
         manifest.collectionErrors.append(.init(
             source: safeIdentifier(source),
@@ -744,14 +744,14 @@ private struct EgakiumDiagnosticBundleBuilder {
     }
 
     private func safeIdentifier(_ value: String) -> String {
-        EgakiumHangDiagnosticTextSanitizer.sanitize(
+        IntatisHangDiagnosticTextSanitizer.sanitize(
             value,
             sensitivePaths: sensitivePaths,
             maximumBytes: 512)
     }
 
     private func safeDiagnosticMessage(_ value: String) -> String {
-        EgakiumHangDiagnosticTextSanitizer.sanitize(
+        IntatisHangDiagnosticTextSanitizer.sanitize(
             value,
             sensitivePaths: sensitivePaths,
             maximumBytes: 2_048)
@@ -837,7 +837,7 @@ private struct EgakiumDiagnosticBundleBuilder {
     """
 }
 
-private struct EgakiumDiagnosticProcessExecution: Sendable {
+private struct IntatisDiagnosticProcessExecution: Sendable {
     let terminationStatus: Int32
     let standardOutput: Data
     let standardError: Data
@@ -849,13 +849,13 @@ private struct EgakiumDiagnosticProcessExecution: Sendable {
     }
 }
 
-private enum EgakiumDiagnosticFixedProcessRunner {
+private enum IntatisDiagnosticFixedProcessRunner {
     static func run(
         executableURL: URL,
         arguments: [String],
         timeoutSeconds: TimeInterval,
         maximumOutputBytes: Int
-    ) throws -> EgakiumDiagnosticProcessExecution {
+    ) throws -> IntatisDiagnosticProcessExecution {
         try Task.checkCancellation()
         let process = Process()
         process.executableURL = executableURL
@@ -871,9 +871,9 @@ private enum EgakiumDiagnosticFixedProcessRunner {
         process.standardError = errorPipe
         process.standardInput = FileHandle.nullDevice
 
-        let output = EgakiumDiagnosticBoundedDataBuffer(
+        let output = IntatisDiagnosticBoundedDataBuffer(
             maximumBytes: maximumOutputBytes)
-        let errors = EgakiumDiagnosticBoundedDataBuffer(
+        let errors = IntatisDiagnosticBoundedDataBuffer(
             maximumBytes: min(maximumOutputBytes, 1 * 1_024 * 1_024))
         let drains = DispatchGroup()
         drains.enter()
@@ -924,7 +924,7 @@ private enum EgakiumDiagnosticFixedProcessRunner {
         process.waitUntilExit()
         drains.wait()
         if Task.isCancelled { throw CancellationError() }
-        return EgakiumDiagnosticProcessExecution(
+        return IntatisDiagnosticProcessExecution(
             terminationStatus: process.terminationStatus,
             standardOutput: output.snapshot.data,
             standardError: errors.snapshot.data,
@@ -934,7 +934,7 @@ private enum EgakiumDiagnosticFixedProcessRunner {
 
     private static func drain(
         _ handle: FileHandle,
-        into buffer: EgakiumDiagnosticBoundedDataBuffer
+        into buffer: IntatisDiagnosticBoundedDataBuffer
     ) {
         while true {
             do {
@@ -948,7 +948,7 @@ private enum EgakiumDiagnosticFixedProcessRunner {
     }
 }
 
-private final class EgakiumDiagnosticBoundedDataBuffer: @unchecked Sendable {
+private final class IntatisDiagnosticBoundedDataBuffer: @unchecked Sendable {
     struct Snapshot {
         let data: Data
         let truncated: Bool

@@ -1,14 +1,14 @@
 import Foundation
-import EgakiumCore
-import EgakiumProtocol
-import EgakiumProviders
-import EgakiumConversation
-import EgakiumTools
-import EgakiumPermission
-import EgakiumAgentKernel
-import EgakiumCowork
-import EgakiumSkills
-import EgakiumArtifacts
+import IntatisCore
+import IntatisProtocol
+import IntatisProviders
+import IntatisConversation
+import IntatisTools
+import IntatisPermission
+import IntatisAgentKernel
+import IntatisCowork
+import IntatisSkills
+import IntatisArtifacts
 
 enum REPLExit { case quit; case switchTo(Mode) }
 
@@ -99,8 +99,16 @@ func runMode(_ config: CLIConfig, mode startMode: Mode, workspace: URL) async th
     while true {
         let exit: REPLExit
         switch mode {
-        case .chat, .code: exit = try await chatCodeREPL(config, mode: mode, workspace: workspace)
-        case .cowork:      exit = try await coworkREPL(config, workspace: workspace)
+        case .chat:
+            exit = try await chatCodeREPL(
+                config,
+                mode: .chat,
+                workspace: workspace)
+        case .code, .cowork:
+            exit = try await codexRuntimeREPL(
+                config,
+                mode: mode,
+                workspace: workspace)
         }
         switch exit {
         case .quit: return
@@ -128,6 +136,10 @@ private let replHelp = """
 """
 
 private func chatCodeREPL(_ config: CLIConfig, mode: Mode, workspace: URL) async throws -> REPLExit {
+    guard mode == .chat else {
+        throw IntatisError.config(
+            "CLI Code/Cowork must run through Codex App Server")
+    }
     let registry = ProviderRegistry(
         config: config.providerConfig(),
         resolver: CLIExactSecretResolver(config: config))
@@ -346,7 +358,7 @@ private func chatCodeREPL(_ config: CLIConfig, mode: Mode, workspace: URL) async
                             \.providerAttachment))
             case .code:
                 guard let codeArtifactStore else {
-                    throw EgakiumError.config(
+                    throw IntatisError.config(
                         "CLI Code artifact storage is unavailable.")
                 }
                 let attachmentIDs = try await preserveAgentImages(
@@ -633,6 +645,7 @@ private let coworkHelp = """
 
 """
 
+@available(*, unavailable, message: "CLI Cowork uses Codex App Server")
 private func coworkREPL(_ config: CLIConfig, workspace: URL) async throws -> REPLExit {
     let inferenceProfiles = try await CLIInferenceProfiles.load(config: config)
     let registry = ProviderRegistry(
@@ -694,7 +707,7 @@ private func coworkREPL(_ config: CLIConfig, workspace: URL) async throws -> REP
                 return nil
             }
             guard let workspaceLease else {
-                throw EgakiumError.config(
+                throw IntatisError.config(
                     "MCP dispatch requires an exact workspace lease")
             }
             let activation =

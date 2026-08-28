@@ -1,5 +1,5 @@
 import Foundation
-import EgakiumCore
+import IntatisCore
 
 #if canImport(AppKit)
 import AppKit
@@ -19,7 +19,7 @@ enum CLIDiagnoseHangError: Error, LocalizedError, Equatable {
     case invalidProcessIdentifier
     case targetNotRunning
     case targetNotOwnedByCurrentUser
-    case targetIsNotEgakium
+    case targetIsNotIntatis
     case sampleFailed
 
     var errorDescription: String? {
@@ -34,7 +34,7 @@ enum CLIDiagnoseHangError: Error, LocalizedError, Equatable {
             return "the target process is not running"
         case .targetNotOwnedByCurrentUser:
             return "the target process is not owned by the current user"
-        case .targetIsNotEgakium:
+        case .targetIsNotIntatis:
             return "the target process is not the Egakium macOS application"
         case .sampleFailed:
             return "the hang bundle was saved, but macOS sample capture failed"
@@ -97,28 +97,28 @@ struct CLIDiagnoseHangOptions: Equatable {
     }
 }
 
-struct CLIEgakiumProcessIdentity: Equatable, Sendable {
+struct CLIIntatisProcessIdentity: Equatable, Sendable {
     let processIdentifier: Int32
     let ownerUserIdentifier: UInt32
     let executableName: String
     let bundleIdentifier: String?
 }
 
-protocol CLIEgakiumProcessInspecting: Sendable {
-    func inspect(processIdentifier: Int32) throws -> CLIEgakiumProcessIdentity
+protocol CLIIntatisProcessInspecting: Sendable {
+    func inspect(processIdentifier: Int32) throws -> CLIIntatisProcessIdentity
 }
 
-enum CLIEgakiumProcessValidator {
+enum CLIIntatisProcessValidator {
     static func validate(
-        _ identity: CLIEgakiumProcessIdentity,
+        _ identity: CLIIntatisProcessIdentity,
         currentUserIdentifier: UInt32
     ) throws {
         guard identity.ownerUserIdentifier == currentUserIdentifier else {
             throw CLIDiagnoseHangError.targetNotOwnedByCurrentUser
         }
         guard identity.executableName == "EgakiumMac",
-              identity.bundleIdentifier == "com.Vita0818.EgakiumMac" else {
-            throw CLIDiagnoseHangError.targetIsNotEgakium
+              identity.bundleIdentifier == "com.Vita0818.Egakium" else {
+            throw CLIDiagnoseHangError.targetIsNotIntatis
         }
     }
 }
@@ -153,9 +153,9 @@ func runDiagnoseHangCommand(
 ) async throws {
     let options = try CLIDiagnoseHangOptions.parse(arguments)
     #if os(macOS)
-    let report = try await captureEgakiumHang(
+    let report = try await captureIntatisHang(
         options: options,
-        inspector: CLIMacEgakiumProcessInspector(),
+        inspector: CLIMacIntatisProcessInspector(),
         runner: CLIProcessHangCaptureRunner())
     out("Hang bundle saved: \(report.bundleDisplayName)\n")
     out("sample: \(report.sampleSucceeded ? "captured" : "failed") · unified log: \(report.unifiedLogSucceeded ? "captured" : "failed")\n")
@@ -168,9 +168,9 @@ func runDiagnoseHangCommand(
     #endif
 }
 
-func captureEgakiumHang(
+func captureIntatisHang(
     options: CLIDiagnoseHangOptions,
-    inspector: any CLIEgakiumProcessInspecting,
+    inspector: any CLIIntatisProcessInspecting,
     runner: any CLIHangCaptureRunning,
     now: Date = Date(),
     currentUserIdentifier: UInt32 = currentEffectiveUserIdentifier(),
@@ -178,7 +178,7 @@ func captureEgakiumHang(
 ) async throws -> CLIHangCaptureReport {
     let identity = try inspector.inspect(
         processIdentifier: options.processIdentifier)
-    try CLIEgakiumProcessValidator.validate(
+    try CLIIntatisProcessValidator.validate(
         identity,
         currentUserIdentifier: currentUserIdentifier)
 
@@ -187,9 +187,9 @@ func captureEgakiumHang(
         resolvedDefaultRoot = defaultRootURL
     } else {
         resolvedDefaultRoot =
-            try EgakiumHangDiagnosticBundleStore.defaultRootURL()
+            try IntatisHangDiagnosticBundleStore.defaultRootURL()
     }
-    let recentStore = EgakiumHangDiagnosticBundleStore(
+    let recentStore = IntatisHangDiagnosticBundleStore(
         rootURL: resolvedDefaultRoot)
     let recentIncident = try? await recentStore.latestManifest(
         processIdentifier: options.processIdentifier,
@@ -214,7 +214,7 @@ func captureEgakiumHang(
             "--style",
             "compact",
             "--predicate",
-            "processIdentifier == \(options.processIdentifier) AND subsystem == \"\(EgakiumDiagnosticConstants.subsystem)\"",
+            "processIdentifier == \(options.processIdentifier) AND subsystem == \"\(IntatisDiagnosticConstants.subsystem)\"",
         ],
         timeoutSeconds: 15)
 
@@ -226,12 +226,12 @@ func captureEgakiumHang(
     } else {
         outputRoot = resolvedDefaultRoot
     }
-    let store = EgakiumHangDiagnosticBundleStore(rootURL: outputRoot)
+    let store = IntatisHangDiagnosticBundleStore(rootURL: outputRoot)
     let sensitivePaths = [
         outputRoot.path,
         options.outputParentURL?.path,
     ].compactMap { $0 }
-    var attachments: [EgakiumHangDiagnosticAttachment] = []
+    var attachments: [IntatisHangDiagnosticAttachment] = []
     if !sample.standardOutput.isEmpty {
         attachments.append(.sanitizedText(
             kind: .sample,
@@ -256,7 +256,7 @@ func captureEgakiumHang(
             maximumBytes: 256 * 1_024))
     }
 
-    let manifest = EgakiumHangDiagnosticManifest(
+    let manifest = IntatisHangDiagnosticManifest(
         source: .externalCapture,
         recordedAt: now,
         processIdentifier: options.processIdentifier,
@@ -338,10 +338,10 @@ func currentEffectiveUserIdentifier() -> UInt32 {
 }
 
 #if os(macOS)
-private struct CLIMacEgakiumProcessInspector: CLIEgakiumProcessInspecting {
+private struct CLIMacIntatisProcessInspector: CLIIntatisProcessInspecting {
     func inspect(
         processIdentifier: Int32
-    ) throws -> CLIEgakiumProcessIdentity {
+    ) throws -> CLIIntatisProcessIdentity {
         guard let application = NSRunningApplication(
             processIdentifier: processIdentifier),
               !application.isTerminated else {
@@ -359,7 +359,7 @@ private struct CLIMacEgakiumProcessInspector: CLIEgakiumProcessInspecting {
         guard result == expectedSize else {
             throw CLIDiagnoseHangError.targetNotRunning
         }
-        return CLIEgakiumProcessIdentity(
+        return CLIIntatisProcessIdentity(
             processIdentifier: processIdentifier,
             ownerUserIdentifier: info.pbi_uid,
             executableName:

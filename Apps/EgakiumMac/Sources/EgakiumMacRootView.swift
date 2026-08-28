@@ -8,9 +8,9 @@
 
 #if canImport(SwiftUI)
 import SwiftUI
-import EgakiumCore
-import EgakiumConversation
-import EgakiumSharedUI
+import IntatisCore
+import IntatisConversation
+import IntatisSharedUI
 
 enum EgakiumNavItem: String, CaseIterable, Identifiable, Hashable {
     case chat, code, cowork
@@ -19,9 +19,9 @@ enum EgakiumNavItem: String, CaseIterable, Identifiable, Hashable {
 
     var title: String {
         switch self {
-        case .chat: return EgakiumLocalization.string("Chat")
-        case .code: return EgakiumLocalization.string("Code")
-        case .cowork: return EgakiumLocalization.string("Cowork")
+        case .chat: return IntatisLocalization.string("Chat")
+        case .code: return IntatisLocalization.string("Code")
+        case .cowork: return IntatisLocalization.string("Cowork")
         }
     }
 
@@ -43,17 +43,17 @@ enum EgakiumNavItem: String, CaseIterable, Identifiable, Hashable {
 
     var newSessionTitle: String {
         switch self {
-        case .chat: return EgakiumLocalization.string("New chat")
-        case .code: return EgakiumLocalization.string("New code session")
-        case .cowork: return EgakiumLocalization.string("New cowork session")
+        case .chat: return IntatisLocalization.string("New chat")
+        case .code: return IntatisLocalization.string("New code session")
+        case .cowork: return IntatisLocalization.string("New cowork session")
         }
     }
 
     var emptyHistoryTitle: String {
         switch self {
-        case .chat: return EgakiumLocalization.string("No chat sessions yet.")
-        case .code: return EgakiumLocalization.string("No code sessions yet.")
-        case .cowork: return EgakiumLocalization.string("No cowork sessions yet.")
+        case .chat: return IntatisLocalization.string("No chat sessions yet.")
+        case .code: return IntatisLocalization.string("No code sessions yet.")
+        case .cowork: return IntatisLocalization.string("No cowork sessions yet.")
         }
     }
 }
@@ -119,7 +119,7 @@ struct EgakiumMacRootView: View {
                 selection: $selection,
                 isSettings: $isSettings,
                 historyItems: historyItems,
-                historyTitle: EgakiumLocalization.string("Recent"),
+                historyTitle: IntatisLocalization.string("Recent"),
                 emptyHistoryTitle: selection.emptyHistoryTitle,
                 newSessionTitle: selection.newSessionTitle,
                 isNewDisabled: newSessionDisabled,
@@ -128,7 +128,7 @@ struct EgakiumMacRootView: View {
                 onRenameSession: beginRenameSession,
                 onDeleteSession: beginDeleteSession)
                 .navigationSplitViewColumnWidth(
-                    min: EgakiumSplitColumnLayout.chatInspector.sidebarMin,
+                    min: IntatisSplitColumnLayout.chatInspector.sidebarMin,
                     ideal: 236)
         } detail: {
             ZStack {
@@ -173,20 +173,20 @@ struct EgakiumMacRootView: View {
                 deleteSession(target)
             }
         } message: { target in
-            Text(EgakiumLocalization.format(
+            Text(IntatisLocalization.format(
                 "\"%@\" and its Egakium event history and artifacts will be permanently deleted. Files in the linked workspace will not be changed.",
                 target.title))
         }
         .alert("Session Action Failed", isPresented: sessionErrorPresented) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text(sessionActionError ?? EgakiumLocalization.string("The session action failed."))
+            Text(sessionActionError ?? IntatisLocalization.string("The session action failed."))
         }
     }
 
     @ViewBuilder private var detail: some View {
         if isSettings {
-            EgakiumSettingsPanel()
+            IntatisSettingsPanel()
         } else {
             switch selection {
             case .chat:
@@ -205,7 +205,7 @@ struct EgakiumMacRootView: View {
 
     @ViewBuilder private var codeDetail: some View {
         if let vm = codeVM {
-            let presentationScope = EgakiumThreadPresentationScope(
+            let presentationScope = IntatisThreadPresentationScope(
                 kind: .code,
                 sessionID: vm.sessionID)
             CodeSessionView(
@@ -224,14 +224,14 @@ struct EgakiumMacRootView: View {
                 .id(presentationScope)
         } else {
             WorkspaceSessionHome(
-                title: EgakiumLocalization.string("Code"),
-                subtitle: EgakiumLocalization.string("Local workspace agent session"),
+                title: IntatisLocalization.string("Code"),
+                subtitle: IntatisLocalization.string("Local workspace agent session"),
                 icon: "folder.badge.plus",
-                primaryTitle: EgakiumLocalization.string("Choose Workspace"),
+                primaryTitle: IntatisLocalization.string("Choose Workspace"),
                 primarySystemImage: "folder",
                 primaryShortcut: "o",
                 error: codeSessionError,
-                sessionsTitle: EgakiumLocalization.string("Recent Code Sessions"),
+                sessionsTitle: IntatisLocalization.string("Recent Code Sessions"),
                 sessions: [],
                 workspacePath: { WorkspaceAccess.workspacePath(for: $0) },
                 onPrimary: startNewCodeSession,
@@ -241,7 +241,7 @@ struct EgakiumMacRootView: View {
 
     @ViewBuilder private var coworkDetail: some View {
         if let vm = coworkVM {
-            let presentationScope = EgakiumThreadPresentationScope(
+            let presentationScope = IntatisThreadPresentationScope(
                 kind: .cowork,
                 sessionID: vm.sessionID)
             CoworkSessionView(
@@ -260,14 +260,14 @@ struct EgakiumMacRootView: View {
                 .id(presentationScope)
         } else {
             WorkspaceSessionHome(
-                title: EgakiumLocalization.string("Cowork"),
-                subtitle: EgakiumLocalization.string("Multi-agent workspace session"),
+                title: IntatisLocalization.string("Cowork"),
+                subtitle: IntatisLocalization.string("Multi-agent workspace session"),
                 icon: "person.2",
-                primaryTitle: EgakiumLocalization.string("New Cowork Session"),
+                primaryTitle: IntatisLocalization.string("New Cowork Session"),
                 primarySystemImage: "plus",
                 primaryShortcut: "n",
                 error: coworkSessionError,
-                sessionsTitle: EgakiumLocalization.string("Recent Cowork Sessions"),
+                sessionsTitle: IntatisLocalization.string("Recent Cowork Sessions"),
                 sessions: [],
                 workspacePath: { _ in String?.none },
                 onPrimary: startNewCoworkSession,
@@ -275,7 +275,7 @@ struct EgakiumMacRootView: View {
         }
     }
 
-    private var historyItems: [EgakiumSessionHistoryItem] {
+    private var historyItems: [IntatisSessionHistoryItem] {
         switch selection {
         case .chat:
             return recentChatSessions.map {
@@ -304,8 +304,8 @@ struct EgakiumMacRootView: View {
 
     private func historyItem(_ session: AppSessionSummary,
                              icon: String,
-                             selected: Bool) -> EgakiumSessionHistoryItem {
-        EgakiumSessionHistoryItem(
+                             selected: Bool) -> IntatisSessionHistoryItem {
+        IntatisSessionHistoryItem(
             id: session.id,
             title: session.displayName ?? session.id.rawValue,
             detail: "",
@@ -559,7 +559,7 @@ struct EgakiumMacRootView: View {
             codeSessionError = nil
             refreshCodeSessions()
         } catch {
-            codeSessionError = EgakiumLocalization.format(
+            codeSessionError = IntatisLocalization.format(
                 "Could not start Code session: %@",
                 error.localizedDescription)
         }
@@ -578,8 +578,8 @@ struct EgakiumMacRootView: View {
             } else {
                 guard let expectedPath = try WorkspaceAccess.workspacePathChecked(for: sessionID),
                       let selected = WorkspaceAccess.choose(
-                        prompt: EgakiumLocalization.string("Reauthorize Code Workspace")) else {
-                    codeSessionError = EgakiumLocalization.string(
+                        prompt: IntatisLocalization.string("Reauthorize Code Workspace")) else {
+                    codeSessionError = IntatisLocalization.string(
                         "The original Code workspace identity is unavailable; this session was not rebound.")
                     return
                 }
@@ -588,7 +588,7 @@ struct EgakiumMacRootView: View {
                     .resolvingSymlinksInPath()
                 guard selected.canonicalURL == expected else {
                     selected.release()
-                    codeSessionError = EgakiumLocalization.format(
+                    codeSessionError = IntatisLocalization.format(
                         "Choose the original Code workspace at %@.",
                         expectedPath)
                     return
@@ -596,7 +596,7 @@ struct EgakiumMacRootView: View {
                 workspace = selected
             }
         } catch {
-            codeSessionError = EgakiumLocalization.format(
+            codeSessionError = IntatisLocalization.format(
                 "Code workspace access could not be read safely: %@",
                 error.localizedDescription)
             return
@@ -616,7 +616,7 @@ struct EgakiumMacRootView: View {
             codeSessionError = nil
             refreshCodeSessions()
         } catch {
-            codeSessionError = EgakiumLocalization.format(
+            codeSessionError = IntatisLocalization.format(
                 "Could not resume Code session: %@",
                 error.localizedDescription)
         }
@@ -624,7 +624,7 @@ struct EgakiumMacRootView: View {
 
     private func startNewCoworkSession() {
         guard let workspace = WorkspaceAccess.choose(
-            prompt: EgakiumLocalization.string("Choose Cowork Workspace")) else { return }
+            prompt: IntatisLocalization.string("Choose Cowork Workspace")) else { return }
         selection = .cowork
         isSettings = false
         let transitionID = UUID()
@@ -641,7 +641,7 @@ struct EgakiumMacRootView: View {
                 coworkSessionError = nil
                 refreshCoworkSessions()
             } catch {
-                coworkSessionError = EgakiumLocalization.format(
+                coworkSessionError = IntatisLocalization.format(
                     "Could not start Cowork session: %@",
                     error.localizedDescription)
             }
@@ -673,7 +673,7 @@ struct EgakiumMacRootView: View {
                 coworkSessionError = nil
                 refreshCoworkSessions()
             } catch {
-                coworkSessionError = EgakiumLocalization.format(
+                coworkSessionError = IntatisLocalization.format(
                     "Could not resume Cowork session: %@",
                     error.localizedDescription)
             }
@@ -708,14 +708,14 @@ private struct SessionRenameSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Rename Session")
-                .egakiumFont(.headline)
+                .font(IntatisTypography.system(.headline))
             TextField("Session name", text: $name)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(rename)
 
             if let errorText {
                 Text(errorText)
-                    .egakiumFont(.caption)
+                    .font(IntatisTypography.system(.caption))
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -753,7 +753,7 @@ struct EgakiumSidebar: View {
     let items: [EgakiumNavItem]
     @Binding var selection: EgakiumNavItem
     @Binding var isSettings: Bool
-    let historyItems: [EgakiumSessionHistoryItem]
+    let historyItems: [IntatisSessionHistoryItem]
     let historyTitle: String
     let emptyHistoryTitle: String
     let newSessionTitle: String
@@ -780,7 +780,7 @@ struct EgakiumSidebar: View {
                 .padding(.horizontal, 12)
                 .padding(.bottom, 12)
 
-            EgakiumSessionHistoryList(
+            IntatisSessionHistoryList(
                 title: historyTitle,
                 newTitle: newSessionTitle,
                 emptyTitle: emptyHistoryTitle,
@@ -844,7 +844,7 @@ private struct EgakiumSidebarModeRow: View {
         Group {
             if selected {
                 content
-                    .egakiumLiquidGlass(cornerRadius: 10, interactive: true)
+                    .intatisLiquidGlass(cornerRadius: 10, interactive: true)
             } else {
                 content
             }
@@ -855,7 +855,7 @@ private struct EgakiumSidebarModeRow: View {
     private var content: some View {
         HStack(spacing: 10) {
             Image(systemName: systemImage)
-                .egakiumFont(size: 14, weight: .semibold)
+                .font(IntatisTypography.system(size: 14, weight: .semibold))
                 .foregroundStyle(selected
                     ? EgakiumTheme.accent(scheme)
                     : EgakiumTheme.softText(scheme))
@@ -880,10 +880,10 @@ private struct EgakiumSidebarSettingsRow: View {
     var body: some View {
         HStack(spacing: 9) {
             Image(systemName: "gearshape")
-                .egakiumFont(size: 13, weight: .medium)
+                .font(IntatisTypography.system(size: 13, weight: .medium))
                 .foregroundStyle(selected ? EgakiumTheme.accent(scheme) : EgakiumTheme.softText(scheme))
                 .frame(width: 20)
-            Text(EgakiumLocalization.string("Settings"))
+            Text(IntatisLocalization.string("Settings"))
                 .font(EgakiumType.body(13, selected ? .semibold : .medium))
                 .foregroundStyle(selected ? EgakiumTheme.deepText(scheme) : EgakiumTheme.softText(scheme))
             Spacer(minLength: 0)

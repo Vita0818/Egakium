@@ -1,5 +1,5 @@
 import Foundation
-import EgakiumAgentKernel
+import IntatisAgentKernel
 import XCTest
 @testable import EgakiumCLI
 

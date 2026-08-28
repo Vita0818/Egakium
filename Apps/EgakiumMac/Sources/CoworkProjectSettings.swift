@@ -1,13 +1,13 @@
 #if canImport(SwiftUI)
 import SwiftUI
 import Foundation
-import EgakiumCore
-import EgakiumConversation
-import EgakiumCowork
-import EgakiumPermission
-import EgakiumProtocol
-import EgakiumProviders
-import EgakiumSharedUI
+import IntatisCore
+import IntatisConversation
+import IntatisCowork
+import IntatisPermission
+import IntatisProtocol
+import IntatisProviders
+import IntatisSharedUI
 
 typealias CoworkProjectWorkspace = CoworkSessionWorkspace
 typealias CoworkProjectSettings = CoworkSessionSettings
@@ -32,7 +32,9 @@ extension CoworkSessionSettings {
                     path: primaryWorkspace.standardizedFileURL.path,
                     agentName: "main",
                     isPrimary: true)
-            ])
+            ],
+            codexRuntimeGeneration:
+                CoworkSessionSettings.currentCodexRuntimeGeneration)
     }
 
     static func restored(sessionID: SessionID,
@@ -107,6 +109,26 @@ extension CoworkSessionSettings {
         }
     }
 
+    mutating func upsertCodexAgentProfile(
+        _ profile: CoworkCodexAgentProfile
+    ) {
+        if let index = codexAgentProfiles.firstIndex(where: {
+            $0.roleName == profile.roleName
+        }) {
+            codexAgentProfiles[index] = profile
+        } else {
+            codexAgentProfiles.append(profile)
+            codexAgentProfiles.sort {
+                $0.roleName.localizedStandardCompare($1.roleName)
+                    == .orderedAscending
+            }
+        }
+    }
+
+    mutating func removeCodexAgentProfile(roleName: String) {
+        codexAgentProfiles.removeAll { $0.roleName == roleName }
+    }
+
     /// Replaces only aliases whose canonical identity was already proven while
     /// their security scope was active. Collisions are merged as shared project
     /// metadata rather than assigning the path to whichever record was last.
@@ -175,13 +197,13 @@ enum CoworkProjectSettingsStore {
                 legacyWarning = nil
             } catch {
                 fallback = recoveredSettings(sessionID: sessionID, document: nil)
-                legacyWarning = " " + EgakiumLocalization.format(
+                legacyWarning = " " + IntatisLocalization.format(
                     "Legacy settings were retained but could not be decoded safely: %@",
                     error.localizedDescription)
             }
             return LoadResult(
                 settings: fallback,
-                warning: EgakiumLocalization.format(
+                warning: IntatisLocalization.format(
                     "Session settings projection could not be rebuilt: %@",
                     error.localizedDescription) + (legacyWarning ?? ""),
                 legacySettingsCleanupEligible: false)
@@ -320,13 +342,13 @@ enum CoworkProjectSettingsStore {
         }
         let decoded = try decoder.decode(CoworkProjectSettings.self, from: data)
         guard decoded.sessionID == sessionID else {
-            throw EgakiumError.config("Legacy Cowork settings belong to another session.")
+            throw IntatisError.config("Legacy Cowork settings belong to another session.")
         }
         guard decoded.schemaVersion <= CoworkSessionSettings.currentSchemaVersion else {
-            throw EgakiumError.config("Legacy Cowork settings use a newer unsupported schema.")
+            throw IntatisError.config("Legacy Cowork settings use a newer unsupported schema.")
         }
         guard decoded.workspaces.allSatisfy({ NSString(string: $0.path).isAbsolutePath }) else {
-            throw EgakiumError.config("Legacy Cowork settings contain a non-absolute workspace path.")
+            throw IntatisError.config("Legacy Cowork settings contain a non-absolute workspace path.")
         }
         return normalized(
             decoded,
@@ -450,9 +472,9 @@ struct CoworkProjectSettingsSheet: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Cowork Project")
-                        .egakiumFont(.headline)
+                        .font(IntatisTypography.system(.headline))
                     Text(vm.sessionID.rawValue)
-                        .egakiumFont(.caption)
+                        .font(IntatisTypography.system(.caption))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -472,7 +494,7 @@ struct CoworkProjectSettingsSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("Workspaces")
-                        .egakiumFont(.caption, weight: .bold)
+                        .font(IntatisTypography.system(.caption, bold: true))
                         .foregroundStyle(.secondary)
                     Spacer()
                     Button(action: addWorkspace) {
@@ -488,7 +510,7 @@ struct CoworkProjectSettingsSheet: View {
 
             if let settingsError {
                 Text(settingsError)
-                    .egakiumFont(.caption)
+                    .font(IntatisTypography.system(.caption))
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -512,31 +534,83 @@ struct CoworkProjectSettingsSheet: View {
     }
 
     private var ordinaryAgents: [CoworkAgentInfo] {
-        vm.agents.filter {
-            $0.isAttached && $0.name != "permission-reviewer"
+        vm.agents.filter { agent in
+            agent.isAttached && agent.name != "permission-reviewer"
+                && !vm.projectSettings.codexAgentProfiles.contains(where: {
+                    $0.roleName == agent.role
+                })
         }
     }
 
     @ViewBuilder private var agentInferenceSection: some View {
-        if !ordinaryAgents.isEmpty {
+        if !ordinaryAgents.isEmpty
+            || !vm.projectSettings.codexAgentProfiles.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("Agent inference profiles")
-                        .egakiumFont(.caption, weight: .bold)
+                        .font(IntatisTypography.system(.caption, bold: true))
                         .foregroundStyle(.secondary)
                     Spacer()
                     Text("Rebind applies after the current invocation boundary")
-                        .egakiumFont(.caption2)
+                        .font(IntatisTypography.system(.caption2))
                         .foregroundStyle(.secondary)
+                }
+                ForEach(vm.projectSettings.codexAgentProfiles) { profile in
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("@\(profile.roleName) · Codex role")
+                                .font(IntatisTypography.system(
+                                    .caption,
+                                    bold: true))
+                            Text(inferenceProfileOptions.first(where: {
+                                $0.binding == profile.inferenceBinding
+                            })?.title
+                                ?? IntatisLocalization.string(
+                                    "Saved inference profile"))
+                                .font(IntatisTypography.system(.caption2))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                        Spacer(minLength: 8)
+                        Menu("Rebind…") {
+                            ForEach(inferenceProfileOptions) { option in
+                                Button(option.title) {
+                                    vm.rebindAgentInferenceProfile(
+                                        name: profile.roleName,
+                                        binding: option.binding)
+                                }
+                                .disabled(
+                                    profile.inferenceBinding
+                                        == option.binding)
+                            }
+                        }
+                        .menuStyle(.borderlessButton)
+                        .fixedSize()
+                        .disabled(
+                            vm.isRuntimeMutationBlocked
+                                || inferenceProfileOptions.isEmpty)
+                        .accessibilityIdentifier(
+                            "cowork.codex-role.\(profile.roleName).rebind")
+                    }
+                    .padding(8)
+                    .overlay {
+                        RoundedRectangle(
+                            cornerRadius: 8,
+                            style: .continuous)
+                            .stroke(
+                                EgakiumTheme.separator(scheme),
+                                lineWidth: 1)
+                    }
                 }
                 ForEach(ordinaryAgents) { agent in
                     HStack(spacing: 10) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("@\(agent.name)")
-                                .egakiumFont(.caption, weight: .bold)
+                                .font(IntatisTypography.system(.caption, bold: true))
                             Text(agent.inferenceDisplayLabel
-                                ?? EgakiumLocalization.string("Inference profile unavailable"))
-                                .egakiumFont(.caption2)
+                                ?? IntatisLocalization.string("Inference profile unavailable"))
+                                .font(IntatisTypography.system(.caption2))
                                 .foregroundStyle(agent.inferenceResolution.requiresAttention
                                     ? EgakiumTheme.accent(scheme)
                                     : .secondary)
@@ -574,7 +648,7 @@ struct CoworkProjectSettingsSheet: View {
         if vm.needsPrimaryWorkspaceAuthorization || vm.permissionReviewerStatus.canRetry {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Recovery")
-                    .egakiumFont(.caption, weight: .bold)
+                    .font(IntatisTypography.system(.caption, bold: true))
                     .foregroundStyle(.secondary)
                 HStack(spacing: 10) {
                     if vm.needsPrimaryWorkspaceAuthorization {
@@ -606,7 +680,7 @@ struct CoworkProjectSettingsSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             formRow("Main agent") {
                 Text("@\(draft.mainAgentName)")
-                    .egakiumFont(.body, weight: .medium)
+                    .font(IntatisTypography.system(.body, weight: .medium))
                     .foregroundStyle(.primary)
             }
             formRow("Default inference profile (new agents)") {
@@ -614,7 +688,7 @@ struct CoworkProjectSettingsSheet: View {
                     if inferenceProfileOptions.isEmpty {
                         legacyModelPicker
                         Text("Exact inference profiles are unavailable; the legacy provider/model default is retained.")
-                            .egakiumFont(.caption2)
+                            .font(IntatisTypography.system(.caption2))
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
@@ -649,7 +723,7 @@ struct CoworkProjectSettingsSheet: View {
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 150)
                     Text("Reserved before each request; provider tokenization and output-limit support may vary.")
-                        .egakiumFont(.caption)
+                        .font(IntatisTypography.system(.caption))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -665,8 +739,8 @@ struct CoworkProjectSettingsSheet: View {
     private func formRow<Content: View>(_ title: String,
                                         @ViewBuilder content: () -> Content) -> some View {
         HStack(alignment: .center, spacing: 12) {
-            Text(EgakiumLocalization.string(title))
-                .egakiumFont(.caption, weight: .bold)
+            Text(IntatisLocalization.string(title))
+                .font(IntatisTypography.system(.caption, bold: true))
                 .foregroundStyle(.secondary)
                 .frame(width: 210, alignment: .leading)
             content()
@@ -677,7 +751,7 @@ struct CoworkProjectSettingsSheet: View {
     @ViewBuilder private var workspaceList: some View {
         if vm.project.workspaces.isEmpty {
             Text("No workspace directories")
-                .egakiumFont(.caption)
+                .font(IntatisTypography.system(.caption))
                 .foregroundStyle(.secondary)
         } else {
             VStack(spacing: 7) {
@@ -688,11 +762,11 @@ struct CoworkProjectSettingsSheet: View {
                             .frame(width: 18)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(workspace.displayName)
-                                .egakiumFont(.caption, weight: .bold)
+                                .font(IntatisTypography.system(.caption, bold: true))
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                             Text(workspace.path)
-                                .egakiumFont(.caption2)
+                                .font(IntatisTypography.system(.caption2))
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
@@ -701,7 +775,7 @@ struct CoworkProjectSettingsSheet: View {
                         Spacer(minLength: 8)
                         if let agentName = workspace.agentName {
                             Text("@\(agentName)")
-                                .egakiumFont(.caption2, weight: .bold)
+                                .font(IntatisTypography.system(.caption2, bold: true))
                                 .foregroundStyle(.secondary)
                         }
                         Button {
@@ -712,8 +786,8 @@ struct CoworkProjectSettingsSheet: View {
                         .buttonStyle(.borderless)
                         .disabled(!workspace.canRemove || vm.isRuntimeMutationBlocked)
                         .help(workspace.canRemove
-                            ? EgakiumLocalization.string("Remove workspace")
-                            : EgakiumLocalization.format(
+                            ? IntatisLocalization.string("Remove workspace")
+                            : IntatisLocalization.format(
                                 "Primary workspace is kept with @%@",
                                 draft.mainAgentName))
                     }
@@ -760,7 +834,7 @@ struct CoworkProjectSettingsSheet: View {
         guard let binding = draft.defaultInferenceProfileBinding else { return nil }
         return (
             bindingSelectionKey(binding),
-            EgakiumLocalization.string("Saved inference profile (retained revision)"))
+            IntatisLocalization.string("Saved inference profile (retained revision)"))
     }
 
     private func bindingSelectionKey(_ binding: AgentInferenceBinding) -> String {
@@ -805,10 +879,10 @@ struct CoworkProjectSettingsSheet: View {
 
     private var permissionOptions: [(rawValue: String, title: String)] {
         [
-            (PermissionProfile.reviewed.rawValue, EgakiumLocalization.string("Reviewed")),
-            (PermissionProfile.manual.rawValue, EgakiumLocalization.string("Manual")),
-            (PermissionProfile.readOnly.rawValue, EgakiumLocalization.string("Read only")),
-            (PermissionProfile.locked.rawValue, EgakiumLocalization.string("Locked")),
+            (PermissionProfile.reviewed.rawValue, IntatisLocalization.string("Reviewed")),
+            (PermissionProfile.manual.rawValue, IntatisLocalization.string("Manual")),
+            (PermissionProfile.readOnly.rawValue, IntatisLocalization.string("Read only")),
+            (PermissionProfile.locked.rawValue, IntatisLocalization.string("Locked")),
         ]
     }
 
@@ -819,7 +893,13 @@ struct CoworkProjectSettingsSheet: View {
 
     private func remove(_ workspace: CoworkWorkspaceInfo) {
         if let agentName = workspace.agentName {
-            vm.removeAgent(name: agentName)
+            if vm.projectSettings.codexAgentProfiles.contains(where: {
+                $0.roleName == agentName
+            }) {
+                vm.removeCodexAgentProfile(name: agentName)
+            } else {
+                vm.removeAgent(name: agentName)
+            }
         } else {
             vm.removeWorkspace(path: workspace.path)
         }
@@ -832,7 +912,7 @@ struct CoworkProjectSettingsSheet: View {
         } else if let value = Int(trimmed), value > 0 {
             draft.tokenBudget = value
         } else {
-            settingsError = EgakiumLocalization.string(
+            settingsError = IntatisLocalization.string(
                 "Soft token budget must be empty or a positive integer.")
             return
         }
@@ -845,7 +925,7 @@ struct CoworkProjectSettingsSheet: View {
                 dismiss()
             } else {
                 settingsError = vm.composerError
-                    ?? EgakiumLocalization.string("Session settings could not be saved.")
+                    ?? IntatisLocalization.string("Session settings could not be saved.")
             }
         }
     }

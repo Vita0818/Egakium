@@ -1,8 +1,8 @@
 #if DEBUG && canImport(SwiftUI)
 import Foundation
+import IntatisCore
+import IntatisSharedUI
 import SwiftUI
-import EgakiumCore
-import EgakiumSharedUI
 
 private struct PhaseLFixtureRuntimeRecord: Codable, Equatable {
     var sessionID: String
@@ -165,12 +165,12 @@ struct PhaseLSessionLifecycleFixtureView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Phase L Session Lifecycle")
-                .egakiumFont(.title2, weight: .bold)
+                .font(IntatisTypography.system(.title2, bold: true))
             Text("App-owned offline runtimes · no provider, EventLog, credential, or workspace access")
-                .egakiumFont(.caption)
+                .font(IntatisTypography.system(.caption))
                 .foregroundStyle(.secondary)
             Text(model.root.path)
-                .egakiumFont(.caption2)
+                .font(IntatisTypography.system(.caption2, design: .monospaced))
                 .textSelection(.enabled)
 
             HStack(spacing: 10) {
@@ -191,7 +191,7 @@ struct PhaseLSessionLifecycleFixtureView: View {
             if model.showsHistory {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("History only changes presentation")
-                        .egakiumFont(.headline)
+                        .font(IntatisTypography.system(.headline))
                     PhaseLFixtureRuntimeSummary(runtime: model.runtimeA)
                     PhaseLFixtureRuntimeSummary(runtime: model.runtimeB)
                 }
@@ -203,7 +203,7 @@ struct PhaseLSessionLifecycleFixtureView: View {
 
             Divider()
             Text("Process snapshot")
-                .egakiumFont(.headline)
+                .font(IntatisTypography.system(.headline))
             PhaseLFixtureRuntimeSummary(runtime: model.runtimeA)
             PhaseLFixtureRuntimeSummary(runtime: model.runtimeB)
         }
@@ -221,7 +221,7 @@ private struct PhaseLFixtureRuntimeCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(runtime.record.sessionID.uppercased())
-                .egakiumFont(.headline)
+                .font(IntatisTypography.system(.headline))
             PhaseLFixtureRuntimeSummary(runtime: runtime)
             HStack {
                 Button("Explicit Resume") { runtime.resume() }
@@ -245,7 +245,7 @@ private struct PhaseLFixtureRuntimeSummary: View {
 
     var body: some View {
         Text("\(runtime.record.sessionID): state=\(runtime.record.state) ticks=\(runtime.record.ticks) starts=\(runtime.record.starts) stops=\(runtime.record.stopRequests) settled=\(runtime.record.settlements)")
-            .egakiumFont(.body)
+            .font(IntatisTypography.system(.body, design: .monospaced))
             .accessibilityIdentifier("phase-l.summary.\(runtime.record.sessionID)")
     }
 }

@@ -6,6 +6,14 @@
 当前 Git root：`/Users/vita/Vitemis/Volans/Egakium`
 产品版本：`v0.4`（build 50）
 
+> 2026-08-28 实现来源补充：identity hard cutover 仍完全有效，但 Egakium 已删除共享 runtime snapshot，
+> 通过 `../../Intatis` 直接消费第一方 `Intatis*` Swift products 与 `IntatisCodexRuntime`。固定 shared
+> module/protocol 名称 `Intatis*`、`intatis_responses_provider`、`intatis_agent_workspaces` 与
+> `--intatis-derivation-id` 是共享实现/external-runtime contract，不是用户可见品牌、配置/data namespace
+> 或旧 identity fallback。当前 HostIdentity 在三个入口安装 `name: "Egakium"`，所以所有产品拥有的
+> 路径、环境变量、defaults、Keychain、sidecar 与 workspace state 仍逐字保持 Egakium。完整边界见
+> `docs/INTATIS_RUNTIME_INTEGRATION.md`；下文旧 `Packages/Egakium*` 构建描述已由该文档取代。
+
 ## 最终决定
 
 Egakium 不再区分“用户可见品牌”和“内部技术 identity”。全项目只允许以下三种按语境使用的拼写：
@@ -26,11 +34,12 @@ Egakium 不再区分“用户可见品牌”和“内部技术 identity”。全
 
 ## 当前技术 identity
 
-- Swift package：`Egakium`
-- Swift products/modules/targets：`EgakiumCore`、`EgakiumProtocol`、`EgakiumProviders`、
-  `EgakiumConversation`、`EgakiumArtifacts`、`EgakiumMultimodal`、`EgakiumSharedUI`、
-  `EgakiumTools`、`EgakiumKnowledge`、`EgakiumPermission`、`EgakiumAgentKernel`、
-  `EgakiumSkills`、`EgakiumCowork`、`EgakiumMCP`、`EgakiumMCPStdio` 以及相应内部 C/guard target。
+- Swift package overlay：`Egakium`；本地 products 为 `EgakiumCanvas` 与 `egakium`。
+- 共享 Swift products/modules/targets：来自 sibling Intatis 的 `IntatisCore`、`IntatisProtocol`、
+  `IntatisProviders`、`IntatisConversation`、`IntatisArtifacts`、`IntatisMultimodal`、`IntatisSharedUI`、
+  `IntatisTools`、`IntatisKnowledge`、`IntatisPermission`、`IntatisAgentKernel`、`IntatisSkills`、
+  `IntatisCowork`、`IntatisMCP`、`IntatisMCPStdio`、`IntatisCodexRuntime` 及其内部 targets；这些名称不
+  改变 Egakium identity。
 - macOS target/App/executable：`EgakiumMac` / `EgakiumMac.app` / `EgakiumMac`
 - iOS target/App/executable：`EgakiumiOS` / `EgakiumiOS.app` / `EgakiumiOS`
 - CLI product/executable：`egakium`
@@ -70,7 +79,8 @@ workspace metadata 或历史会话若仍存在，保留给用户自行处置；E
 以下范围已统一改名，并以当前源码为唯一事实源：
 
 - `Apps/` 下 macOS、iOS 和 CLI 的目录、入口文件、类型、imports 与 tests；
-- `Packages/` 下所有公共/内部 target、source/test 目录、模块 imports、C headers 和 exported symbols；
+- 迁移前 `Packages/` 下所有公共/内部 target 曾完成 Egakium hard-cutover 命名；2026-08-28 这些 shared
+  snapshot files 已删除，当前 source/module imports 直接来自 sibling `Intatis*`；
 - `Package.swift` products、targets、dependencies、paths 与 CLI product；
 - `project.yml` project/target/scheme/package、bundle、module、executable、wrapper、icon、entitlement 和 CEF linkage；
 - CEF CMake targets、bridge/helper sources、Helper bundle metadata、build output 目录和嵌入脚本；

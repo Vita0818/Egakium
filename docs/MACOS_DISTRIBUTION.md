@@ -2,7 +2,7 @@
 
 文档状态：当前发行合同
 生效日期：2026-07-28
-最近核对：2026-08-18
+最近核对：2026-08-28
 产品基线：v0.4（build 50）
 
 ## 产品决策
@@ -35,6 +35,23 @@ Egakium 的 macOS 产品继续使用内部 `EgakiumMac` shipping target，只通
 - 本地原生代码只允许实现 CEF 官方 API 所需最薄生命周期、AppKit child browser、scheme、权限、bundle 与
   Helper 接线，不得自建同能力浏览器 runtime 或双 renderer 发布矩阵。
 
+### Intatis Codex Runtime closure
+
+- `EgakiumMac` 直接编译 sibling `../../Intatis` 的 `IntatisCodexRuntime`，但正式 App 运行时不得依赖
+  sibling checkout。Xcode build phase 必须把 exact arm64 kit 嵌入
+  `Contents/Resources/CodexRuntime/arm64`。
+- embed 前后都必须调用 Intatis canonical validator，核对 manifest、version、derivation、architecture、
+  Mach-O dependencies、SHA-256 inventory、SPDX 和 license closure。缺失/不匹配必须使 build 失败。
+- `package-macos-release.sh` 必须把 Codex Mach-O 纳入内向外 Developer ID 签名：先验证原始 kit，签
+  `codex`，更新签名后 `binary_sha256` 与 `SHA256SUMS.txt`，再签外层 App，并以 exact Developer ID
+  identity 运行 `execute` validator（含 `--version`、derivation 与 App Server initialize smoke）。
+- notarization recovery 复用的 staged App 必须重复 strict App/CEF/Helper signature 与 exact Codex
+  execute validation；不能只相信 recovery state 或旧 submission ID。
+- shipping bundle identity 下环境变量不得替换 sealed runtime。CLI 的 `EGAKIUM_CODEX_RUNTIME` 只用于
+  开发，并仍受 exact verification；它不是 App release fallback。
+- Intatis source/runtime/license revision 改变属于独立 dependency/release review。dirty local path build
+  可以用于明确标注的开发验证，但不能作为 clean-machine/reproducible release 证据。
+
 ## 当前 macOS 产品面
 
 - 唯一发行 App target：`EgakiumMac`。
@@ -56,10 +73,12 @@ iOS 自身的系统 sandbox 与 target-linkage 限制。
 1. 当前 Keychain 存在有效的 `Developer ID Application` identity；
 2. `EGAKIUM_NOTARY_PROFILE` 指向用户已通过 `notarytool store-credentials`
    保存的 Keychain profile；
-3. CEF-enabled Release build、CEF Framework 与全部 Helpers 都精确为 `arm64`；当前 pinned CEF
+3. Release App、CEF Framework、全部 Helpers 与 Codex runtime 都精确为 `arm64`；当前 pinned CEF
    distribution 不提供 x86_64 slice，脚本不得伪称 universal；
-4. 先由内向外签名 CEF dylibs、Framework 与五个 Helpers，再使用 Developer ID entitlements、secure
-   timestamp 与 Hardened Runtime 签名主 App；generic/GPU/Renderer Helper 必须带 `allow-jit` entitlement；
+4. 先由内向外签名 CEF dylibs、Framework、五个 Helpers 与 exact Codex executable，重建 Codex 签名后
+   integrity inventory，再使用 Developer ID entitlements、secure timestamp 与 Hardened Runtime 签名主
+   App；generic/GPU/Renderer Helper 必须带 `allow-jit` entitlement，Codex 必须通过 exact identity 的
+   execute/App Server initialize validator；
 5. App 公证状态为 `Accepted`，staple/validate、严格 codesign 与 Gatekeeper assessment
    全部通过；
 6. DMG 包含 `/Applications` 拖放入口，以 Developer ID 单独签名，再次公证并完成

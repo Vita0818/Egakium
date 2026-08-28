@@ -22,6 +22,8 @@ options:
 packages:
   Egakium:
     path: .
+  Intatis:
+    path: ../../Intatis
 
 settings:
   base:
@@ -48,7 +50,7 @@ targets:
         buildPhase: resources
       - path: NOTICE.md
         buildPhase: resources
-      - path: ThirdPartyNotices
+      - path: ../../Intatis/ThirdPartyNotices
         type: folder
         buildPhase: resources
     settings:
@@ -83,41 +85,49 @@ targets:
         # swapping entitlements.
     dependencies:
       - package: Egakium
-        product: EgakiumCore
-      - package: Egakium
-        product: EgakiumProtocol
-      - package: Egakium
-        product: EgakiumProviders
-      - package: Egakium
-        product: EgakiumConversation
-      - package: Egakium
-        product: EgakiumArtifacts
-      - package: Egakium
-        product: EgakiumMultimodal
-      - package: Egakium
-        product: EgakiumSharedUI
-      - package: Egakium
-        product: EgakiumTools
-      - package: Egakium
-        product: EgakiumKnowledge
-      - package: Egakium
-        product: EgakiumPermission
-      - package: Egakium
-        product: EgakiumAgentKernel
-      - package: Egakium
-        product: EgakiumSkills
-      - package: Egakium
-        product: EgakiumCowork
-      - package: Egakium
-        product: EgakiumMCP
-      - package: Egakium
-        product: EgakiumMCPStdio
+        product: EgakiumCanvas
+      - package: Intatis
+        product: IntatisCore
+      - package: Intatis
+        product: IntatisProtocol
+      - package: Intatis
+        product: IntatisProviders
+      - package: Intatis
+        product: IntatisConversation
+      - package: Intatis
+        product: IntatisArtifacts
+      - package: Intatis
+        product: IntatisMultimodal
+      - package: Intatis
+        product: IntatisSharedUI
+      - package: Intatis
+        product: IntatisTools
+      - package: Intatis
+        product: IntatisKnowledge
+      - package: Intatis
+        product: IntatisPermission
+      - package: Intatis
+        product: IntatisAgentKernel
+      - package: Intatis
+        product: IntatisSkills
+      - package: Intatis
+        product: IntatisCowork
+      - package: Intatis
+        product: IntatisMCP
+      - package: Intatis
+        product: IntatisMCPStdio
+      - package: Intatis
+        product: IntatisCodexRuntime
     preBuildScripts:
       - name: Prepare Official CEF Runtime
         script: |
           "$SRCROOT/scripts/prepare-cef-runtime.sh" "$CONFIGURATION"
         basedOnDependencyAnalysis: false
     postBuildScripts:
+      - name: Embed Exact Intatis Codex Runtime
+        script: |
+          "$SRCROOT/scripts/embed-intatis-codex-runtime.sh" "$TARGET_BUILD_DIR/$WRAPPER_NAME" "$CONFIGURATION"
+        basedOnDependencyAnalysis: false
       - name: Embed Official CEF Runtime
         script: |
           "$SRCROOT/scripts/embed-cef-runtime.sh" "$TARGET_BUILD_DIR/$WRAPPER_NAME" "$CONFIGURATION"
@@ -133,7 +143,7 @@ targets:
         buildPhase: resources
       - path: NOTICE.md
         buildPhase: resources
-      - path: ThirdPartyNotices
+      - path: ../../Intatis/ThirdPartyNotices
         type: folder
         buildPhase: resources
     settings:
@@ -148,31 +158,37 @@ targets:
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) EGAKIUM_MAC_APP_STORE"
     dependencies:
       - package: Egakium
-        product: EgakiumCore
-      - package: Egakium
-        product: EgakiumProtocol
-      - package: Egakium
-        product: EgakiumProviders
-      - package: Egakium
-        product: EgakiumConversation
-      - package: Egakium
-        product: EgakiumArtifacts
-      - package: Egakium
-        product: EgakiumMultimodal
-      - package: Egakium
-        product: EgakiumSharedUI
-      - package: Egakium
-        product: EgakiumTools
-      - package: Egakium
-        product: EgakiumPermission
-      - package: Egakium
-        product: EgakiumAgentKernel
-      - package: Egakium
-        product: EgakiumSkills
-      - package: Egakium
-        product: EgakiumCowork
-      - package: Egakium
-        product: EgakiumMCP
+        product: EgakiumCanvas
+      - package: Intatis
+        product: IntatisCore
+      - package: Intatis
+        product: IntatisProtocol
+      - package: Intatis
+        product: IntatisProviders
+      - package: Intatis
+        product: IntatisConversation
+      - package: Intatis
+        product: IntatisArtifacts
+      - package: Intatis
+        product: IntatisMultimodal
+      - package: Intatis
+        product: IntatisSharedUI
+      - package: Intatis
+        product: IntatisTools
+      - package: Intatis
+        product: IntatisKnowledge
+      - package: Intatis
+        product: IntatisPermission
+      - package: Intatis
+        product: IntatisAgentKernel
+      - package: Intatis
+        product: IntatisSkills
+      - package: Intatis
+        product: IntatisCowork
+      - package: Intatis
+        product: IntatisMCP
+      - package: Intatis
+        product: IntatisCodexRuntime
 
   # ---- iOS app: chat-only SUBSET (deliberately no workspace stack) ----
   EgakiumiOS:
@@ -187,7 +203,7 @@ targets:
         buildPhase: resources
       - path: NOTICE.md
         buildPhase: resources
-      - path: ThirdPartyNotices
+      - path: ../../Intatis/ThirdPartyNotices
         type: folder
         buildPhase: resources
     settings:
@@ -206,20 +222,20 @@ targets:
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Egakium uses the microphone for voice input transcription."
         ASSETCATALOG_COMPILER_APPICON_NAME: Egakium
     dependencies:
-      - package: Egakium
-        product: EgakiumCore
-      - package: Egakium
-        product: EgakiumProtocol
-      - package: Egakium
-        product: EgakiumProviders
-      - package: Egakium
-        product: EgakiumConversation
-      - package: Egakium
-        product: EgakiumArtifacts
-      - package: Egakium
-        product: EgakiumMultimodal
-      - package: Egakium
-        product: EgakiumSharedUI
+      - package: Intatis
+        product: IntatisCore
+      - package: Intatis
+        product: IntatisProtocol
+      - package: Intatis
+        product: IntatisProviders
+      - package: Intatis
+        product: IntatisConversation
+      - package: Intatis
+        product: IntatisArtifacts
+      - package: Intatis
+        product: IntatisMultimodal
+      - package: Intatis
+        product: IntatisSharedUI
 
 schemes:
   EgakiumMac:

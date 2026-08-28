@@ -2,18 +2,18 @@
 import SwiftUI
 import Combine
 import Foundation
-import EgakiumCore
-import EgakiumProtocol
-import EgakiumProviders
-import EgakiumConversation
-import EgakiumAgentKernel
-import EgakiumArtifacts
-import EgakiumTools
-import EgakiumMCP
-import EgakiumSharedUI
-#if !EGAKIUM_MAC_APP_STORE
-import EgakiumKnowledge
-#endif
+import IntatisCore
+import IntatisProtocol
+import IntatisProviders
+import IntatisConversation
+import IntatisAgentKernel
+import IntatisArtifacts
+import IntatisTools
+import IntatisMCP
+import IntatisSharedUI
+import IntatisKnowledge
+import IntatisCodexRuntime
+import EgakiumCanvas
 #if canImport(AppKit)
 import AppKit
 #endif
@@ -29,6 +29,8 @@ final class AppEnvironment: ObservableObject {
     @Published private(set) var chatSessionID: SessionID
     @Published private(set) var viewModel: ChatViewModel
     @Published private(set) var chatSessionError: String?
+    @Published private(set) var projects: [ProjectFolderRecord]
+    @Published private(set) var projectStoreError: String?
     @Published var needsAPIKey: Bool
 
     let runtimeManager: AppSessionRuntimeManager
@@ -40,6 +42,17 @@ final class AppEnvironment: ObservableObject {
 
     init(runtimeManager: AppSessionRuntimeManager) {
         PlatformProfile.current = AppConfig.platformProfile
+
+        let initialProjects: [ProjectFolderRecord]
+        let initialProjectStoreError: String?
+        do {
+            initialProjects = try ProjectFolderStore.load(
+                root: AppConfig.appSupportDir()).projects
+            initialProjectStoreError = nil
+        } catch {
+            initialProjects = []
+            initialProjectStoreError = error.localizedDescription
+        }
 
         self.runtimeManager = runtimeManager
         self.mcp = AppMCPService()
@@ -67,6 +80,8 @@ final class AppEnvironment: ObservableObject {
         }
         self.chatRuntime = initialChatRuntime
         self.viewModel = initialChatRuntime.viewModel
+        self.projects = initialProjects
+        self.projectStoreError = initialProjectStoreError
         self.needsAPIKey = !Self.hasAPIKey(ref: AppConfig.selectedAPIKeyRef)
 
         Task { [weak self] in
@@ -82,7 +97,7 @@ final class AppEnvironment: ObservableObject {
         do {
             try switchChatSession(to: SessionID.new())
         } catch {
-            chatSessionError = EgakiumLocalization.format(
+            chatSessionError = IntatisLocalization.format(
                 "Could not start chat session: %@",
                 error.localizedDescription)
         }
@@ -92,7 +107,7 @@ final class AppEnvironment: ObservableObject {
         do {
             try switchChatSession(to: session.id)
         } catch {
-            chatSessionError = EgakiumLocalization.format(
+            chatSessionError = IntatisLocalization.format(
                 "Could not resume chat session: %@",
                 error.localizedDescription)
         }
@@ -102,9 +117,69 @@ final class AppEnvironment: ObservableObject {
         AppConfig.recentSessions(kind: .chat)
     }
 
+    @discardableResult
+    func addProject(
+        workspace: WorkspaceAccessLease,
+        kind: SessionKind
+    ) throws -> ProjectFolderRecord {
+        let project = try ProjectFolderStore.add(
+            root: AppConfig.appSupportDir(),
+            kind: kind,
+            path: workspace.canonicalPath)
+        refreshProjects()
+        return project
+    }
+
+    func removeProject(_ projectID: ProjectID) throws {
+        try ProjectFolderStore.remove(
+            root: AppConfig.appSupportDir(),
+            projectID: projectID)
+        refreshProjects()
+    }
+
+    func refreshProjects() {
+        do {
+            projects = try ProjectFolderStore.load(
+                root: AppConfig.appSupportDir()).projects
+            projectStoreError = nil
+        } catch {
+            projectStoreError = error.localizedDescription
+        }
+    }
+
+    @discardableResult
+    func startNewProjectChatSession(
+        projectID: ProjectID
+    ) throws -> ProjectConversationReference {
+        try validateProjectFolder(
+            projectID: projectID,
+            expectedKind: .chat)
+        let session = SessionID.new()
+        let conversation = ProjectConversationReference(
+            sessionID: session,
+            kind: .chat)
+        try associate(conversation, with: projectID)
+        do {
+            try switchChatSession(to: session)
+            return conversation
+        } catch {
+            rollbackProjectConversation(conversation)
+            throw error
+        }
+    }
+
+    func removeProjectConversation(
+        _ conversation: ProjectConversationReference
+    ) throws {
+        try ProjectFolderStore.removeConversation(
+            root: AppConfig.appSupportDir(),
+            conversation: conversation)
+        refreshProjects()
+    }
+
     func deleteChatSession(_ session: SessionID) async throws {
         guard !runtimeManager.isBusy(kind: .chat, sessionID: session) else {
-            throw EgakiumError.io(EgakiumLocalization.string(
+            throw IntatisError.io(IntatisLocalization.string(
                 "Wait for the Chat response to finish before deleting this session."))
         }
         if session == chatSessionID {
@@ -132,7 +207,7 @@ final class AppEnvironment: ObservableObject {
         do {
             try switchChatSession(to: replacement)
         } catch {
-            chatSessionError = EgakiumLocalization.format(
+            chatSessionError = IntatisLocalization.format(
                 "The removed Chat session could not be replaced: %@",
                 error.localizedDescription)
         }
@@ -219,6 +294,32 @@ final class AppEnvironment: ObservableObject {
         return try makeCodeViewModel(session: session, workspace: workspace)
     }
 
+    func makeProjectCodeViewModel(
+        projectID: ProjectID
+    ) throws -> CodeViewModel {
+        let workspace = try projectWorkspaceAccess(
+            projectID: projectID,
+            expectedKind: .code)
+        let session = SessionID(rawValue: IDGen.random(prefix: "code"))
+        let conversation = ProjectConversationReference(
+            sessionID: session,
+            kind: .code)
+        do {
+            try associate(conversation, with: projectID)
+        } catch {
+            workspace.release()
+            throw error
+        }
+        do {
+            return try makeCodeViewModel(
+                session: session,
+                workspace: workspace)
+        } catch {
+            rollbackProjectConversation(conversation)
+            throw error
+        }
+    }
+
     func makeCodeViewModel(session: SessionID,
                            workspace: WorkspaceAccessLease) throws -> CodeViewModel {
         if let existing = runtimeManager.cachedCodeRuntime(sessionID: session) {
@@ -258,6 +359,9 @@ final class AppEnvironment: ObservableObject {
                         workspacePaths: [
                             workspace.canonicalPath,
                         ]),
+                codexMCPConfiguration:
+                    makeCodexMCPConfigurationFactory(
+                        log: codeLog),
                 internalToolRegistryAugmenter:
                     makeKnowledgeToolAugmenter(),
                 initialConfigurationNotice:
@@ -277,27 +381,60 @@ final class AppEnvironment: ObservableObject {
 
     /// Build a fresh multi-agent Cowork project session bound to a primary workspace.
     func makeCoworkViewModel(primaryWorkspace: WorkspaceAccessLease) async throws -> CoworkViewModel {
+        let session = SessionID(rawValue: IDGen.random(prefix: "cowork"))
+        return try await makeCoworkViewModel(
+            session: session,
+            primaryWorkspace: primaryWorkspace)
+    }
+
+    func makeProjectCoworkViewModel(
+        projectID: ProjectID
+    ) async throws -> CoworkViewModel {
+        let workspace = try projectWorkspaceAccess(
+            projectID: projectID,
+            expectedKind: .cowork)
+        let session = SessionID(rawValue: IDGen.random(prefix: "cowork"))
+        let conversation = ProjectConversationReference(
+            sessionID: session,
+            kind: .cowork)
+        do {
+            try associate(conversation, with: projectID)
+        } catch {
+            workspace.release()
+            throw error
+        }
+        do {
+            return try await makeCoworkViewModel(
+                session: session,
+                primaryWorkspace: workspace)
+        } catch {
+            rollbackProjectConversation(conversation)
+            throw error
+        }
+    }
+
+    private func makeCoworkViewModel(
+        session: SessionID,
+        primaryWorkspace: WorkspaceAccessLease
+    ) async throws -> CoworkViewModel {
         guard let inferenceCatalogSnapshot else {
             primaryWorkspace.release()
-            throw EgakiumError.config(
-                inferenceCatalogError ?? EgakiumLocalization.string(
+            throw IntatisError.config(
+                inferenceCatalogError ?? IntatisLocalization.string(
                     "Inference profiles are still loading. Try again in a moment."))
         }
         guard let selectedBinding = AppInferenceCatalogCompiler.selectedBinding(
             catalog: providerCatalog,
             snapshot: inferenceCatalogSnapshot) else {
             primaryWorkspace.release()
-            throw EgakiumError.config(EgakiumLocalization.string(
+            throw IntatisError.config(IntatisLocalization.string(
                 "Choose a resolvable default inference profile before creating Cowork."))
         }
-        guard let permissionReviewerBinding =
-                configuredPermissionReviewerBinding(
-                    snapshot: inferenceCatalogSnapshot) else {
-            primaryWorkspace.release()
-            throw EgakiumError.config(EgakiumLocalization.string(
-                "Configure a resolvable permission_reviewer_model before creating Cowork."))
-        }
-        let session = SessionID(rawValue: IDGen.random(prefix: "cowork"))
+        // Codex App Server owns automatic approval review and binds it to the
+        // selected Responses model through its official model catalog. The
+        // legacy Intatis permission_reviewer_model is not a Cowork startup
+        // dependency on the new kernel.
+        let permissionReviewerBinding: AgentInferenceBinding? = nil
         do {
             try WorkspaceAccess.remember(
                 primaryWorkspace.scopedURL,
@@ -331,13 +468,11 @@ final class AppEnvironment: ObservableObject {
 
     func makeCoworkViewModel(session: SessionID) async throws -> CoworkViewModel {
         guard let inferenceCatalogSnapshot else {
-            throw EgakiumError.config(
-                inferenceCatalogError ?? EgakiumLocalization.string(
+            throw IntatisError.config(
+                inferenceCatalogError ?? IntatisLocalization.string(
                     "Inference profiles are still loading. Try again in a moment."))
         }
-        let permissionReviewerBinding =
-            configuredPermissionReviewerBinding(
-                snapshot: inferenceCatalogSnapshot)
+        let permissionReviewerBinding: AgentInferenceBinding? = nil
         return try await runtimeManager.coworkRuntime(sessionID: session) { [self] in
         let coworkLog = try EventLog(session: session, fileURL: AppConfig.sessionFile(session))
         let legacyOwnedWorkspacePaths = CoworkProjectSettingsStore
@@ -395,7 +530,7 @@ final class AppEnvironment: ObservableObject {
                 }
             }
         } catch {
-            let message = EgakiumLocalization.format(
+            let message = IntatisLocalization.format(
                 "Legacy workspace access remains in compatibility mode: %@",
                 error.localizedDescription)
             warning = warning.map { "\($0) \(message)" } ?? message
@@ -426,7 +561,7 @@ final class AppEnvironment: ObservableObject {
             coworkSettings: canonical,
             changeKind: .migrated)
         guard let persisted = document.coworkSettings else {
-            throw EgakiumError.io(
+            throw IntatisError.io(
                 "Canonical workspace aliases were not persisted in session settings.")
         }
         return persisted
@@ -443,11 +578,7 @@ final class AppEnvironment: ObservableObject {
             AgentInferenceBinding?
     ) throws -> CoworkViewModel {
         let artifactStore = try ArtifactStore(root: AppConfig.artifactsDir(session))
-        let permissionReviewerConfigurationError =
-            permissionReviewerInferenceBinding == nil
-            ? EgakiumLocalization.string(
-                "The configured permission_reviewer_model is missing, invalid, or unavailable in the current inference catalog.")
-            : nil
+        let permissionReviewerConfigurationError: String? = nil
         let combinedStorageWarning = [
             sessionStorageWarning,
             knowledgeToolsConfigurationNotice(),
@@ -478,6 +609,9 @@ final class AppEnvironment: ObservableObject {
                     workspacePaths:
                         projectSettings.workspaces
                             .map(\.path)),
+            codexMCPConfiguration:
+                makeCodexMCPConfigurationFactory(
+                    log: coworkLog),
             internalToolRegistryAugmenter:
                 makeKnowledgeToolAugmenter())
     }
@@ -499,7 +633,6 @@ final class AppEnvironment: ObservableObject {
 
     private func makeKnowledgeToolAugmenter()
         -> HostToolRegistryAugmenter? {
-        #if !EGAKIUM_MAC_APP_STORE
         let configured = AppConfig.providerConfig()
         guard (try? ProviderRegistry.validateKnowledgeConfiguration(
             configured)) != nil else { return nil }
@@ -524,20 +657,15 @@ final class AppEnvironment: ObservableObject {
                         evaluationDate: formatter.string(from: Date())))
                 return try await host.augment(input)
             }
-        #else
-        return nil
-        #endif
     }
 
     private func knowledgeToolsConfigurationNotice() -> String? {
-        #if !EGAKIUM_MAC_APP_STORE
         do {
             try ProviderRegistry.validateKnowledgeConfiguration(
                 AppConfig.providerConfig())
         } catch {
             return error.localizedDescription
         }
-        #endif
         return nil
     }
 
@@ -551,7 +679,7 @@ final class AppEnvironment: ObservableObject {
     {
         { [weak self] in
             guard let self else {
-                throw EgakiumError.io(
+                throw IntatisError.io(
                     "The application MCP runtime owner is unavailable.")
             }
             let runtime =
@@ -562,6 +690,22 @@ final class AppEnvironment: ObservableObject {
                     workspacePaths:
                         workspacePaths)
             return runtime.snapshots
+        }
+    }
+
+    private func makeCodexMCPConfigurationFactory(
+        log: EventLog
+    ) -> @MainActor @Sendable (
+        AgentID,
+        CapabilityLeaseID,
+        TaskID?
+    ) async throws -> CodexRuntimeMCPConfiguration {
+        { [mcp] agentID, capabilityLeaseID, taskID in
+            try await mcp.codexRuntimeConfiguration(
+                log: log,
+                agentID: agentID,
+                capabilityLeaseID: capabilityLeaseID,
+                taskID: taskID)
         }
     }
 
@@ -691,6 +835,76 @@ final class AppEnvironment: ObservableObject {
         }
     }
 
+    private func projectWorkspaceAccess(
+        projectID: ProjectID,
+        expectedKind: SessionKind
+    ) throws -> WorkspaceAccessLease {
+        let project = try projectRecord(
+            projectID: projectID,
+            expectedKind: expectedKind)
+        guard let workspace = WorkspaceAccess.choose(
+            prompt: IntatisLocalization.string("Choose Project Folder")) else {
+            throw CancellationError()
+        }
+        guard workspace.canonicalPath == project.path else {
+            workspace.release()
+            throw IntatisError.io(IntatisLocalization.string(
+                "Choose the exact folder registered for this project."))
+        }
+        return workspace
+    }
+
+    private func validateProjectFolder(
+        projectID: ProjectID,
+        expectedKind: SessionKind
+    ) throws {
+        let project = try projectRecord(
+            projectID: projectID,
+            expectedKind: expectedKind)
+        let url = try PathConfinement.canonicalExistingDirectory(
+            URL(fileURLWithPath: project.path, isDirectory: true))
+        guard url.path == project.path else {
+            throw ProjectFolderStoreError.invalidProject
+        }
+    }
+
+    private func projectRecord(
+        projectID: ProjectID,
+        expectedKind: SessionKind
+    ) throws -> ProjectFolderRecord {
+        guard let project = projects.first(where: { $0.id == projectID }) else {
+            throw ProjectFolderStoreError.projectNotFound
+        }
+        guard project.kind == expectedKind else {
+            throw ProjectFolderStoreError.invalidProject
+        }
+        return project
+    }
+
+    private func associate(
+        _ conversation: ProjectConversationReference,
+        with projectID: ProjectID
+    ) throws {
+        _ = try ProjectFolderStore.associate(
+            root: AppConfig.appSupportDir(),
+            projectID: projectID,
+            conversation: conversation)
+        refreshProjects()
+    }
+
+    private func rollbackProjectConversation(
+        _ conversation: ProjectConversationReference
+    ) {
+        do {
+            try ProjectFolderStore.removeConversation(
+                root: AppConfig.appSupportDir(),
+                conversation: conversation)
+            refreshProjects()
+        } catch {
+            projectStoreError = error.localizedDescription
+        }
+    }
+
     func recentCodeSessions() -> [AppSessionSummary] {
         AppConfig.recentSessions(kind: .code)
     }
@@ -760,7 +974,7 @@ final class AppEnvironment: ObservableObject {
             // Keep a previously valid snapshot/registry alive for exact
             // bindings. Initial startup remains fail-closed until a valid
             // durable catalog can be loaded or reconciled.
-            inferenceCatalogError = EgakiumLocalization.format(
+            inferenceCatalogError = IntatisLocalization.format(
                 "Versioned inference profiles are unavailable: %@",
                 error.localizedDescription)
         }
@@ -818,14 +1032,14 @@ struct WorkspaceSessionHome: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let layout = EgakiumMacScreenLayout(rawWidth: proxy.size.width)
+            let layout = IntatisMacScreenLayout(rawWidth: proxy.size.width)
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     EgakiumPageHeader(title: title, subtitle: subtitle)
 
                     VStack(alignment: .leading, spacing: 14) {
                         Image(systemName: icon)
-                            .egakiumFont(size: 28, weight: .semibold)
+                            .font(IntatisTypography.system(size: 28, weight: .semibold))
                             .foregroundStyle(EgakiumTheme.accent(scheme))
                             .frame(width: 64, height: 64)
                         Text(primaryTitle)
@@ -848,7 +1062,7 @@ struct WorkspaceSessionHome: View {
                             title: sessionsTitle,
                             sessions: sessions,
                             workspacePath: workspacePath,
-                            actionTitle: EgakiumLocalization.string("Resume"),
+                            actionTitle: IntatisLocalization.string("Resume"),
                             onAction: onResume)
                     }
 
@@ -871,7 +1085,7 @@ struct WorkspaceSessionHome: View {
                 .foregroundStyle(.primary)
         }
         .controlSize(.large)
-        .egakiumGlassButton(prominent: true)
+        .intatisGlassButton(prominent: true)
 
         if let primaryShortcut {
             button.keyboardShortcut(primaryShortcut)
@@ -910,7 +1124,7 @@ private struct RecentSessionList: View {
                     Spacer(minLength: 8)
                     Button(actionTitle) { onAction(session) }
                         .controlSize(.small)
-                        .egakiumGlassButton()
+                        .intatisGlassButton()
                 }
                 .padding(.horizontal, 13)
                 .padding(.vertical, 10)
@@ -926,12 +1140,12 @@ private struct RecentSessionList: View {
 
     private func metadata(for session: AppSessionSummary) -> String {
         let timestamp = session.updatedAt == .distantPast
-            ? EgakiumLocalization.string("Unknown date")
+            ? IntatisLocalization.string("Unknown date")
             : session.updatedAt.formatted(date: .abbreviated, time: .shortened)
         let workspace = workspacePath(session.id).map { " · \($0)" } ?? ""
         let count = session.eventCount == 1
-            ? EgakiumLocalization.string("1 event")
-            : EgakiumLocalization.format("%lld events", Int64(session.eventCount))
+            ? IntatisLocalization.string("1 event")
+            : IntatisLocalization.format("%lld events", Int64(session.eventCount))
         return "\(count) · \(timestamp)\(workspace)"
     }
 }
@@ -956,14 +1170,13 @@ struct CodeSessionView: View {
 
     var body: some View {
             CodeShell(items: vm.items,
-                      presentationScope: EgakiumThreadPresentationScope(
+                      presentationScope: IntatisThreadPresentationScope(
                         kind: .code,
                         sessionID: vm.sessionID),
                       sessionTitle: sessionTitle,
                       thinkingScopeID: vm.sessionID.rawValue,
-                      pending: vm.pendingPermission,
+                  pending: vm.pendingPermission,
                   permissionNotice: vm.permissionNotice,
-                  latestTurnStats: vm.latestTurnStats,
                   isWorking: vm.isWorking,
                   workspaceName: vm.workspaceName,
                   agentState: vm.agentState,
@@ -976,9 +1189,9 @@ struct CodeSessionView: View {
                   onNewSession: onNewSession,
                   composerAccessory: AnyView(HStack(
                     alignment: .center,
-                    spacing: EgakiumComposerControlMetrics.rowSpacing
+                    spacing: IntatisComposerControlMetrics.rowSpacing
                   ) {
-                    EgakiumComposerModelControl(
+                    IntatisComposerModelControl(
                         catalog: catalog,
                         isBusy: vm.isWorking,
                         onSelectModel: onSelectModel)
@@ -988,7 +1201,7 @@ struct CodeSessionView: View {
                         onCancel: {
                             vm.cancelPendingMCPExternalContexts()
                         })
-                    EgakiumMacComposerAttachmentAccessory(
+                    IntatisMacComposerAttachmentAccessory(
                         attachments: vm.draftAttachments,
                         accessibilityPrefix: "code",
                         isDisabled: vm.isWorking,
@@ -1000,7 +1213,7 @@ struct CodeSessionView: View {
                         })
                   }),
                   composerTrailingAction:
-                    EgakiumThreadComposerSecondaryAction(
+                    IntatisThreadComposerSecondaryAction(
                         systemImage: vm.voiceInput.buttonSystemImage,
                         help: vm.voiceInput.buttonHelp,
                         isBusy: vm.voiceInput.showsProgress,
@@ -1010,7 +1223,7 @@ struct CodeSessionView: View {
                         blocksSubmission: vm.voiceInput.isEngaged,
                         action: { vm.toggleVoiceInput() }),
                   headerActions: [
-                    EgakiumThreadHeaderAction(
+                    IntatisThreadHeaderAction(
                         title: "MCP Content",
                         systemImage: "shippingbox.and.arrow.backward",
                         isIconOnly: true,
@@ -1018,7 +1231,7 @@ struct CodeSessionView: View {
                         accessibilityIdentifier: "code.mcp.content") {
                             showMCPContent = true
                         },
-                    EgakiumThreadHeaderAction(
+                    IntatisThreadHeaderAction(
                         title: "MCP Settings",
                         systemImage: "network.badge.shield.half.filled",
                         isIconOnly: true,
@@ -1050,7 +1263,7 @@ struct CodeSessionView: View {
                     minWidth: 980,
                     minHeight: 680)
             }
-            .egakiumComposerAttachmentImport(
+            .intatisComposerAttachmentImport(
                 isPresented: $showAttachmentImporter,
                 onImport: { vm.importDraftAttachments($0) },
                 onFailure: { vm.reportAttachmentImportFailure($0) })
@@ -1106,13 +1319,12 @@ struct CoworkSessionView: View {
         self._agentThreadPresentation = StateObject(
             wrappedValue: CoworkAgentThreadPresentationModel(
                 mainAgentID: vm.project.mainAgentName,
-                loadPage: { [weak vm] agentID, upperBound in
+                loadSnapshot: { [weak vm] agentID in
                     guard let vm else {
                         return .empty(agentID: agentID)
                     }
-                    return await vm.agentThreadPage(
-                        agentID: agentID,
-                        requestedUpperBound: upperBound)
+                    return await vm.agentThreadSnapshot(
+                        agentID: agentID)
                 },
                 updates: { [weak vm] agentID in
                     guard let vm else {
@@ -1141,8 +1353,8 @@ struct CoworkSessionView: View {
                     maxWidth: .infinity,
                     maxHeight: .infinity)
 
-            CoworkShell(threadPage: agentThreadPresentation.page,
-                        presentationScope: EgakiumThreadPresentationScope(
+            CoworkShell(threadSnapshot: agentThreadPresentation.snapshot,
+                        presentationScope: IntatisThreadPresentationScope(
                             kind: .cowork,
                             sessionID: vm.sessionID),
                         sessionTitle: sessionTitle,
@@ -1150,7 +1362,6 @@ struct CoworkSessionView: View {
                         agents: vm.agents,
                         pending: vm.pendingPermission,
                         permissionNotice: vm.permissionNotice,
-                        latestTurnStats: vm.latestTurnStats,
                         summary: vm.summary,
                         project: vm.project,
                         goal: vm.goal,
@@ -1171,7 +1382,7 @@ struct CoworkSessionView: View {
                         onShowProjectSettings: { showProjectSettings = true },
                         composerAccessory: AnyView(HStack(
                             alignment: .center,
-                            spacing: EgakiumComposerControlMetrics.rowSpacing
+                            spacing: IntatisComposerControlMetrics.rowSpacing
                         ) {
                             CoworkInferenceAccessory(
                                 options: vm.inferenceProfileOptions,
@@ -1188,7 +1399,7 @@ struct CoworkSessionView: View {
                                 })
                         }),
                         composerInputAccessory: AnyView(
-                            EgakiumMacComposerAttachmentAccessory(
+                            IntatisMacComposerAttachmentAccessory(
                                 attachments: vm.draftAttachments,
                                 accessibilityPrefix: "cowork",
                                 onAttach: {
@@ -1198,7 +1409,7 @@ struct CoworkSessionView: View {
                                     vm.removeDraftAttachment($0)
                                 })),
                         composerTrailingAction:
-                            EgakiumThreadComposerSecondaryAction(
+                            IntatisThreadComposerSecondaryAction(
                                 systemImage:
                                     vm.voiceInput.buttonSystemImage,
                                 help: vm.voiceInput.buttonHelp,
@@ -1229,21 +1440,12 @@ struct CoworkSessionView: View {
                         onClearGoal: { showGoalClearConfirmation = true },
                         selectedAgentID:
                             agentThreadPresentation.selectedAgentID,
-                        isThreadPageLoading:
+                        isThreadSnapshotLoading:
                             agentThreadPresentation.isLoading,
                         isRichRenderingEligible:
                             agentThreadPresentation.isRichRenderingEligible,
                         onSelectAgent: {
                             agentThreadPresentation.select($0)
-                        },
-                        onShowEarlier: {
-                            agentThreadPresentation.showEarlier()
-                        },
-                        onShowNewer: {
-                            agentThreadPresentation.showNewer()
-                        },
-                        onShowLatest: {
-                            agentThreadPresentation.showLatest()
                         })
                 .frame(
                     minWidth: 440,
@@ -1274,7 +1476,7 @@ struct CoworkSessionView: View {
         }
         .sheet(isPresented: $showProjectSettings) { projectSettingsSheet }
         .sheet(isPresented: $showGoalEditor) { goalEditorSheet }
-        .egakiumComposerAttachmentImport(
+        .intatisComposerAttachmentImport(
             isPresented: $showAttachmentImporter,
             onImport: { vm.importDraftAttachments($0) },
             onFailure: { vm.reportAttachmentImportFailure($0) })
@@ -1305,11 +1507,11 @@ struct CoworkSessionView: View {
     private var goalEditorValidationMessage: String? {
         if let goalEditorSubmissionError { return goalEditorSubmissionError }
         if goalObjectiveDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return EgakiumLocalization.string("A Goal objective is required.")
+            return IntatisLocalization.string("A Goal objective is required.")
         }
         let budget = goalTokenBudgetDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         if !budget.isEmpty, Int(budget).map({ $0 > 0 }) != true {
-            return EgakiumLocalization.string(
+            return IntatisLocalization.string(
                 "Token budget must be a positive whole number, or left empty for no budget.")
         }
         return nil
@@ -1335,7 +1537,7 @@ struct CoworkSessionView: View {
                 onAddWorkspace: {
                     if let url = WorkspaceAccess.choose(
                         prompt:
-                            EgakiumLocalization.string(
+                            IntatisLocalization.string(
                                 "Choose Project Workspace"))
                     {
                         vm.addProjectWorkspace(url)
@@ -1368,16 +1570,16 @@ struct CoworkSessionView: View {
     private var goalEditorSheet: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Edit Goal")
-                .egakiumFont(.title2, weight: .bold)
+                .font(IntatisTypography.system(.title2, bold: true))
             Text("Edit the durable objective and its requirements. Enter one success criterion or constraint per line. Leaving token budget empty means no Goal budget. A paused Goal remains paused.")
-                .egakiumFont(.callout)
+                .font(IntatisTypography.system(.callout))
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Objective")
-                    .egakiumFont(.caption, weight: .bold)
+                    .font(IntatisTypography.system(.caption, bold: true))
                 TextEditor(text: $goalObjectiveDraft)
-                    .egakiumFont(.body)
+                    .font(IntatisTypography.system(.body))
                     .frame(minWidth: 500, minHeight: 90)
                     .padding(8)
                     .overlay {
@@ -1391,14 +1593,14 @@ struct CoworkSessionView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text("Success criteria")
-                        .egakiumFont(.caption, weight: .bold)
+                        .font(IntatisTypography.system(.caption, bold: true))
                     Spacer()
                     Text("One per line")
-                        .egakiumFont(.caption2)
+                        .font(IntatisTypography.system(.caption2))
                         .foregroundStyle(.tertiary)
                 }
                 TextEditor(text: $goalSuccessCriteriaDraft)
-                    .egakiumFont(.body)
+                    .font(IntatisTypography.system(.body))
                     .frame(minHeight: 82)
                     .padding(8)
                     .overlay {
@@ -1412,14 +1614,14 @@ struct CoworkSessionView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text("Constraints")
-                        .egakiumFont(.caption, weight: .bold)
+                        .font(IntatisTypography.system(.caption, bold: true))
                     Spacer()
                     Text("One per line")
-                        .egakiumFont(.caption2)
+                        .font(IntatisTypography.system(.caption2))
                         .foregroundStyle(.tertiary)
                 }
                 TextEditor(text: $goalConstraintsDraft)
-                    .egakiumFont(.body)
+                    .font(IntatisTypography.system(.body))
                     .frame(minHeight: 82)
                     .padding(8)
                     .overlay {
@@ -1432,7 +1634,7 @@ struct CoworkSessionView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Token budget (optional)")
-                    .egakiumFont(.caption, weight: .bold)
+                    .font(IntatisTypography.system(.caption, bold: true))
                 TextField("No budget", text: $goalTokenBudgetDraft)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 220)
@@ -1442,7 +1644,7 @@ struct CoworkSessionView: View {
 
             if let validationMessage = goalEditorValidationMessage {
                 Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
-                    .egakiumFont(.caption)
+                    .font(IntatisTypography.system(.caption))
                     .foregroundStyle(.red)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("cowork.goal.editor.validation")
@@ -1492,7 +1694,7 @@ private struct CoworkInferenceAccessory: View {
     }
 
     private var modelLabel: String {
-        selectedOption?.modelTitle ?? EgakiumLocalization.string("Inference unavailable")
+        selectedOption?.modelTitle ?? IntatisLocalization.string("Inference unavailable")
     }
 
     private var menuProviders: [ProviderModelMenuProvider] {
@@ -1538,15 +1740,15 @@ private struct CoworkInferenceAccessory: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                     Image(systemName: "chevron.down")
-                        .egakiumFont(size: 10, weight: .semibold)
+                        .font(IntatisTypography.system(size: 10, weight: .semibold))
                         .foregroundStyle(EgakiumTheme.tertiaryText(scheme))
                         .accessibilityHidden(true)
                 }
-                .egakiumComposerSelectionLabel()
+                .intatisComposerSelectionLabel()
         }
-        .egakiumComposerSelectionMenu()
+        .intatisComposerSelectionMenu()
         .help(helpText)
-        .accessibilityLabel(Text(EgakiumLocalization.format(
+        .accessibilityLabel(Text(IntatisLocalization.format(
             "Next @main model: %@",
             modelLabel)))
         .accessibilityIdentifier("cowork.main.inference-profile")
@@ -1554,13 +1756,13 @@ private struct CoworkInferenceAccessory: View {
 
     private var helpText: String {
         if options.isEmpty {
-            return EgakiumLocalization.string("No configured inference profiles are available")
+            return IntatisLocalization.string("No configured inference profiles are available")
         }
         if isDisabled {
-            return EgakiumLocalization.string(
+            return IntatisLocalization.string(
                 "@main must be attached before selecting its next model")
         }
-        return EgakiumLocalization.string(
+        return IntatisLocalization.string(
             "Model for the next @main message. Current work and other agents keep their existing models.")
     }
 }
@@ -1759,7 +1961,8 @@ struct EgakiumMacApp: App {
     #endif
 
     init() {
-        EgakiumTypography.preflight()
+        try! IntatisHostApplication.configure(name: "Egakium")
+        IntatisTypography.prepareJetBrainsMonoTypography()
     }
 
     private var launchAppearance: ColorScheme? {
@@ -1778,11 +1981,45 @@ struct EgakiumMacApp: App {
             || Bundle.main.bundleIdentifier?.hasSuffix(
                 ".CoworkAgentConversationFixture") == true
     }
+
+    private var launchesMessageFooterFixture: Bool {
+        Bundle.main.bundleIdentifier?.hasSuffix(
+            ".MessageFooterFixture") == true
+    }
+
+    private var documentSelectionFixtureStage: String? {
+        let identifier = Bundle.main.bundleIdentifier
+        if identifier?.hasSuffix(".DocumentSelectionFixture") == true {
+            return "code-selection"
+        }
+        if identifier?.hasSuffix(".DocumentSelectionTableFixture") == true {
+            return "table"
+        }
+        if identifier?.hasSuffix(".DocumentSelectionFullFixture") == true {
+            return "full-static"
+        }
+        return nil
+    }
+
+    private var messageFooterFixtureArguments: [String] {
+        return ProcessInfo.processInfo.arguments + [
+            "-EgakiumRendererFixtureStage",
+            "message-footer",
+        ]
+    }
+    private var documentSelectionFixtureArguments: [String] {
+        guard let documentSelectionFixtureStage else {
+            return ProcessInfo.processInfo.arguments
+        }
+        return ProcessInfo.processInfo.arguments + [
+            "-EgakiumRendererFixtureStage",
+            documentSelectionFixtureStage,
+        ]
+    }
     #endif
 
     var body: some Scene {
         WindowGroup {
-            Group {
             #if DEBUG || EGAKIUM_RENDERER_VALIDATION
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-EgakiumPhaseLLifecycleFixture") {
@@ -1793,6 +2030,14 @@ struct EgakiumMacApp: App {
                     .preferredColorScheme(launchAppearance)
             } else if launchesCoworkAgentConversationFixture {
                 CoworkAgentConversationFixtureView()
+                    .preferredColorScheme(launchAppearance)
+            } else if launchesMessageFooterFixture {
+                RendererFixtureView(
+                    arguments: messageFooterFixtureArguments)
+                    .preferredColorScheme(launchAppearance)
+            } else if documentSelectionFixtureStage != nil {
+                RendererFixtureView(
+                    arguments: documentSelectionFixtureArguments)
                     .preferredColorScheme(launchAppearance)
             } else if ProcessInfo.processInfo.arguments.contains("-EgakiumRendererFixture") {
                 RendererFixtureView()
@@ -1817,11 +2062,8 @@ struct EgakiumMacApp: App {
             #else
             EgakiumProductionRootView(launchAppearance: launchAppearance)
             #endif
-            }
-            .egakiumInterfaceTypography()
         }
         .defaultSize(width: 1100, height: 760)
-
     }
 }
 
@@ -1838,6 +2080,7 @@ private struct EgakiumProductionRootView: View {
     var body: some View {
         EgakiumMacRootView(runtimeManager: env.runtimeManager)
             .environmentObject(env)
+            .font(IntatisTypography.globalFont)
             .preferredColorScheme(launchAppearance)
     }
 }

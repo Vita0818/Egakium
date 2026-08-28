@@ -2,6 +2,37 @@
 
 本文件继承 `/Users/vita/Vitemis/AGENTS.md` 中的 Vitemis 通用 Agent 规则。若本文件与通用规则冲突，在不违反系统和用户指令的前提下，以更具体、更严格的项目规则为准。
 
+## 2026-08-28 Intatis Runtime 直接接入（最新、优先）
+
+用户已最终要求删除 Egakium 内复制的 Intatis snapshot，并按照
+`/Users/vita/Vitemis/Intatis/docs/CODEX_RUNTIME_INTEGRATION.md` 直接消费唯一 Intatis checkout。
+当前 `Package.swift` 与 `project.yml` 都只通过 `../../Intatis` 引用
+`/Users/vita/Vitemis/Intatis`；共享 Core/Protocol/Providers/Conversation/Artifacts/Multimodal/SharedUI/
+Tools/Knowledge/Skills/Permission/MCP/AgentKernel/Cowork 与 `IntatisCodexRuntime` 都由该 sibling repo
+提供。Egakium 本地只保留 `Apps/` 产品 host/UI、`Product/EgakiumCanvas`、CEF bridge/resources、CLI
+表面、产品测试和发行接线。tracked `Packages/`、`Vendor/`、`ThirdPartyStandards/` 及旧 MCP parity/
+conformance snapshot 已删除，不得恢复、fork、vendoring 或建立 fallback。
+
+macOS/CLI 的 Code/Cowork production send/stream/approval/interrupt/shutdown 必须继续使用
+`CodexAppServerSession`；项目工具只经官方 `CodexRuntimeDynamicTools` extension 接入。三个 host 入口
+必须在构造任何共享对象前只调用一次 `IntatisHostApplication.configure(name: "Egakium")`，使共享源码
+继续派生 `EGAKIUM_*`、`egakium.*`、`com.vitemis.egakium.*`、`.egakium/` 与
+`__egakium_authorization_context`。每个 Session 仍有独立 workspace/runtime root/credential/
+permission/EventLog。shipping macOS App 必须自包含并验证 exact Intatis Codex runtime；不得依赖 PATH、
+Homebrew 或 sibling checkout 作为运行期 fallback。
+
+Canvas 仍是 Egakium 产品 overlay：`Product/EgakiumCanvas` 拥有 Session/element templates，CEF 仍是唯一
+renderer，单 Cowork 窗口的左 Canvas/右 harness 与隐藏但保留 Chat/Code 的 UI 合同不变。native Codex
+child 由 Intatis runtime admission；Egakium 只在收到 verified descendant update 后，在该 child exact
+workspace 中幂等 provision 独立 element document，并通过官方 descendant message 发送 assignment。
+旧段落中“本地 Orchestrator 在 `agent_spawn_requested/agent_spawned` 中写 Canvas descriptor”、
+`Packages/Egakium*` 路径、14/15 个本地公共库或旧 AgentLoop 作为 production backend 的描述，均已被
+本节取代，只能作为迁移历史/共享语义背景读取。
+
+完整当前事实、删除边界、验证与升级合同见 `docs/INTATIS_RUNTIME_INTEGRATION.md`；当前目录图见
+`docs/PROJECT_MAP.md`。若下文旧细节与当前 manifest/source 冲突，必须以本节和当前源码为准，并在
+报告中指出冲突，不得据旧文档重建 snapshot。
+
 本仓库在 2026-08-14 导入一份既有 Apple-first Swift 工作树作为业务起点，并保留当前 Git root、
 历史文档以及既有 Chromium/CEF 本地资产。2026-08-18 用户决定执行不兼容的 identity hard cutover；
 当前产品版本是 `v0.4`（build 50），唯一产品与技术身份为 `Egakium` / `egakium` / `EGAKIUM`。
@@ -92,18 +123,20 @@ bridge、用户 layout persistence 和 Agent-driven 多元素 App E2E 仍未实�
 
 0. `/Users/vita/Vitemis/AGENTS.md`
 0a. `/Users/vita/Vitemis/docs/DEPENDENCY_POLICY.md`
-1. `docs/EGAKIUM_MIGRATION.md`
-2. `docs/EGAKIUM_CANVAS_COWORK.md`
-3. `docs/VERSIONING.md`
-4. `docs/CURRENT_STATE.md`
-5. `docs/MACOS_DISTRIBUTION.md`
-6. `docs/PROJECT_MAP.md`
-7. `docs/ARCHITECTURE.md`
-8. `docs/DO_NOT_BREAK.md`
-9. `docs/OPEN_SOURCE_REUSE.md`
-10. `docs/TESTING.md`
-11. `docs/NEXT_TARGET.md`（如果存在；CEF-only cutover 已完成，当前没有获准的下一业务目标）
-12. `docs/COWORK_PRINCIPLES.md`（修改 Cowork / AgentKernel / MessageBus / 权限 / agent 编排前必读）
+0b. `/Users/vita/Vitemis/Intatis/docs/CODEX_RUNTIME_INTEGRATION.md`
+1. `docs/INTATIS_RUNTIME_INTEGRATION.md`
+2. `docs/EGAKIUM_MIGRATION.md`
+3. `docs/EGAKIUM_CANVAS_COWORK.md`
+4. `docs/VERSIONING.md`
+5. `docs/CURRENT_STATE.md`
+6. `docs/MACOS_DISTRIBUTION.md`
+7. `docs/PROJECT_MAP.md`
+8. `docs/ARCHITECTURE.md`
+9. `docs/DO_NOT_BREAK.md`
+10. `docs/OPEN_SOURCE_REUSE.md`
+11. `docs/TESTING.md`
+12. `docs/NEXT_TARGET.md`（当前没有获准的下一业务目标）
+13. `docs/COWORK_PRINCIPLES.md`（修改 Cowork / AgentKernel / MessageBus / 权限 / agent 编排前必读）
 
 如果文档与源码、工程配置、测试或脚本冲突，必须以当前源码和配置为准，并在最终报告中明确指出冲突位置和采用源码为准的原因。
 
@@ -189,8 +222,8 @@ managed-terminal Seatbelt、Hardened Runtime、签名/公证或 iOS 平台边界
 除非用户明确要求，不要修改：
 
 - `Apps/`（EgakiumMac / EgakiumiOS / egakium-cli）
-- `Packages/`（当前 14 个公共库、3 个内部 C/guard target、开发期 MCP
-  conformance executable 及其 Tests；精确清单以 `Package.swift` 为准）
+- `Product/EgakiumCanvas/`
+- sibling `/Users/vita/Vitemis/Intatis`（它是只读共享依赖；不得由 Egakium 任务顺带修改、提交或清理）
 - `Package.swift`
 - `project.yml`
 - `Makefile`
@@ -243,6 +276,11 @@ managed-terminal Seatbelt、Hardened Runtime、签名/公证或 iOS 平台边界
 
 修改前至少确认：
 
+下列大量 shared 运行时语义仍是产品要求，但实现源现位于 sibling Intatis。production Code/Cowork
+调用路径以当前源码中的 `CodexAppServerSession` + official dynamic tools 为准；下文旧
+`AgentRuntime/AgentLoop/Orchestrator.runtime` 路径只描述迁移前实现或 shared business semantics，不得
+用来恢复本地 backend。精确当前图见 `docs/INTATIS_RUNTIME_INTEGRATION.md` 与 `docs/PROJECT_MAP.md`。
+
 - 入口：`Apps/EgakiumMac/Sources/EgakiumMacApp.swift`（`@main struct EgakiumMacApp`，全量 macOS）、`Apps/EgakiumiOS/Sources/EgakiumiOSApp.swift`（`@main struct EgakiumiOSApp`，chat 子集）、`Apps/egakium-cli/Sources/EgakiumCLI.swift`（CLI）。
 - Chat 链路：`ChatViewModel` → `GoalInputParser`（行首 `/goal` 只生成可选 Goal 元数据，provider 收到清洗后的文本）→ `ChatLoop`（无工具）→ `EventLog`(JSONL append-only) → `ConversationProjection`。
 - Code 链路：`CodeViewModel` → `GoalInputParser` → 共享 headless `AgentRuntime.code` → `AgentLoop`（maxIterations 50）→ `ContextBuilder` + `RuntimeEnvironmentManifest` → `OpenAIWireProvider` → `runTool` → `PermissionEngine`（3 层门）→ `EventLog` → `CodeProjection`。
@@ -285,6 +323,8 @@ managed-terminal Seatbelt、Hardened Runtime、签名/公证或 iOS 平台边界
 
 ## 文档索引
 
+- `docs/INTATIS_RUNTIME_INTEGRATION.md`：唯一 Intatis checkout、HostIdentity、Codex Runtime、snapshot
+  删除、验证和升级边界。
 - `docs/PROJECT_MAP.md`：目录、target、入口、关键文件、生成物和脚本地图。
 - `docs/EGAKIUM_MIGRATION.md`：Egakium identity hard cutover、数据隔离、保留资产与验证边界。
 - `docs/EGAKIUM_CANVAS_COWORK.md`：已确认的 Cowork-first / Canvas-first 产品合同、方案一

@@ -6,12 +6,13 @@ import Crypto
 #error("EgakiumCLI requires CryptoKit or swift-crypto")
 #endif
 import Foundation
-import EgakiumAgentKernel
-import EgakiumCore
-import EgakiumConversation
-import EgakiumMCP
-import EgakiumMCPStdio
-import EgakiumProtocol
+import IntatisAgentKernel
+import IntatisCore
+import IntatisConversation
+import IntatisMCP
+import IntatisMCPStdio
+import IntatisProtocol
+import IntatisCodexRuntime
 
 #if canImport(Darwin)
 import Darwin
@@ -166,6 +167,8 @@ actor MCPCLIContext {
     let resolveSecret: MCPProductionSecretResolver
     private var interactiveSessionLogs:
         [SessionID: EventLog] = [:]
+    private var nativeCodexRootAgents:
+        [SessionID: AgentID] = [:]
 
     init(root explicitRoot: URL? = nil) {
         #if os(macOS)
@@ -301,18 +304,53 @@ actor MCPCLIContext {
             passphrase: first)
     }
 
+    func codexRuntimeConfiguration(
+        log: EventLog,
+        agentID: AgentID,
+        capabilityLeaseID: CapabilityLeaseID,
+        taskID: TaskID? = nil
+    ) async throws -> CodexRuntimeMCPConfiguration {
+        let state = try await MCPDurableSessionState.load(from: log)
+        return try await CodexRuntimeMCPProjector.project(
+            catalog: try await catalogStore.load(),
+            attachments: Array(state.attachments.values),
+            grants: state.grants(
+                agentID: agentID,
+                capabilityLeaseID: capabilityLeaseID,
+                taskID: taskID),
+            consents: Array(state.consents.values),
+            resolveSecret: resolveSecret)
+    }
+
     func bindInteractiveSessionLog(
-        _ log: EventLog
+        _ log: EventLog,
+        nativeCodexRootAgentID: AgentID? = nil
     ) async throws {
         let sessionID = await log.sessionID
         if let existing =
                 interactiveSessionLogs[sessionID],
            ObjectIdentifier(existing)
                 != ObjectIdentifier(log) {
-            throw EgakiumError.config(
+            throw IntatisError.config(
                 "The exact interactive MCP session is already bound to another EventLog.")
         }
+        if let nativeCodexRootAgentID {
+            if let existing = nativeCodexRootAgents[sessionID],
+               existing != nativeCodexRootAgentID {
+                throw IntatisError.config(
+                    "The exact interactive MCP session is already bound to another native Codex root Agent.")
+            }
+            nativeCodexRootAgents[sessionID] =
+                nativeCodexRootAgentID
+        }
         interactiveSessionLogs[sessionID] = log
+    }
+
+    func nativeCodexRootAgent(
+        for rawSessionID: String
+    ) -> AgentID? {
+        nativeCodexRootAgents[
+            SessionID(rawValue: rawSessionID)]
     }
 
     func unbindInteractiveSessionLog(
@@ -325,6 +363,8 @@ actor MCPCLIContext {
                 == ObjectIdentifier(log)
         else { return }
         interactiveSessionLogs.removeValue(
+            forKey: sessionID)
+        nativeCodexRootAgents.removeValue(
             forKey: sessionID)
     }
 
@@ -431,6 +471,10 @@ func runMCPCommand(
         raw.dropFirst())
     let context =
         explicitContext ?? MCPCLIContext()
+    try await validateNativeCodexMCPCommand(
+        command,
+        context: context,
+        arguments: arguments)
     switch command {
     case "list":
         try await listMCP(context, arguments)
@@ -481,6 +525,32 @@ func runMCPCommand(
             arguments: arguments)
     default:
         throw MCPCLIError.unknownSubcommand(command)
+    }
+}
+
+private func validateNativeCodexMCPCommand(
+    _ command: String,
+    context: MCPCLIContext,
+    arguments: MCPCLIParsedArguments
+) async throws {
+    guard let sessionID = arguments.value("session"),
+          let rootAgent = await context.nativeCodexRootAgent(
+            for: sessionID) else {
+        return
+    }
+    let rootOnlyCommands: Set<String> = [
+        "grant", "connect", "status", "inspect", "tools",
+        "resources", "prompts", "refresh", "disconnect",
+    ]
+    guard rootOnlyCommands.contains(command) else { return }
+    if let requestedAgent = arguments.value("agent"),
+       AgentID(rawValue: requestedAgent) != rootAgent {
+        throw MCPCLIError.invalidOption(
+            "native Codex MCP access is restricted to the exact session-root Agent \(rootAgent.rawValue)")
+    }
+    if arguments.value("task") != nil {
+        throw MCPCLIError.invalidOption(
+            "native Codex MCP access cannot target a task or child Agent")
     }
 }
 
@@ -1120,6 +1190,30 @@ private func grantMCP(
     let requestedTaskID = args.value("task").map {
         TaskID(rawValue: $0)
     }
+    let nativeCodexRootAgent =
+        await context.nativeCodexRootAgent(
+            for: session)
+    let usesNativeCodexInteractive =
+        nativeCodexRootAgent != nil
+            || args.flags.contains(
+                "native-interactive")
+    if let nativeCodexRootAgent {
+        guard agent == nativeCodexRootAgent,
+              requestedTaskID == nil else {
+            throw MCPCLIError.invalidOption(
+                "native Codex MCP access is restricted to the exact session-root Agent \(nativeCodexRootAgent.rawValue)")
+        }
+    }
+    if usesNativeCodexInteractive,
+       requestedTaskID != nil {
+        throw MCPCLIError.invalidOption(
+            "native Codex MCP access cannot target a task or child Agent")
+    }
+    if usesNativeCodexInteractive,
+       args.value("ttl-seconds") != nil {
+        throw MCPCLIError.invalidOption(
+            "native Codex MCP access cannot use --ttl-seconds")
+    }
     let capabilityMatches =
         state.capabilityLeases.values.filter {
             state.capabilityLeaseAgents[$0.id] == agent
@@ -1165,8 +1259,14 @@ private func grantMCP(
         MCPConnectionIdentityBuilder
             .workspaceLeasePolicyFingerprint(
                 mcpWorkspaceLease)
-    let capabilities = try (args.value("capabilities")
-        ?? "tools,resources,prompts,completions")
+    let requestedCapabilities = try (args.value("capabilities")
+        ?? (usesNativeCodexInteractive
+            ? CodexRuntimeMCPProjector
+                .requiredNativeSurfaceCapabilities
+                .map(\.rawValue)
+                .sorted()
+                .joined(separator: ",")
+            : "tools,resources,prompts,completions"))
         .split(separator: ",")
         .map(String.init)
         .map { value -> MCPGrantedCapability in
@@ -1177,6 +1277,19 @@ private func grantMCP(
             }
             return capability
         }
+    let capabilities: [MCPGrantedCapability]
+    if usesNativeCodexInteractive {
+        let requested = Set(requestedCapabilities)
+        try CodexRuntimeMCPProjector
+            .validateNativeSurfaceAuthority(
+                capabilities: requested,
+                expiresAt: nil)
+        capabilities = requested.sorted {
+            $0.rawValue < $1.rawValue
+        }
+    } else {
+        capabilities = requestedCapabilities
+    }
     let filterRevision = newPolicyRevision()
     let revocation = newRevocationGeneration()
     let rootsPolicyRevision =
@@ -1259,17 +1372,21 @@ private func grantMCP(
         authorityFingerprint: authority,
         grantFingerprint: fingerprint,
         revocationGeneration: revocation,
-        expiresAt: args.value("ttl-seconds").flatMap {
-            Int($0)
-        }.map {
-            Date().addingTimeInterval(TimeInterval($0))
-        })
+        expiresAt: usesNativeCodexInteractive
+            ? nil
+            : args.value("ttl-seconds").flatMap {
+                Int($0)
+            }.map {
+                Date().addingTimeInterval(TimeInterval($0))
+            })
     _ = try await log.append(
         .mcpGrantGranted(.init(grant: grant)))
     try emitResult(
         grant,
         json: args.flags.contains("json"),
-        message: "Granted exact MCP capabilities to \(agent.rawValue).")
+        message: usesNativeCodexInteractive
+            ? "Granted the exact Codex Native Interactive MCP surface to \(agent.rawValue)."
+            : "Granted exact MCP capabilities to \(agent.rawValue).")
 }
 
 private func revokeMCP(
@@ -1831,7 +1948,7 @@ func printMCPHelp() {
       egakium mcp attach --session <id> --server <alias|id> [--required] [--agent <id>]
       egakium mcp detach --session <id> --server <alias|id>
       egakium mcp approval set --session <id> --server <alias|id> [--approval <mode>] [--required|--optional] [--parallel|--serial]
-      egakium mcp grant --session <id> --server <alias|id> --agent <id> [--task <id>] [--capabilities tools,resources,prompts,...]
+      egakium mcp grant --session <id> --server <alias|id> --agent <id> [--native-interactive | --task <id> --capabilities tools,resources,prompts,...] [--ttl-seconds <seconds>]
       egakium mcp revoke --session <id> --grant <id>
       egakium mcp auth status --server <alias|id>
       egakium mcp auth login --server <alias|id> [--allow-dynamic-registration] [--no-open] [--yes]

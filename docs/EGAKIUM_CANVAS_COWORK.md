@@ -1,9 +1,31 @@
 # EGAKIUM_CANVAS_COWORK
 
-文档状态：用户已确认的 Egakium 产品合同；CEF-only renderer 已接入，WKWebView 替代路线已删除
-确认日期：2026-08-18
-当前业务基线：Egakium v0.4（build 50；源码与技术 identity 使用 Egakium SwiftPM/XcodeGen 基线）
+文档状态：用户已确认的 Egakium 产品合同；Intatis Runtime 直接接入与 CEF-only renderer 已完成
+确认日期：2026-08-18；实现来源最近核对：2026-08-28
+当前业务基线：Egakium v0.4（build 50；产品 identity 为 Egakium，共享 runtime source 来自 Intatis）
 适用范围：macOS Egakium 主产品面、Cowork UI 组合、Canvas/Element 模型与 Agent 协作边界
+
+## 2026-08-28 实现来源 cutover（优先）
+
+Canvas 产品合同不变，但 shared Cowork/Agent implementation 已从 Egakium 内复制 snapshot 切换为
+`../../Intatis`。当前边界是：
+
+- `Product/EgakiumCanvas` 继续由 Egakium 拥有 Session/Element IDs、safe filesystem creation、两份 HTML
+  template 与 bundled Canvas Skill；
+- `CoworkViewModel` 是 Egakium product host，production root/child loop 由 Intatis
+  `CodexAppServerSession` 拥有，项目工具只通过 official dynamic tools；
+- exact root turn 的 host context 包含 `.egakium/canvas/<SessionID>/index.html` 与 Canvas Skill 指令；
+- native Codex child admission 由 Intatis 处理。Egakium 在 verified descendant `.threadUpdated` 后，根据
+  thread identity 幂等选择 safe `CanvasElementID`，在该 child exact cwd 中 provision generic element
+  document，再通过 official `sendMessage(toDescendantThreadID:)` 发送 exact assignment；
+- 这项 product reaction 不实现第二 scheduler/agent tree，不改 shared `index.html`，也不形成永久
+  Agent↔Element owner/lease；child 是否可写仍由 runtime/workspace permission 决定；
+- 下文迁移前“本地 Orchestrator 把 descriptor 原子写入 `agent_spawn_requested/agent_spawned`、ToolResult、
+  `list_agents`”的实现描述已被本节取代。相同的 no-concurrent-main-edit、fresh child document、
+  assignment-after-real-admission 产品纪律继续有效。
+
+共享 snapshot 删除和完整验证见 `docs/INTATIS_RUNTIME_INTEGRATION.md`；不得从下文旧 source path 恢复
+`Packages/Egakium*`。
 
 ## 一句话结论
 

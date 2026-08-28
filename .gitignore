@@ -25,6 +25,11 @@ Egakium.xcodeproj/
 /.deps/
 /build/
 
+# Local cache left by the retired copied MCP conformance snapshot. The tracked
+# harness was deleted during the Intatis direct-integration cutover; do not
+# mistake its pre-existing node_modules checkout for new Egakium source.
+/Tests/MCPConformance/
+
 # Secrets / local config (never commit)
 *.env
 .env

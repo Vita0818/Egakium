@@ -1,7 +1,7 @@
 import Foundation
-import EgakiumAgentKernel
-import EgakiumCore
-import EgakiumProviders
+import IntatisAgentKernel
+import IntatisCore
+import IntatisProviders
 
 enum Mode: String { case chat, code, cowork }
 
@@ -59,7 +59,7 @@ struct CLIConfig {
     /// tool surface is composed; neither follows the selected inference model.
     let embeddingModel: CLIProviderModelSelection?
     let rerankerModel: CLIProviderModelSelection?
-    /// The explicitly selected Egakium config is retained only so a lazy
+    /// The explicitly selected Intatis config is retained only so a lazy
     /// `providerConfig` credential reference can be revalidated. It is never
     /// copied into EventLog/profile bindings or printed by the CLI.
     let configurationFileURL: URL?
@@ -126,10 +126,10 @@ struct CLIConfig {
 
         let baseString = value("EGAKIUM_BASE_URL", "baseURL", fallback: defaultBaseURL)!
         guard let baseURL = CLIProviderRoute.validHTTPURL(baseString) else {
-            throw EgakiumError.config("invalid CLI provider endpoint")
+            throw IntatisError.config("invalid CLI provider endpoint")
         }
         guard let apiKey = value("EGAKIUM_API_KEY", "apiKey", fallback: nil), !apiKey.isEmpty else {
-            throw EgakiumError.config("no API key — run `egakium settings`, or set EGAKIUM_API_KEY")
+            throw IntatisError.config("no API key — run `egakium settings`, or set EGAKIUM_API_KEY")
         }
         let model = value("EGAKIUM_MODEL", "model", fallback: defaultModel)!
         let rawReasoning = value("EGAKIUM_REASONING", "reasoning", fallback: nil)
@@ -161,7 +161,7 @@ struct CLIConfig {
     }
 
     /// Deterministic seam used by the offline self-test and by `EGAKIUM_CONFIG`.
-    /// The schema is the same Egakium/OpenCode-compatible provider map used by
+    /// The schema is the same Intatis/OpenCode-compatible provider map used by
     /// the macOS app; no CLI-only provider format is introduced.
     static func load(configurationFileURL: URL,
                      environment: [String: String]) throws -> CLIConfig {
@@ -197,7 +197,7 @@ struct CLIConfig {
                 selectedProviderID = only.id
             } else if matchingRoutes.count > 1,
                       !matchingRoutes.contains(where: { $0.id == selectedProviderID }) {
-                throw EgakiumError.config(
+                throw IntatisError.config(
                     "ambiguous CLI model override; qualify it with a provider ID")
             }
         }
@@ -205,7 +205,7 @@ struct CLIConfig {
         guard var selectedRoute = document.routes.first(where: {
             $0.id == selectedProviderID
         }) ?? document.routes.first else {
-            throw EgakiumError.config("no usable CLI provider routes")
+            throw IntatisError.config("no usable CLI provider routes")
         }
         if !selectedRoute.models.contains(where: { $0.id == selectedModelID }) {
             selectedRoute.models.append(CLIProviderModel(
@@ -216,7 +216,7 @@ struct CLIConfig {
         var routes = document.routes
         if let baseOverride = environment["EGAKIUM_BASE_URL"], !baseOverride.isEmpty {
             guard let url = CLIProviderRoute.validHTTPURL(baseOverride) else {
-                throw EgakiumError.config("invalid CLI provider endpoint")
+                throw IntatisError.config("invalid CLI provider endpoint")
             }
             selectedRoute.baseURL = url
             selectedRoute.chatEndpoint = nil
@@ -259,7 +259,7 @@ struct CLIConfig {
                 providerID: selectedRoute.id,
                 modelID: selectedModelID,
                 hasReasoningEffort: reasoning) {
-            throw EgakiumError.config(
+            throw IntatisError.config(
                 "selected CLI reasoning effort has no configured variant for the selected model")
         }
 
@@ -288,7 +288,7 @@ struct CLIConfig {
         let normalized = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !normalized.isEmpty else { return nil }
         guard let effort = ReasoningEffort(rawValue: normalized) else {
-            throw EgakiumError.config("invalid CLI reasoning effort")
+            throw IntatisError.config("invalid CLI reasoning effort")
         }
         return effort
     }

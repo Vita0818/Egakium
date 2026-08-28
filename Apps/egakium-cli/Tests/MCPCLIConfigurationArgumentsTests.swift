@@ -1,6 +1,6 @@
 import Foundation
-import EgakiumMCP
-import EgakiumProtocol
+import IntatisMCP
+import IntatisProtocol
 import XCTest
 @testable import EgakiumCLI
 
@@ -17,7 +17,7 @@ final class MCPCLIConfigurationArgumentsTests:
             "--name", "Remote MCP",
             "--url",
             "https://api.example.com/mcp",
-            "--header", "X-Client=egakium",
+            "--header", "X-Client=intatis",
             "--oauth-resource",
             "https://api.example.com/audience",
             "--oauth-client-id", "client-public",
@@ -112,7 +112,7 @@ final class MCPCLIConfigurationArgumentsTests:
             "https://api.example.com/mcp")
         XCTAssertEqual(
             http.headers["X-Client"],
-            .literal("egakium"))
+            .literal("intatis"))
         XCTAssertEqual(
             http.redirectPolicy,
             .deny)
@@ -508,7 +508,7 @@ final class MCPCLIConfigurationArgumentsTests:
                 provenance:
                     MCPConfigurationProvenance(
                         sourceKind:
-                            .egakiumUser,
+                            .intatisUser,
                         sourceLabel:
                             "original"))
         let args = try parsed([

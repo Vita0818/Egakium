@@ -2,7 +2,7 @@
 
 文档状态：当前开源复用政策
 生效日期：2026-07-12
-最近核对：2026-08-20
+最近核对：2026-08-28
 产品基线：v0.4（build 50）
 
 ## 项目立场
@@ -14,6 +14,32 @@ Egakium 技术 identity。项目不再采用“禁止直接复用外部源码”
 
 允许复用不等于无条件搬运。Egakium 的产品身份、Apple 平台体验以及 Egakium 技术基线中的权限模型、
 持久化协议和安全边界仍由本项目控制。
+
+## 第一方 Intatis 直接依赖
+
+2026-08-28 起，Egakium 的 shared runtime/core 不是 vendored 第三方，也不是 Egakium 自己的 snapshot：
+它通过 `.package(path: "../../Intatis")` 直接编译唯一第一方
+`/Users/vita/Vitemis/Intatis` checkout。Core/Protocol/Providers/Conversation/Artifacts/Multimodal/SharedUI/
+Tools/Knowledge/Skills/Permission/MCP/AgentKernel/Cowork/CodexRuntime 的 source、third-party dependency
+inventory 与修补 provenance 由 Intatis 维护；Egakium 不再复制或二次维护这些文件。
+
+准入/升级要求：
+
+- 下游先读取 Intatis 的 `docs/CODEX_RUNTIME_INTEGRATION.md`，验证 v1 public contract；
+- 保持 Intatis checkout read-only，迁移/升级前后记录 HEAD、status、tracked diff digest 和 untracked
+  inventory；
+- Egakium `NOTICE.md` 说明第一方来源，App bundle 直接包含 Intatis 的完整 `ThirdPartyNotices` 与 exact
+  Codex runtime license/SPDX closure，不复制 shared source；
+- local path 只用于构建共享 source，正式 App 必须自包含 exact validated runtime，不能在用户机器上
+  依赖 sibling checkout、PATH 或 Homebrew；
+- dirty Intatis 可以用于明确标注的开发验证，但不得被表述为可重现 release pin；
+- Intatis 的 third-party dependency、license、SBOM 或 runtime derivation 变化，必须在 Intatis 与 Egakium
+  两侧完成对应审查和 release gate；
+- 遇到未公开/不稳定 API blocker 时停止对应能力，不得通过复制 source、wrapper/facade 或旧 backend
+  绕开。
+
+这条第一方共享边界优先于本文后续仍保留的迁移前 `Vendor/`、`Packages/Egakium*` 或具体第三方
+adoption 叙述。旧内容可解释 shared Intatis 的历史 provenance，但不再证明 Egakium 仓内存在相应 source。
 
 ## Dependency-first / no-fallback（项目级硬约束）
 

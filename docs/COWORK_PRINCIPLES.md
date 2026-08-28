@@ -1,12 +1,27 @@
 # COWORK_PRINCIPLES
 
 文档状态：当前 Cowork/AgentKernel 原则
-最近规则核对：2026-08-18
+最近规则核对：2026-08-28
 产品基线：v0.4（build 50）
 
 本文提炼自仓内 v0.10 历史 Cowork 设计文档、`PER_AGENT_INFERENCE_PROFILES.md` 及
 项目操作规则。旧设计文档只保留迁移 provenance；本文件是当前原则基准，**不是**完成度
 声明。修改 Cowork / AgentKernel / MessageBus / 权限 / agent 编排前必读。
+
+## 0. 当前实现来源
+
+2026-08-28 后，本文原则仍是 Egakium 产品要求，但 shared Cowork/AgentKernel/MessageBus/permission/
+EventLog 实现源位于唯一 `/Users/vita/Vitemis/Intatis` checkout。Egakium 通过 `../../Intatis` 直接编译，
+不维护 `Packages/EgakiumCowork` 或 `Packages/EgakiumAgentKernel` fork。
+
+production Code/Cowork root/child loop 使用 Intatis `CodexAppServerSession`，项目工具经 official dynamic
+tools 接入。本文中旧 `AgentLoop`/`Orchestrator` 调用链或本地 source path 只说明必须保留的行为/安全
+语义，不能成为恢复 parallel backend 的依据。修改 shared semantics 应在 Intatis owner 的明确任务中
+完成，并对所有下游回归；Egakium host 只能做 product UI/identity/Canvas/permission/bundle 的最薄接线。
+
+Canvas child 的当前实现也随 native runtime 调整：Intatis 负责真实 descendant admission；Egakium 只在
+verified child update 后 provision 该 child exact workspace 的独立 element file，并通过官方 descendant
+message 发送 assignment。下文若仍写成“Egakium Orchestrator spawn event 自带 descriptor”，以本段为准。
 
 ## 1. 核心原则
 

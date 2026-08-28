@@ -1,6 +1,6 @@
 import Foundation
-import EgakiumMCP
-import EgakiumProtocol
+import IntatisMCP
+import IntatisProtocol
 
 typealias MCPCLIConfigurationSecretReader =
     (_ prompt: String, _ readsStandardInput: Bool) throws -> Data
@@ -626,7 +626,7 @@ func buildMCPCLIConfiguration(
                 provenance:
                     MCPConfigurationProvenance(
                         sourceKind:
-                            .egakiumUser,
+                            .intatisUser,
                         sourceLabel:
                             sourceLabel))
         return MCPCLIConfigurationBuildResult(

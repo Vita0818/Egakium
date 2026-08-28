@@ -1,9 +1,9 @@
 import Foundation
-import EgakiumCore
-import EgakiumProtocol
-import EgakiumProviders
+import IntatisCore
+import IntatisProtocol
+import IntatisProviders
 
-/// One named variant from the shared Egakium/OpenCode-compatible provider
+/// One named variant from the shared Intatis/OpenCode-compatible provider
 /// configuration. The raw configuration name stays local; durable bindings use
 /// an opaque derived variant identifier.
 struct CLIProviderVariant: Equatable, Sendable {
@@ -160,13 +160,13 @@ struct CLIModernProviderConfig: Sendable {
     static func load(from url: URL,
                      environment: [String: String]) throws -> CLIModernProviderConfig {
         guard FileManager.default.fileExists(atPath: url.path) else {
-            throw EgakiumError.config("selected Egakium provider config is unavailable")
+            throw IntatisError.config("selected Egakium provider config is unavailable")
         }
         let data = try JSONC.data(contentsOf: url)
         guard case .object(let root) = try JSONDecoder().decode(JSONValue.self, from: data),
               let providerMap = root.object("provider"),
               !providerMap.isEmpty else {
-            throw EgakiumError.config("selected Egakium provider config has no provider map")
+            throw IntatisError.config("selected Egakium provider config has no provider map")
         }
 
         let enabled = Set((root.stringArray("enabled_providers")
@@ -185,7 +185,7 @@ struct CLIModernProviderConfig: Sendable {
         if permissionReviewerFieldPresent,
            permissionReviewerModelRaw?.trimmingCharacters(
                in: .whitespacesAndNewlines).isEmpty != false {
-            throw EgakiumError.config(
+            throw IntatisError.config(
                 "invalid CLI permission_reviewer_model")
         }
         let imageModelRaw = resolvedConfigValue(
@@ -228,7 +228,7 @@ struct CLIModernProviderConfig: Sendable {
             let chatEndpoint: URL?
             if let rawChat = options.string("chatEndpoint") ?? provider.string("chatEndpoint") {
                 guard let validated = CLIProviderRoute.validHTTPURL(rawChat) else {
-                    throw EgakiumError.config("invalid CLI provider chat endpoint")
+                    throw IntatisError.config("invalid CLI provider chat endpoint")
                 }
                 chatEndpoint = validated
             } else {
@@ -291,7 +291,7 @@ struct CLIModernProviderConfig: Sendable {
             return filtered.models.isEmpty ? nil : filtered
         }
         guard !inferenceRoutes.isEmpty else {
-            throw EgakiumError.config("selected Egakium provider config has no usable routes")
+            throw IntatisError.config("selected Egakium provider config has no usable routes")
         }
 
         let selection = try selectModel(selectedRaw, routes: inferenceRoutes)
@@ -309,7 +309,7 @@ struct CLIModernProviderConfig: Sendable {
             guard let inheritedRaw = selectedRaw?.trimmingCharacters(
                 in: .whitespacesAndNewlines),
                 !inheritedRaw.isEmpty else {
-                throw EgakiumError.config(
+                throw IntatisError.config(
                     "permission_reviewer_model is absent and the JSON top-level model is unavailable")
             }
             let inherited = try selectModel(
@@ -321,7 +321,7 @@ struct CLIModernProviderConfig: Sendable {
                         $0.id == inherited.modelID
                     })
             }) else {
-                throw EgakiumError.config(
+                throw IntatisError.config(
                     "permission_reviewer_model cannot inherit an unknown JSON top-level model")
             }
             permissionReviewerModel = CLIProviderModelSelection(
@@ -359,7 +359,7 @@ struct CLIModernProviderConfig: Sendable {
             if let selected = exact.first(where: { $0.id == selectedProviderID }) {
                 return (selected.id, trimmed)
             }
-            throw EgakiumError.config(
+            throw IntatisError.config(
                 "ambiguous CLI model override; qualify a model that is not also a complete configured model ID")
         }
         for route in routes.sorted(by: { $0.id.count > $1.id.count }) {
@@ -370,7 +370,7 @@ struct CLIModernProviderConfig: Sendable {
                     guard !isKnowledgeRoleModel(
                         providerID: route.id,
                         modelID: model) else {
-                        throw EgakiumError.config(
+                        throw IntatisError.config(
                             "Knowledge role models cannot be selected as CLI inference models")
                     }
                     return (route.id, model)
@@ -402,7 +402,7 @@ struct CLIModernProviderConfig: Sendable {
         }
         let baseMatches = Self.reasoningEffort(in: model.requestOptions) == reasoningEffort
         guard matchingVariants.count + (baseMatches ? 1 : 0) <= 1 else {
-            throw EgakiumError.config(
+            throw IntatisError.config(
                 "selected CLI reasoning effort matches multiple configured profiles; select an exact profile instead")
         }
         return matchingVariants.first?.id
@@ -425,13 +425,13 @@ struct CLIModernProviderConfig: Sendable {
         if let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
             // A configured model ID may itself contain `/` (for example a
             // gateway model namespace). Exact model keys therefore win over
-            // Egakium' provider/model shorthand.
+            // Intatis' provider/model shorthand.
             let exact = routes.compactMap { route -> (String, String)? in
                 route.models.contains(where: { $0.id == raw }) ? (route.id, raw) : nil
             }
             if exact.count == 1, let only = exact.first { return only }
             if exact.count > 1 {
-                throw EgakiumError.config(
+                throw IntatisError.config(
                     "ambiguous configured model ID across CLI provider routes")
             }
             for route in routes.sorted(by: { $0.id.count > $1.id.count }) {
@@ -456,7 +456,7 @@ struct CLIModernProviderConfig: Sendable {
     ) throws -> CLIProviderModelSelection {
         guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
               !raw.isEmpty else {
-            throw EgakiumError.config(
+            throw IntatisError.config(
                 "invalid CLI permission_reviewer_model")
         }
         for route in routes.sorted(by: { $0.id.count > $1.id.count }) {
@@ -465,14 +465,14 @@ struct CLIModernProviderConfig: Sendable {
             let modelID = String(raw.dropFirst(prefix.count))
             guard !modelID.isEmpty,
                   route.models.contains(where: { $0.id == modelID }) else {
-                throw EgakiumError.config(
+                throw IntatisError.config(
                     "CLI permission_reviewer_model does not resolve to a configured inference model")
             }
             return CLIProviderModelSelection(
                 providerID: route.id,
                 modelID: modelID)
         }
-        throw EgakiumError.config(
+        throw IntatisError.config(
             "CLI permission_reviewer_model must use the canonical provider/model shape")
     }
 
@@ -503,7 +503,7 @@ struct CLIModernProviderConfig: Sendable {
                         providerID: preferred.id,
                         modelID: raw)
                 }
-                throw EgakiumError.config(
+                throw IntatisError.config(
                     "ambiguous CLI \(roleName) model; qualify it with a provider ID")
             }
         }
@@ -513,7 +513,7 @@ struct CLIModernProviderConfig: Sendable {
             if raw.hasPrefix(prefix) {
                 let modelID = String(raw.dropFirst(prefix.count))
                 guard !modelID.isEmpty else {
-                    throw EgakiumError.config("invalid CLI \(roleName) model")
+                    throw IntatisError.config("invalid CLI \(roleName) model")
                 }
                 return CLIProviderModelSelection(
                     providerID: route.id,
@@ -522,12 +522,12 @@ struct CLIModernProviderConfig: Sendable {
         }
 
         if requiresQualifiedProvider {
-            throw EgakiumError.config(
+            throw IntatisError.config(
                 "CLI \(roleName)_model must use the canonical provider/model shape")
         }
 
         guard routes.contains(where: { $0.id == preferredProviderID }) else {
-            throw EgakiumError.config(
+            throw IntatisError.config(
                 "selected CLI \(roleName) provider route is unavailable")
         }
         return CLIProviderModelSelection(
@@ -686,7 +686,7 @@ struct CLIExactSecretResolver: SecretResolver {
         }
         guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
               !trimmed.isEmpty else {
-            throw EgakiumError.config(
+            throw IntatisError.config(
                 "credential unavailable for the exact CLI inference route")
         }
         return trimmed

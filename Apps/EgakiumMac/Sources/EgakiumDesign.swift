@@ -9,7 +9,7 @@
 
 #if canImport(SwiftUI)
 import SwiftUI
-import EgakiumSharedUI
+import IntatisSharedUI
 #if canImport(AppKit)
 import AppKit
 #endif
@@ -76,11 +76,11 @@ private struct EgakiumLegacyWindowBackground: NSViewRepresentable {
 /// Compatibility name for existing macOS call sites. The role definitions
 /// live in SharedUI so iOS Chat uses the same nominal sizes, weights and font
 /// designs while applying its own Dynamic Type scaling.
-typealias EgakiumType = EgakiumTypography
+typealias EgakiumType = IntatisTypography
 
-extension EgakiumThreadStyle {
-    static func egakiumMac(_ scheme: ColorScheme) -> EgakiumThreadStyle {
-        EgakiumThreadStyle(
+extension IntatisThreadStyle {
+    static func egakiumMac(_ scheme: ColorScheme) -> IntatisThreadStyle {
+        IntatisThreadStyle(
             primaryText: EgakiumTheme.deepText(scheme),
             secondaryText: EgakiumTheme.softText(scheme),
             tertiaryText: EgakiumTheme.tertiaryText(scheme),

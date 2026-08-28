@@ -6,9 +6,9 @@ import Crypto
 #error("EgakiumCLI requires CryptoKit or swift-crypto")
 #endif
 import Foundation
-import EgakiumCore
-import EgakiumMCP
-import EgakiumProtocol
+import IntatisCore
+import IntatisMCP
+import IntatisProtocol
 
 enum MCPCLIOAuthError:
     Error, LocalizedError, Equatable

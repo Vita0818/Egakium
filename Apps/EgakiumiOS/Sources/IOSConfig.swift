@@ -1,9 +1,9 @@
 #if canImport(SwiftUI)
 import Foundation
-import EgakiumCore
-import EgakiumProtocol
-import EgakiumProviders
-import EgakiumConversation
+import IntatisCore
+import IntatisProtocol
+import IntatisProviders
+import IntatisConversation
 
 typealias IOSSessionSummary = SessionSummary
 

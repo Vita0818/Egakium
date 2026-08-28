@@ -3,12 +3,12 @@ import SwiftUI
 import Combine
 import Foundation
 import UniformTypeIdentifiers
-import EgakiumCore
-import EgakiumProviders
-import EgakiumConversation
-import EgakiumArtifacts
-import EgakiumMultimodal
-import EgakiumSharedUI
+import IntatisCore
+import IntatisProviders
+import IntatisConversation
+import IntatisArtifacts
+import IntatisMultimodal
+import IntatisSharedUI
 
 struct IOSConfigurationImportSummary: Equatable, Sendable {
     var providerCount: Int
@@ -107,7 +107,7 @@ final class IOSAppEnvironment: ObservableObject {
         do {
             try switchChatSession(to: SessionID.new())
         } catch {
-            chatSessionError = EgakiumLocalization.format(
+            chatSessionError = IntatisLocalization.format(
                 "Could not start chat session: %@",
                 error.localizedDescription)
         }
@@ -117,7 +117,7 @@ final class IOSAppEnvironment: ObservableObject {
         do {
             try switchChatSession(to: session.id)
         } catch {
-            chatSessionError = EgakiumLocalization.format(
+            chatSessionError = IntatisLocalization.format(
                 "Could not resume chat session: %@",
                 error.localizedDescription)
         }
@@ -253,10 +253,10 @@ final class IOSAppEnvironment: ObservableObject {
 
     private func wireImageGeneration() {
         viewModel.onGenerateImage = { [weak self] prompt in
-            guard let self else { throw EgakiumError.cancelled }
+            guard let self else { throw IntatisError.cancelled }
             guard let provider = try await self.registry.defaultImageProvider(),
                   let model = await self.registry.imageModel() else {
-                throw EgakiumError.config("image generation is not configured")
+                throw IntatisError.config("image generation is not configured")
             }
             _ = try await self.multimodal.generateImage(using: provider, model: model, prompt: prompt)
         }
@@ -268,15 +268,15 @@ struct IOSRootView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric(relativeTo: .title)
-    private var brandTitleSize: CGFloat = EgakiumTypography.spec(for: .brand).nominalPointSize
+    private var brandTitleSize: CGFloat = IntatisTypography.spec(for: .brand).nominalPointSize
     @ScaledMetric(relativeTo: .largeTitle)
-    private var sessionTitleSize: CGFloat = EgakiumTypography.spec(for: .largeTitle).nominalPointSize
+    private var sessionTitleSize: CGFloat = IntatisTypography.spec(for: .largeTitle).nominalPointSize
     @ScaledMetric(relativeTo: .largeTitle)
-    private var settingsTitleSize: CGFloat = EgakiumTypography.spec(for: .largeTitle).nominalPointSize
+    private var settingsTitleSize: CGFloat = IntatisTypography.spec(for: .largeTitle).nominalPointSize
     @ScaledMetric(relativeTo: .body)
     private var settingsRowSize: CGFloat = 13
     @ScaledMetric(relativeTo: .caption)
-    private var captionSize: CGFloat = EgakiumTypography.spec(for: .caption).nominalPointSize
+    private var captionSize: CGFloat = IntatisTypography.spec(for: .caption).nominalPointSize
     @State private var showSettings = false
     @State private var showSidebar = false
     @State private var showConfigImporter = false
@@ -288,8 +288,8 @@ struct IOSRootView: View {
     @State private var isTestingProvider = false
     @State private var providerHealthReport: ProviderHealthReport?
     @State private var recentSessions: [IOSSessionSummary] = []
-    @AppStorage(EgakiumMessageRendererMode.defaultsKey)
-    private var rendererModeRawValue = EgakiumMessageRendererMode.microsoft.rawValue
+    @AppStorage(IntatisMessageRendererMode.defaultsKey)
+    private var rendererModeRawValue = IntatisMessageRendererMode.microsoft.rawValue
 
     var body: some View {
         // iOS uses the shared chat thread in single-column mode; Code/Cowork are
@@ -320,7 +320,7 @@ struct IOSRootView: View {
                                     .contentShape(Rectangle())
                                     .onTapGesture { setSidebarVisible(false) }
                                     .accessibilityLabel(
-                                        EgakiumLocalization.string("Close sidebar"))
+                                        IntatisLocalization.string("Close sidebar"))
                                     .accessibilityAddTraits(.isButton)
                                     .accessibilityIdentifier("ios.sidebar.close")
                             }
@@ -380,16 +380,16 @@ struct IOSRootView: View {
                 openSidebar()
             } label: {
                 Label(
-                    EgakiumLocalization.string("Open sidebar"),
+                    IntatisLocalization.string("Open sidebar"),
                     systemImage: "line.3.horizontal")
-                    .egakiumComposerIconLabel()
+                    .intatisComposerIconLabel()
             }
-            .egakiumCompactIconButton()
+            .intatisCompactIconButton()
             .accessibilityIdentifier("ios.sidebar.open")
             .frame(width: 48)
 
             Text(activeSessionTitle)
-                .font(EgakiumTypography.largeTitle(sessionTitleSize))
+                .font(IntatisTypography.largeTitle(sessionTitleSize))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -400,11 +400,11 @@ struct IOSRootView: View {
                 startNewChat()
             } label: {
                 Label(
-                    EgakiumLocalization.string("New chat"),
+                    IntatisLocalization.string("New chat"),
                     systemImage: "square.and.pencil")
-                    .egakiumComposerIconLabel()
+                    .intatisComposerIconLabel()
             }
-            .egakiumCompactIconButton()
+            .intatisCompactIconButton()
             .disabled(env.viewModel.isBusy)
             .accessibilityIdentifier("ios.chat.new")
             .frame(width: 48)
@@ -417,7 +417,7 @@ struct IOSRootView: View {
     private func sidebar(width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Egakium")
-                .font(EgakiumTypography.brand(brandTitleSize))
+                .font(IntatisTypography.brand(brandTitleSize))
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 6)
                 .padding(.top, 10)
@@ -431,10 +431,10 @@ struct IOSRootView: View {
                 .opacity(0.45)
                 .padding(.bottom, 12)
 
-            EgakiumSessionHistoryList(
-                title: EgakiumLocalization.string("Recent"),
-                newTitle: EgakiumLocalization.string("New chat"),
-                emptyTitle: EgakiumLocalization.string("No chat sessions yet."),
+            IntatisSessionHistoryList(
+                title: IntatisLocalization.string("Recent"),
+                newTitle: IntatisLocalization.string("New chat"),
+                emptyTitle: IntatisLocalization.string("No chat sessions yet."),
                 items: sidebarHistoryItems,
                 style: .standard(colorScheme),
                 isNewDisabled: env.viewModel.isBusy,
@@ -447,11 +447,11 @@ struct IOSRootView: View {
             } label: {
                 HStack(spacing: 9) {
                     Image(systemName: "gearshape")
-                        .font(EgakiumTypography.body(settingsRowSize, .medium))
+                        .font(IntatisTypography.body(settingsRowSize, .medium))
                         .foregroundStyle(.secondary)
                         .frame(width: 20)
-                    Text(EgakiumLocalization.string("Settings"))
-                        .font(EgakiumTypography.body(settingsRowSize, .medium))
+                    Text(IntatisLocalization.string("Settings"))
+                        .font(IntatisTypography.body(settingsRowSize, .medium))
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 0)
                 }
@@ -473,9 +473,9 @@ struct IOSRootView: View {
         .contentShape(Rectangle())
         .simultaneousGesture(
             DragGesture(
-                minimumDistance: EgakiumSidebarGesturePolicy.minimumDistance)
+                minimumDistance: IntatisSidebarGesturePolicy.minimumDistance)
                 .onEnded { value in
-                    if EgakiumSidebarGesturePolicy.shouldClose(
+                    if IntatisSidebarGesturePolicy.shouldClose(
                         translation: value.translation) {
                         setSidebarVisible(false)
                     }
@@ -523,11 +523,11 @@ struct IOSRootView: View {
 
     private var openSidebarEdgeGesture: some Gesture {
         DragGesture(
-            minimumDistance: EgakiumSidebarGesturePolicy.minimumDistance,
+            minimumDistance: IntatisSidebarGesturePolicy.minimumDistance,
             coordinateSpace: .local)
             .onEnded { value in
                 guard !showSidebar,
-                      EgakiumSidebarGesturePolicy.shouldOpen(
+                      IntatisSidebarGesturePolicy.shouldOpen(
                         startX: value.startLocation.x,
                         translation: value.translation) else { return }
                 openSidebar()
@@ -546,7 +546,7 @@ struct IOSRootView: View {
             return displayName
         }
         if session.eventCount == 0 || session.updatedAt == .distantPast {
-            return EgakiumLocalization.string("New chat")
+            return IntatisLocalization.string("New chat")
         }
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -573,14 +573,14 @@ struct IOSRootView: View {
         guard let session = recentSessions.first(where: {
             $0.id == env.chatSessionID
         }) else {
-            return EgakiumLocalization.string("New chat")
+            return IntatisLocalization.string("New chat")
         }
         return sessionMenuTitle(session)
     }
 
-    private var sidebarHistoryItems: [EgakiumSessionHistoryItem] {
+    private var sidebarHistoryItems: [IntatisSessionHistoryItem] {
         recentSessions.prefix(24).map { session in
-            EgakiumSessionHistoryItem(
+            IntatisSessionHistoryItem(
                 id: session.id,
                 title: sessionMenuTitle(session),
                 detail: "",
@@ -610,8 +610,8 @@ struct IOSRootView: View {
     private var settingsSheet: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 0) {
-                Text(EgakiumLocalization.string("Settings"))
-                    .font(EgakiumTypography.largeTitle(settingsTitleSize))
+                Text(IntatisLocalization.string("Settings"))
+                    .font(IntatisTypography.largeTitle(settingsTitleSize))
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
@@ -708,8 +708,8 @@ struct IOSRootView: View {
                             testProvider()
                         } label: {
                             Label(isTestingProvider
-                                    ? EgakiumLocalization.string("Testing Provider")
-                                    : EgakiumLocalization.string("Test Provider"),
+                                    ? IntatisLocalization.string("Testing Provider")
+                                    : IntatisLocalization.string("Test Provider"),
                                   systemImage: isTestingProvider ? "hourglass" : "checkmark.seal")
                         }
                         .disabled(isTestingProvider)
@@ -718,13 +718,13 @@ struct IOSRootView: View {
                             ProgressView("Testing provider...")
                         } else if let report = providerHealthReport {
                             VStack(alignment: .leading, spacing: 4) {
-                                Label(EgakiumLocalization.string(report.displayTitle),
+                                Label(IntatisLocalization.string(report.displayTitle),
                                       systemImage: report.isOK ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                                     .foregroundStyle(report.isOK ? .green : .red)
-                                Text(EgakiumLocalization.providerHealthSummary(report))
+                                Text(IntatisLocalization.providerHealthSummary(report))
                                     .font(captionFont)
                                     .foregroundStyle(.secondary)
-                                Text(EgakiumLocalization.providerHealthDetail(report))
+                                Text(IntatisLocalization.providerHealthDetail(report))
                                     .font(captionFont)
                                     .foregroundStyle(.secondary)
                             }
@@ -734,8 +734,8 @@ struct IOSRootView: View {
 
                 Section("Message Rendering") {
                     Picker("Message rendering", selection: rendererModeSelection) {
-                        Text("Rich Markdown").tag(EgakiumMessageRendererMode.microsoft.rawValue)
-                        Text("Plain text safe mode").tag(EgakiumMessageRendererMode.plainSafe.rawValue)
+                        Text("Rich Markdown").tag(IntatisMessageRendererMode.microsoft.rawValue)
+                        Text("Plain text safe mode").tag(IntatisMessageRendererMode.plainSafe.rawValue)
                     }
                     Text(messageRendererHelpText)
                         .font(captionFont)
@@ -744,7 +744,7 @@ struct IOSRootView: View {
 
                 Section("Open Source") {
                     NavigationLink("Third-party notices") {
-                        EgakiumThirdPartyNoticesView()
+                        IntatisThirdPartyNoticesView()
                             .navigationTitle("Open-source notices")
                             .navigationBarTitleDisplayMode(.inline)
                     }
@@ -770,7 +770,7 @@ struct IOSRootView: View {
                             providerHealthReport = nil
                             showSettings = false
                         } catch {
-                            settingsError = EgakiumLocalization.format(
+                            settingsError = IntatisLocalization.format(
                                 "Could not save settings: %@",
                                 error.localizedDescription)
                         }
@@ -790,13 +790,13 @@ struct IOSRootView: View {
     }
 
     private var captionFont: Font {
-        EgakiumTypography.caption(captionSize, .regular)
+        IntatisTypography.caption(captionSize, .regular)
     }
 
     private func importConfiguration(_ result: Result<[URL], Error>) {
         do {
             guard let url = try result.get().first else {
-                throw EgakiumError.config("no configuration file was selected")
+                throw IntatisError.config("no configuration file was selected")
             }
             let didAccess = url.startAccessingSecurityScopedResource()
             defer {
@@ -816,13 +816,13 @@ struct IOSRootView: View {
             providerHealthReport = nil
             settingsError = nil
 
-            let imported = EgakiumLocalization.format(
+            let imported = IntatisLocalization.format(
                 "Imported providers: %lld · models: %lld.",
                 Int64(summary.providerCount),
                 Int64(summary.modelCount))
             configImportWarnings = summary.warnings.map(importWarningText)
             if !summary.warnings.isEmpty {
-                configImportMessage = imported + " " + EgakiumLocalization.format(
+                configImportMessage = imported + " " + IntatisLocalization.format(
                     "%lld compatibility warnings require review.",
                     Int64(summary.warnings.count))
             } else {
@@ -831,7 +831,7 @@ struct IOSRootView: View {
         } catch {
             configImportMessage = nil
             configImportWarnings = []
-            settingsError = EgakiumLocalization.format(
+            settingsError = IntatisLocalization.format(
                 "Could not import configuration: %@",
                 error.localizedDescription)
         }
@@ -842,22 +842,22 @@ struct IOSRootView: View {
     ) -> String {
         switch warning {
         case .ignoredModelVariants(let providerID, let modelID):
-            return EgakiumLocalization.format(
+            return IntatisLocalization.format(
                 "Variants for %@/%@ are not imported on iOS.",
                 boundedImportLabel(providerID),
                 boundedImportLabel(modelID))
         case .externalCredentialReference(let providerID, let kind):
-            return EgakiumLocalization.format(
+            return IntatisLocalization.format(
                 "%@ uses an external %@ credential reference; verify or enter the credential on iOS.",
                 boundedImportLabel(providerID),
                 boundedImportLabel(kind))
         case .unsupportedRequestAdapter(let providerID, let package):
-            return EgakiumLocalization.format(
+            return IntatisLocalization.format(
                 "%@ uses unsupported provider adapter %@; requests remain blocked until a supported OpenAI-compatible adapter is selected.",
                 boundedImportLabel(providerID),
                 boundedImportLabel(package))
         case .skippedProviderWithoutBaseURL(let providerID):
-            return EgakiumLocalization.format(
+            return IntatisLocalization.format(
                 "%@ was skipped because it has no OpenAI-compatible Base URL for iOS Chat.",
                 boundedImportLabel(providerID))
         }
@@ -869,22 +869,22 @@ struct IOSRootView: View {
     }
 
     private var messageRendererHelpText: String {
-        if let launchOverride = EgakiumMessageRendererMode.launchOverride() {
+        if let launchOverride = IntatisMessageRendererMode.launchOverride() {
             let label = launchOverride == .plainSafe
-                ? EgakiumLocalization.string("Plain text safe mode")
-                : EgakiumLocalization.string("Rich Markdown")
-            return EgakiumLocalization.format(
+                ? IntatisLocalization.string("Plain text safe mode")
+                : IntatisLocalization.string("Rich Markdown")
+            return IntatisLocalization.format(
                 "Current launch is forced to %@. This picker is saved immediately for the next launch without an override; Cancel only discards provider edits.",
                 label)
         }
-        return EgakiumLocalization.string(
+        return IntatisLocalization.string(
             "This choice is saved and applied immediately; Cancel only discards provider edits. Rich Markdown uses the audited upstream renderer with images, math typesetting, and syntax highlighting disabled for the first release. Plain text safe mode bypasses Markdown entirely without changing session data.")
     }
 
     private var rendererModeSelection: Binding<String> {
         Binding(
             get: {
-                EgakiumMessageRendererMode.resolve(
+                IntatisMessageRendererMode.resolve(
                     persistedRawValue: rendererModeRawValue,
                     arguments: []).rawValue
             },
@@ -991,7 +991,7 @@ struct IOSRootView: View {
     private func apiKeyPlaceholder(for provider: IOSProviderSettings) -> String {
         env.hasAPIKey(for: provider)
             ? "••••••••••••••••"
-            : EgakiumLocalization.string("Enter API key")
+            : IntatisLocalization.string("Enter API key")
     }
 
     private func testProvider() {
@@ -1007,7 +1007,7 @@ struct IOSRootView: View {
                 apiKeysByProviderID = [:]
                 providerHealthReport = await env.healthCheckSelectedProvider()
             } catch {
-                settingsError = EgakiumLocalization.format(
+                settingsError = IntatisLocalization.format(
                     "Could not test provider: %@",
                     error.localizedDescription)
             }
@@ -1017,22 +1017,22 @@ struct IOSRootView: View {
 
 private struct IOSSidebarModeRow: View {
     @ScaledMetric(relativeTo: .body)
-    private var bodySize: CGFloat = EgakiumTypography.spec(for: .body).nominalPointSize
+    private var bodySize: CGFloat = IntatisTypography.spec(for: .body).nominalPointSize
 
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "bubble.left.and.bubble.right")
-                .font(EgakiumTypography.body(bodySize, .semibold))
+                .font(IntatisTypography.body(bodySize, .semibold))
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 22)
-            Text(EgakiumLocalization.string("Chat"))
-                .font(EgakiumTypography.body(bodySize, .semibold))
+            Text(IntatisLocalization.string("Chat"))
+                .font(IntatisTypography.body(bodySize, .semibold))
                 .foregroundStyle(.primary)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
-        .egakiumLiquidGlass(cornerRadius: 10, interactive: true)
+        .intatisLiquidGlass(cornerRadius: 10, interactive: true)
         .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isSelected)
@@ -1045,7 +1045,7 @@ private struct IOSChatModelMenu: View {
     let onSelect: (String, String) -> Void
     @ScaledMetric(relativeTo: .body) private var modelLabelSize: CGFloat = 13
     @ScaledMetric(relativeTo: .caption)
-    private var metadataSize: CGFloat = EgakiumTypography.spec(for: .metadata).nominalPointSize
+    private var metadataSize: CGFloat = IntatisTypography.spec(for: .metadata).nominalPointSize
 
     private var selectedProvider: IOSProviderSettings? { catalog.selectedProvider }
     private var selectedModel: IOSProviderModel? { catalog.selectedModel }
@@ -1067,17 +1067,17 @@ private struct IOSChatModelMenu: View {
             onSelect: onSelect) {
                 HStack(spacing: 8) {
                     Text(selectedModel?.title ?? IOSConfig.defaultModel)
-                        .font(EgakiumTypography.body(modelLabelSize, .semibold))
+                        .font(IntatisTypography.body(modelLabelSize, .semibold))
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                     Image(systemName: "chevron.down")
-                        .font(EgakiumTypography.metadata(metadataSize, .semibold))
+                        .font(IntatisTypography.metadata(metadataSize, .semibold))
                         .foregroundStyle(.secondary)
                 }
-                .egakiumComposerSelectionLabel()
+                .intatisComposerSelectionLabel()
         }
-        .egakiumComposerSelectionMenu()
+        .intatisComposerSelectionMenu()
         .tint(.primary)
         .accessibilityLabel(
             "\(selectedModel?.title ?? IOSConfig.defaultModel), \(selectedProvider?.title ?? "OpenAI")")
@@ -1087,17 +1087,19 @@ private struct IOSChatModelMenu: View {
 
 @main
 struct EgakiumiOSApp: App {
-    @StateObject private var env = IOSAppEnvironment()
+    @StateObject private var env: IOSAppEnvironment
 
     init() {
-        EgakiumTypography.preflight()
+        try! IntatisHostApplication.configure(name: "Egakium")
+        IntatisTypography.prepareJetBrainsMonoTypography()
+        _env = StateObject(wrappedValue: IOSAppEnvironment())
     }
 
     var body: some Scene {
         WindowGroup {
             IOSRootView()
                 .environmentObject(env)
-                .egakiumInterfaceTypography()
+                .font(IntatisTypography.globalFont)
         }
     }
 }

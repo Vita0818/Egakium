@@ -1,9 +1,9 @@
 #if canImport(SwiftUI)
 import CryptoKit
 import Foundation
-import EgakiumCore
-import EgakiumProtocol
-import EgakiumProviders
+import IntatisCore
+import IntatisProtocol
+import IntatisProviders
 
 /// A secret-free host projection of one current inference profile revision.
 ///
@@ -31,7 +31,7 @@ struct AppInferenceProfileOption: Identifiable, Equatable, Sendable {
 }
 
 /// Pure bridge from the app's mutable provider configuration to the versioned
-/// inference catalog owned by EgakiumProviders.
+/// inference catalog owned by IntatisProviders.
 ///
 /// It never reconciles revisions and never writes storage. In particular it
 /// keeps connection/model/variant/profile option layers separate so the shared

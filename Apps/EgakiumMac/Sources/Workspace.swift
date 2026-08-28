@@ -1,12 +1,13 @@
 #if canImport(SwiftUI)
 import Foundation
-import EgakiumCore
+import IntatisCore
 #if canImport(AppKit)
 import AppKit
 #endif
 
-/// Workspace folder selection. In the sandboxed App Store build this grants
-/// access via a user-selected security-scoped resource (ARCHITECTURE.md §9.1).
+/// Workspace folder selection for the direct-distribution macOS product. The
+/// selected directory remains canonical and uses the same security-scoped
+/// bookmark lifecycle for durable user-granted access.
 final class WorkspaceAccessLease: @unchecked Sendable {
     let scopedURL: URL
     let canonicalURL: URL
@@ -98,7 +99,7 @@ enum WorkspaceAccess {
                 bookmarkData: data,
                 isPrimary: isPrimary))
         #else
-        throw EgakiumError.io("Security-scoped workspace bookmarks are unavailable on this platform.")
+        throw IntatisError.io("Security-scoped workspace bookmarks are unavailable on this platform.")
         #endif
     }
 
@@ -206,7 +207,7 @@ enum WorkspaceAccess {
                 session: session,
                 path: lease.canonicalPath),
                   let verificationLease = resolveLease(verified, session: session) else {
-                throw EgakiumError.io("Migrated workspace access could not be verified safely.")
+                throw IntatisError.io("Migrated workspace access could not be verified safely.")
             }
             verificationLease.release()
             UserDefaults.standard.removeObject(forKey: sessionBookmarkKey(session))
@@ -299,7 +300,7 @@ enum WorkspaceAccess {
                 match.lease.release()
                 guard isMatch else { continue }
                 guard matchingLegacyPath == nil else {
-                    throw EgakiumError.io(
+                    throw IntatisError.io(
                         "Legacy workspace aliases are ambiguous for \(currentPath).")
                 }
                 matchingLegacyPath = legacyPath
@@ -330,7 +331,7 @@ enum WorkspaceAccess {
                     legacyLease.release()
                     guard isMatch else { continue }
                     guard matchingLegacyPath == nil else {
-                        throw EgakiumError.io(
+                        throw IntatisError.io(
                             "Legacy workspace aliases are ambiguous for \(currentPath).")
                     }
                     matchingLegacyPath = legacyPath
@@ -393,13 +394,13 @@ enum WorkspaceAccess {
                 data = mayUseSharedBookmark ? shared[legacyLookupPath] : nil
             }
             guard let data else {
-                throw EgakiumError.io(
+                throw IntatisError.io(
                     "Legacy workspace access is incomplete for \(legacyLookupPath). Reauthorize that workspace before migration can finish.")
             }
             guard let legacyLease = resolveLegacyLease(
                 bookmarkData: data,
                 expectedPath: legacyLookupPath) else {
-                throw EgakiumError.io("Legacy workspace access is invalid or points to another directory.")
+                throw IntatisError.io("Legacy workspace access is invalid or points to another directory.")
             }
             defer { legacyLease.release() }
             let path = legacyLease.canonicalPath
@@ -419,7 +420,7 @@ enum WorkspaceAccess {
                 updated.entries.map { ($0.path, $0) })
         }
         guard completedLegacyPaths == requiredLegacyPaths else {
-            throw EgakiumError.io("Not every session-owned legacy workspace capability was migrated.")
+            throw IntatisError.io("Not every session-owned legacy workspace capability was migrated.")
         }
         let verified = try SessionWorkspaceAccessStore.load(
             root: AppConfig.appSupportDir(),
@@ -428,7 +429,7 @@ enum WorkspaceAccess {
             (verified?.entries ?? []).map { ($0.path, $0) })
         let verifiedPaths = Set(verifiedEntries.keys)
         guard sourceBackedPaths.isSubset(of: verifiedPaths) else {
-            throw EgakiumError.io("Legacy workspace access could not be verified in session storage.")
+            throw IntatisError.io("Legacy workspace access could not be verified in session storage.")
         }
         guard sourceBackedPaths.allSatisfy({ path in
             guard let entry = verifiedEntries[path],
@@ -437,7 +438,7 @@ enum WorkspaceAccess {
             lease.release()
             return true
         }) else {
-            throw EgakiumError.io("Migrated workspace access could not be resolved safely.")
+            throw IntatisError.io("Migrated workspace access could not be resolved safely.")
         }
         return LegacyBookmarkMigrationResult(
             didMigrate: true,

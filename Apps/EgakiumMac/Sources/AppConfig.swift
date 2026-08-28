@@ -1,16 +1,16 @@
 #if canImport(SwiftUI)
 import Foundation
-import EgakiumCore
-import EgakiumProtocol
-import EgakiumProviders
-import EgakiumConversation
-import EgakiumSkills
+import IntatisCore
+import IntatisProtocol
+import IntatisProviders
+import IntatisConversation
+import IntatisSkills
 
 typealias AppSessionSummary = SessionSummary
 
 struct AppProviderModelVariant: Identifiable, Equatable {
     var id: String
-    /// Variant fields are an opaque request-parameter preset. Egakium removes
+    /// Variant fields are an opaque request-parameter preset. Intatis removes
     /// only the local `disabled` control flag and otherwise preserves keys and
     /// values exactly as configured.
     var requestOptions: [String: JSONValue]
@@ -26,7 +26,7 @@ struct AppProviderModelVariant: Identifiable, Equatable {
 struct AppProviderModel: Identifiable, Codable, Equatable {
     var id: String
     var displayName: String
-    /// Model-scoped API request options loaded from the external Egakium
+    /// Model-scoped API request options loaded from the external Intatis
     /// configuration. They stay in memory and are deliberately not mirrored to
     /// UserDefaults, where arbitrary user values could include secrets.
     var requestOptions: [String: JSONValue]
@@ -357,15 +357,9 @@ private struct AppProviderSelection: Codable, Equatable {
 enum AppConfig {
     static let legacyAPIKeyAccount = "default-openai"
 
-    /// The two macOS products share sources but compile with exact distribution
-    /// profiles. The App Store target cannot link or enable MCP stdio.
-    #if EGAKIUM_MAC_APP_STORE
-    static let platformProfile: PlatformProfile = .macAppStore
-    static let skillRootAccess: SkillRootAccess = .workspaceOnly
-    #else
+    /// The only macOS product is the local Developer ID workbench.
     static let platformProfile: PlatformProfile = .macDeveloperID
     static let skillRootAccess: SkillRootAccess = .workspaceAndGlobal
-    #endif
 
     static let defaultSession = SessionID(rawValue: "sess_default")
 
@@ -1711,7 +1705,7 @@ private struct AppProviderConfigFile: Decodable {
 
         // OpenAI-compatible model IDs commonly contain `/` themselves. Prefer
         // an exact model-key match across the enabled provider set before
-        // interpreting the first path component as an Egakium provider ID.
+        // interpreting the first path component as an Intatis provider ID.
         let exactModel = exactModelSelection(resolvedModel, in: entries)
         let configuredProviderID = exactModel?.providerID ?? split.providerID
         let configuredModelID = exactModel?.modelID ?? split.modelID

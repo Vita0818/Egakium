@@ -1,7 +1,7 @@
 #if canImport(AppKit)
 import AppKit
 import Foundation
-import EgakiumCore
+import IntatisCore
 
 /// Process-level owner for the low-overhead main-thread heartbeat.
 ///
@@ -21,7 +21,7 @@ final class EgakiumMacProcessDiagnostics {
         case termination
     }
 
-    private let driver: EgakiumMainThreadHeartbeatDriver
+    private let driver: IntatisMainThreadHeartbeatDriver
     private var notificationTokens: [NSObjectProtocol] = []
     private var workspaceNotificationTokens: [NSObjectProtocol] = []
     private var suppressionReasons: Set<SuppressionReason> = []
@@ -29,13 +29,13 @@ final class EgakiumMacProcessDiagnostics {
     private var started = false
 
     private init() {
-        let store: EgakiumHangDiagnosticBundleStore?
-        if let root = try? EgakiumHangDiagnosticBundleStore.defaultRootURL() {
-            store = EgakiumHangDiagnosticBundleStore(rootURL: root)
+        let store: IntatisHangDiagnosticBundleStore?
+        if let root = try? IntatisHangDiagnosticBundleStore.defaultRootURL() {
+            store = IntatisHangDiagnosticBundleStore(rootURL: root)
         } else {
             store = nil
         }
-        driver = EgakiumMainThreadHeartbeatDriver(
+        driver = IntatisMainThreadHeartbeatDriver(
             store: store,
             applicationVersion:
                 Bundle.main.object(
@@ -167,23 +167,23 @@ final class EgakiumMacProcessDiagnostics {
     }
 }
 
-private final class EgakiumMainThreadHeartbeatDriver: @unchecked Sendable {
+private final class IntatisMainThreadHeartbeatDriver: @unchecked Sendable {
     private let lock = NSLock()
     private let queue = DispatchQueue(
         label: "com.Vita0818.Egakium.main-thread-heartbeat",
         qos: .utility)
-    private let diagnostics = EgakiumPerformanceDiagnostics.shared
-    private let store: EgakiumHangDiagnosticBundleStore?
+    private let diagnostics = IntatisPerformanceDiagnostics.shared
+    private let store: IntatisHangDiagnosticBundleStore?
     private let applicationVersion: String?
     private let buildVersion: String?
 
-    private var state = EgakiumMainThreadHeartbeatStateMachine()
+    private var state = IntatisMainThreadHeartbeatStateMachine()
     private var timer: DispatchSourceTimer?
     private var mainPing: (@Sendable (UInt64) -> Void)?
     private var started = false
 
     init(
-        store: EgakiumHangDiagnosticBundleStore?,
+        store: IntatisHangDiagnosticBundleStore?,
         applicationVersion: String?,
         buildVersion: String?
     ) {
@@ -207,7 +207,7 @@ private final class EgakiumMainThreadHeartbeatDriver: @unchecked Sendable {
         timer.schedule(
             deadline: .now(),
             repeating: .milliseconds(
-                Int(EgakiumDiagnosticConstants.heartbeatTickMilliseconds)),
+                Int(IntatisDiagnosticConstants.heartbeatTickMilliseconds)),
             leeway: .milliseconds(25))
         timer.setEventHandler { [weak self] in
             self?.tick()
@@ -265,7 +265,7 @@ private final class EgakiumMainThreadHeartbeatDriver: @unchecked Sendable {
 
     private func persistIncident(delayMilliseconds: UInt64) {
         guard let store else { return }
-        let manifest = EgakiumHangDiagnosticManifest(
+        let manifest = IntatisHangDiagnosticManifest(
             source: .mainThreadHeartbeat,
             recordedAt: Date(),
             processIdentifier: ProcessInfo.processInfo.processIdentifier,

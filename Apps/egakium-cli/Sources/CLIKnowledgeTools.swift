@@ -1,9 +1,9 @@
 import Foundation
-import EgakiumCore
-import EgakiumKnowledge
-import EgakiumProtocol
-import EgakiumProviders
-import EgakiumTools
+import IntatisCore
+import IntatisKnowledge
+import IntatisProtocol
+import IntatisProviders
+import IntatisTools
 
 /// Composes the shipping CLI Knowledge surface only when both independent
 /// model roles are configured. This keeps Chat and partially configured

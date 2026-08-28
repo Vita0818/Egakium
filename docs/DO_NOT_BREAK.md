@@ -1,8 +1,34 @@
 # DO_NOT_BREAK
 
 文档状态：当前回归禁区
-最近规则核对：2026-08-20
+最近规则核对：2026-08-28
 产品基线：v0.4（build 50）
+
+## 2026-08-28 Intatis 直接接入不变量（优先）
+
+- `Package.swift` 与 `project.yml` 必须继续解析同一个 `../../Intatis`，即
+  `/Users/vita/Vitemis/Intatis`；不得增加第二 checkout、复制 package、vendored snapshot 或 remote/
+  local 双来源。
+- Egakium 不再拥有 `Packages/Egakium*`、`Vendor/*` 或旧 shared standards/tests source。不得因下文
+  保留的迁移前路径/类型说明而恢复这些文件。shared 实现变化必须在 Intatis owner 的任务中完成。
+- 三个 host 入口必须在任何 Intatis storage/provider/tool/UI/runtime object 前只安装一次
+  `IntatisHostApplication.configure(name: "Egakium")`；不得另写命名替换表或回退到 Intatis namespace。
+- macOS/CLI Code/Cowork 的 production loop 必须是 `CodexAppServerSession`，项目工具只走
+  `CodexRuntimeDynamicTools`。不得保留/恢复旧 AgentLoop production fallback、protocol facade、MCP
+  translator、parallel backend、preview backend 或 shell/Python 替代 runtime。
+- 每个 Session 的 workspace、runtime root、credential、permission state 与 EventLog 必须隔离。
+  shipping App 必须使用 sealed bundle 内已验证的 exact Codex executable；不得依赖 PATH、Homebrew、
+  sibling checkout 或 `EGAKIUM_CODEX_RUNTIME` 作为 release fallback。
+- `CodexRuntimeHostContract.publicAPIMajorVersion` 变化、external runtime version/derivation 变化或额外
+  Intatis public product source incompatibility，必须先停止升级并执行专门迁移/发行审查。
+- iOS target 只能链接七个 Chat subset products；不得把 Codex Runtime、AgentKernel、Cowork、Tools、
+  Permission、MCP、EgakiumCanvas 或 CEF 带入 iOS。
+- Intatis local path checkout dirty 时可以做明确标注的开发验证，但不能据此声称 clean/reproducible
+  release。不得把 dirty shared files 复制回 Egakium 来制造伪 pin。
+
+完整事实见 `docs/INTATIS_RUNTIME_INTEGRATION.md`。本文后续关于 EventLog、permission、lease、tool、
+Cowork 的详细语义仍有效，但其 shared implementation 当前由 Intatis 提供；旧本地 source path 不是
+当前目录事实。
 
 ## Dependency-first / no-fallback 不变量
 

@@ -1,12 +1,47 @@
 # ARCHITECTURE
 
 文档状态：当前架构规范
-最近源码架构核对：2026-08-20
+最近源码架构核对：2026-08-28
 最近目标架构核对：2026-08-18
 产品基线：v0.4（build 50）
 
 文中较早的 v0.x 只表示能力最初引入或兼容格式冻结的里程碑；除明确标为历史的段落外，
 当前架构判断以本文件、源码和 `project.yml` 为准。
+
+## 2026-08-28 共享实现来源 cutover（当前架构入口）
+
+Egakium 当前不是一份独立的 shared runtime fork，而是唯一 Intatis checkout 上的产品 overlay：
+
+```text
+Egakium Apps / identity / configuration / UI / Canvas / CEF / CLI
+  ├── direct SwiftPM products from ../../Intatis
+  │     ├── shared Core/Protocol/Providers/Conversation/Artifacts/SharedUI
+  │     ├── Tools/Knowledge/Skills/Permission/MCP/AgentKernel/Cowork
+  │     └── IntatisCodexRuntime → CodexAppServerSession
+  └── Product/EgakiumCanvas + official CEF
+```
+
+`Packages/Egakium*`、`Vendor/*` 与 shared standards/test snapshot 已删除。本文后续详细描述的 EventLog、
+permission、lease、tool、MCP、Knowledge、Cowork 与 rendering 语义继续是产品要求，但对应 source 当前
+位于 `/Users/vita/Vitemis/Intatis/Packages/Intatis*`；旧本地 path 只能作为迁移前定位，不得据此恢复
+fork。
+
+三个 process entry 在共享对象前安装 `IntatisHostApplication.configure(name: "Egakium")`，所以 shared
+source 仍写入 Egakium namespace。macOS/CLI Code/Cowork production loop 是
+`CodexAppServerSession`；project business tools 经 `CodexRuntimeDynamicTools` 接入。每个 Session 独立
+runtime root/workspace/credential/permission/EventLog；不存在旧 AgentLoop fallback、protocol facade、
+parallel backend 或运行期 sibling/PATH fallback。Chat 继续使用无工具 `ChatLoop`。
+
+shipping macOS App 把 Intatis exact arm64 Codex kit 验证后嵌入自身
+`Contents/Resources/CodexRuntime/arm64`；源码 local path dependency 不等于用户机器上的 runtime
+dependency。iOS 只消费七个 Chat subset products，不链接 Codex/Agent/Cowork/CEF。
+
+Canvas 仍由 Egakium 产品层拥有，并保持单窗口左 CEF/右 harness。native Codex child admission 后，
+产品 host 才在 verified descendant exact cwd provision 独立 element document并经官方 descendant
+message 指派；旧本地 Orchestrator spawn-descriptor 写法已不再是当前实现。
+
+完整迁移/验证/升级合同见 [`INTATIS_RUNTIME_INTEGRATION.md`](INTATIS_RUNTIME_INTEGRATION.md)。若本文
+后续历史细节与 manifest/source 冲突，以本节、当前源码与该迁移合同为准。
 
 ## Dependency-first / no-fallback 架构原则
 

@@ -1,7 +1,7 @@
 #if canImport(SwiftUI)
 import Foundation
-import EgakiumCore
-import EgakiumProviders
+import IntatisCore
+import IntatisProviders
 
 /// Resolves provider secrets from configuration files, environment variables,
 /// and explicit secret files. Legacy `.keychain` refs are treated as config refs
@@ -24,7 +24,7 @@ public final class ConfigSecretResolver: SecretResolver, @unchecked Sendable {
         case .environment:
             guard let value = ProcessInfo.processInfo.environment[ref.account],
                   !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                throw EgakiumError.notFound("environment secret '\(ref.account)'")
+                throw IntatisError.notFound("environment secret '\(ref.account)'")
             }
             secret = value
         case .file:
@@ -113,7 +113,7 @@ public final class ConfigSecretResolver: SecretResolver, @unchecked Sendable {
         guard let value = String(data: data, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines),
             !value.isEmpty else {
-            throw EgakiumError.notFound("empty secret file '\(path)'")
+            throw IntatisError.notFound("empty secret file '\(path)'")
         }
         return value
     }
@@ -127,7 +127,7 @@ public final class ConfigSecretResolver: SecretResolver, @unchecked Sendable {
                 return value
             }
         }
-        throw EgakiumError.notFound("auth file secret for provider '\(providerID)'")
+        throw IntatisError.notFound("auth file secret for provider '\(providerID)'")
     }
 
     private static func readProviderConfigSecret(providerID: String, path: String) throws -> String {
@@ -139,7 +139,7 @@ public final class ConfigSecretResolver: SecretResolver, @unchecked Sendable {
                 return value
             }
         }
-        throw EgakiumError.notFound("provider config secret for provider '\(providerID)'")
+        throw IntatisError.notFound("provider config secret for provider '\(providerID)'")
     }
 
     private static func authFileContainsSecret(providerID: String) -> Bool {

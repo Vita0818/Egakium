@@ -1,14 +1,14 @@
 import Foundation
 import XCTest
-import EgakiumAgentKernel
-import EgakiumArtifacts
-import EgakiumConversation
-import EgakiumCore
-import EgakiumCowork
-import EgakiumPermission
-import EgakiumProtocol
-import EgakiumProviders
-import EgakiumTools
+import IntatisAgentKernel
+import IntatisArtifacts
+import IntatisConversation
+import IntatisCore
+import IntatisCowork
+import IntatisPermission
+import IntatisProtocol
+import IntatisProviders
+import IntatisTools
 @testable import EgakiumCLI
 
 private final class CLIMultimodalCapturingProvider:

@@ -1,8 +1,8 @@
 import Foundation
-import EgakiumCore
-import EgakiumProtocol
-import EgakiumConversation
-import EgakiumAgentKernel
+import IntatisCore
+import IntatisProtocol
+import IntatisConversation
+import IntatisAgentKernel
 
 func out(_ s: String) { try? FileHandle.standardOutput.write(contentsOf: Data(s.utf8)) }
 func errOut(_ s: String) { try? FileHandle.standardError.write(contentsOf: Data(s.utf8)) }
