@@ -1,10 +1,11 @@
 # Egakium 文档索引
 
 当前产品基线：**v0.4**（build 50）
-最近核对：2026-08-28
+最近核对：2026-08-31
 
 本索引区分当前规范与历史证据。2026-08-28 的实现来源 cutover 已删除仓内共享 Intatis snapshot；
-Egakium 当前是直接依赖 `/Users/vita/Vitemis/Intatis` 的产品 overlay。任何旧文档中的
+Egakium 当前是直接依赖 `/Users/vita/Vitemis/Intatis` 的产品 overlay，并直接消费其
+presentation-only `IntatisCoworkUI`。任何旧文档中的
 `Packages/Egakium*`、`Vendor/*` 或本地 AgentLoop/Orchestrator source path 都不能再作为当前目录事实，
 其运行时语义现在由 sibling Intatis checkout 提供。
 
@@ -12,7 +13,7 @@ Egakium 当前是直接依赖 `/Users/vita/Vitemis/Intatis` 的产品 overlay。
 
 | 文档 | 权威范围 |
 |---|---|
-| `INTATIS_RUNTIME_INTEGRATION.md` | 直接依赖、HostIdentity、Codex Runtime、snapshot 删除、验证与升级合同 |
+| `INTATIS_RUNTIME_INTEGRATION.md` | 直接依赖、HostIdentity、Codex Runtime、Cowork UI、snapshot 删除、验证与升级合同 |
 | `EGAKIUM_MIGRATION.md` | Egakium identity hard cutover、数据/配置不可见边界 |
 | `EGAKIUM_CANVAS_COWORK.md` | Cowork-first 单窗口、CEF Canvas、Session/element 产品合同 |
 | `VERSIONING.md` | 产品版本与 build number 唯一治理规则 |
@@ -34,12 +35,13 @@ Egakium 当前是直接依赖 `/Users/vita/Vitemis/Intatis` 的产品 overlay。
 
 ## 当前产品/实现分界
 
-- Egakium owns：Apps、产品 UI、Egakium identity/config/storage glue、`Product/EgakiumCanvas`、CEF bridge、
+- Egakium owns：Apps host 与非 Cowork-right 产品 UI、Egakium identity/config/storage glue、`Product/EgakiumCanvas`、CEF bridge、
   CLI surface、产品测试与发行脚本。
 - Intatis owns：共享 Core/Protocol/Providers/Conversation/Artifacts/Multimodal/SharedUI/Tools/Knowledge/
-  Skills/Permission/MCP/AgentKernel/Cowork 和 `IntatisCodexRuntime`。
+  Skills/Permission/MCP/AgentKernel/Cowork、`IntatisCodexRuntime` 和 `IntatisCoworkUI`。
 - macOS Code/Cowork production loop：`CodexAppServerSession`；项目工具只走 official dynamic tools。
-- macOS UI：一个 Cowork presentation，左 CEF Canvas、右既有 harness；Chat/Code 仅隐藏。
+- macOS UI：一个 Cowork presentation，左 CEF Canvas、右 `IntatisCoworkContentView`；Egakium 只做
+  `CoworkViewModel` state/bindings/actions 与宿主 settings slot 的薄映射，Chat/Code 仅隐藏。
 - iOS：七个 Chat subset products，无 local agent/Codex Runtime/CEF。
 - 发行：Intatis source 是 local build dependency；正式 App 自包含 exact Codex Runtime，不在用户机器上
   依赖 sibling checkout。

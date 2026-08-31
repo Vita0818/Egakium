@@ -2,14 +2,15 @@
 
 本文件继承 `/Users/vita/Vitemis/AGENTS.md` 中的 Vitemis 通用 Agent 规则。若本文件与通用规则冲突，在不违反系统和用户指令的前提下，以更具体、更严格的项目规则为准。
 
-## 2026-08-28 Intatis Runtime 直接接入（最新、优先）
+## 2026-08-31 Intatis Runtime + Cowork UI 直接接入（最新、优先）
 
 用户已最终要求删除 Egakium 内复制的 Intatis snapshot，并按照
 `/Users/vita/Vitemis/Intatis/docs/CODEX_RUNTIME_INTEGRATION.md` 直接消费唯一 Intatis checkout。
 当前 `Package.swift` 与 `project.yml` 都只通过 `../../Intatis` 引用
 `/Users/vita/Vitemis/Intatis`；共享 Core/Protocol/Providers/Conversation/Artifacts/Multimodal/SharedUI/
-Tools/Knowledge/Skills/Permission/MCP/AgentKernel/Cowork 与 `IntatisCodexRuntime` 都由该 sibling repo
-提供。Egakium 本地只保留 `Apps/` 产品 host/UI、`Product/EgakiumCanvas`、CEF bridge/resources、CLI
+Tools/Knowledge/Skills/Permission/MCP/AgentKernel/Cowork、`IntatisCodexRuntime` 与 presentation-only
+`IntatisCoworkUI` 都由该 sibling repo 提供。Egakium 本地只保留 `Apps/` 产品 host、非 Cowork-right
+产品 UI、`Product/EgakiumCanvas`、CEF bridge/resources、CLI
 表面、产品测试和发行接线。tracked `Packages/`、`Vendor/`、`ThirdPartyStandards/` 及旧 MCP parity/
 conformance snapshot 已删除，不得恢复、fork、vendoring 或建立 fallback。
 
@@ -20,6 +21,22 @@ macOS/CLI 的 Code/Cowork production send/stream/approval/interrupt/shutdown 必
 `__egakium_authorization_context`。每个 Session 仍有独立 workspace/runtime root/credential/
 permission/EventLog。shipping macOS App 必须自包含并验证 exact Intatis Codex runtime；不得依赖 PATH、
 Homebrew 或 sibling checkout 作为运行期 fallback。
+
+macOS Cowork 的完整右侧 presentation 必须直接使用 `IntatisCoworkUI` v1，合同见
+`/Users/vita/Vitemis/Intatis/docs/COWORK_UI_INTEGRATION.md`。Egakium 的 `CoworkSessionView` 只保留原生
+`HSplitView`、左侧 `CoworkCanvasHost`，以及把既有 `CoworkViewModel` state/bindings/actions 和宿主
+Project/MCP settings content 映射给右侧 `IntatisCoworkContentView` 的最薄 adapter。session/runtime/
+provider/workspace/MCP/permission/dynamic-tools ownership 仍完全属于 Egakium host；不得复制、重画或以
+本地 `CoworkShell` composition 替代完整右侧 UI。Chat/Code/Cowork 共用 attachment surface 也直接来自
+`IntatisSharedUI`，Egakium 不再保留同名副本。
+
+2026-08-31 用户进一步只批准 Canvas 自动刷新，不批准跨 workspace 资源接入或 durable layout 扩张。
+当前唯一自动刷新触发源是 exact Codex App Server 已完成且成功的 `fileChange` item：root 事件可刷新；
+descendant 事件只有在其 verified canonical cwd 与 Session Canvas workspace 完全相同时才可刷新。宿主只
+递增 presentation revision 并调用现有 CEF `ReloadIgnoreCache`；不得扫描内容、轮询目录、安装 filesystem
+watcher、放宽 `egakium://canvas` root 或创建第二 renderer lifecycle。用户手动 Reload 继续覆盖外部编辑
+和未被 App Server 分类为 `fileChange` 的改动。跨 workspace 元素仍未实现，只能按
+`docs/EGAKIUM_CANVAS_COWORK.md` 的显式 publication 方案继续设计。
 
 Canvas 仍是 Egakium 产品 overlay：`Product/EgakiumCanvas` 拥有 Session/element templates，CEF 仍是唯一
 renderer，单 Cowork 窗口的左 Canvas/右 harness 与隐藏但保留 Chat/Code 的 UI 合同不变。native Codex
@@ -43,8 +60,8 @@ Swift 类型、模块与 package/target、macOS/iOS/CLI 入口、bundle identifi
 但属于另一个、不可见的 identity。完整边界见 `docs/EGAKIUM_MIGRATION.md`。
 
 2026-08-15 用户进一步确认 Egakium 的新产品方向：macOS 主工作流以现有 Cowork runtime 为
-底座，中央是一张每个 Cowork Session 独立初始化的 HTML/DOM 画布，右侧直接复用现有 Cowork
-harness。每个画布元素是一份独立 HTML 小网页；exact `@main` 通过提示词负责全局布局、协调和
+底座，中央是一张每个 Cowork Session 独立初始化的 HTML/DOM 画布，右侧直接复用完整 Cowork
+presentation（当前由 `IntatisCoworkUI` 提供）。每个画布元素是一份独立 HTML 小网页；exact `@main` 通过提示词负责全局布局、协调和
 委派，ordinary sub-agent 默认在一次任务中编辑一个指定元素。该分工只是动态 prompt / TaskContract
 约定，不是永久 Agent 类型、硬编码 hierarchy、Element owner 或新 lease。完整合同见
 `docs/EGAKIUM_CANVAS_COWORK.md`。同日用户最终选择 Canvas 方案一：宿主只从固定模板初始化
@@ -102,10 +119,13 @@ Agent↔Element ownership，agent recycle 不删除元素，同一 Agent/Element
 同日用户曾确认一条双窗口调试路线；2026-08-16 用户在实际打开后进一步纠正该决定：产品只保留
 一个 Cowork 窗口，必须一打开就是“左画布、右 harness”的原样左右拼接，不能再有会单独显示或被
 macOS 恢复的 Canvas Window、`Open Canvas` 动作或第二个 `WindowGroup`。当前 `CoworkSessionView`
-已以原生水平 split 将可复用 `CoworkCanvasHost` 放在左侧，将未改业务参数和行为的现有
-`CoworkShell` 放在右侧；两者直接消费同一个 `CoworkViewModel` 与 exact Session Canvas。此前独立
+已以原生水平 split 将可复用 `CoworkCanvasHost` 放在左侧，将 presentation-only
+`IntatisCoworkContentView` 放在右侧；宿主把同一个 `CoworkViewModel` 的 state/bindings/actions 映射给
+该依赖 UI，exact Session Canvas 仍只由左侧消费。依赖内部继续组合 shared `CoworkShell`，Egakium 不
+再维护第二份右侧 composition。此前独立
 Canvas 调试窗口的 value、resolver/model、view wrapper、scene 和 header action 均已移除，此纠正
-取代“保留调试/备用入口”的旧表述。Session 启动仍在 fresh 七事件 bootstrap 后幂等创建
+取代“保留调试/备用入口”的旧表述。shipping Codex Session 启动仍在 fresh 四事件 root-authority
+bootstrap 后幂等创建
 workspace-local `.egakium/canvas/<SessionID>/index.html`；Canvas 归 Session 所有，不能因组合视图的
 打开、关闭或重建而新建、重置或停止。当前左侧已是嵌入同一 AppKit/SwiftUI 窗口的官方 CEF child
 browser；只允许 `egakium`/`about`/`data`/`blob`，弹窗和网络 scheme fail closed。CEF lifecycle 在
@@ -165,8 +185,8 @@ git status --short
 macOS 是全量产品；iOS 是 chat 子集。允许按 `docs/OPEN_SOURCE_REUSE.md` 选择性复用兼容许可证的
 公开源码；当前实现是否实际包含上游代码以 `NOTICE.md` 为准。
 
-Egakium 的目标产品层只组合和扩展 macOS Cowork：在现有 harness 外增加 Canvas + 右侧 sidebar
-布局，保持 `CoworkViewModel`、composer、projection、Orchestrator、scheduler、MessageBus、
+Egakium 的目标产品层只组合和扩展 macOS Cowork：在 `IntatisCoworkUI` 完整右侧 presentation 外增加
+Canvas，保持 `CoworkViewModel`、composer、projection、Orchestrator、scheduler、MessageBus、
 PermissionEngine、EventLog 和 lifecycle 语义不变。Session `index.html` 由宿主从固定模板初始化，
 之后 exact `@main` 可以直接编辑整份页面；ordinary sub-agent 若参与，应编辑互不重叠的辅助/元素
 document，并由 `@main` 集成或引用。ordinary `spawn_agent` 成功 admission 还会在 child exact
@@ -178,7 +198,8 @@ Canvas renderer 必须继续直接使用已确认并 pinned 的官方 CEF 依赖
 生命周期、bundle/Helper、scheme 和既有权限边界接线，不得重写 Chromium/CEF 已提供的渲染或浏览器
 能力。更新 CEF version/platform/archive/hash、Helper/sandbox 策略或架构属于新的依赖审查任务。
 当前 macOS Cowork detail 已按用户确认使用原生水平 split 原样组合：左侧 `CoworkCanvasHost` 读取
-同一 `CoworkViewModel.canvasDocument`，右侧继续使用既有 `CoworkShell`。不得重新增加独立 Canvas
+同一 `CoworkViewModel.canvasDocument`，右侧使用 `IntatisCoworkContentView` 并由宿主做最薄 state/action
+映射。不得重新增加本地 `CoworkShell` composition、独立 Canvas
 窗口、scene、header action 或第二套 presentation；不得为组合视图复制 Cowork runtime，也不得把
 视图生命周期当成 Canvas 生命周期。后续渲染器替换不得重写 CanvasHost 的 Session 输入边界或
 harness 业务链路。
@@ -284,10 +305,12 @@ managed-terminal Seatbelt、Hardened Runtime、签名/公证或 iOS 平台边界
 - 入口：`Apps/EgakiumMac/Sources/EgakiumMacApp.swift`（`@main struct EgakiumMacApp`，全量 macOS）、`Apps/EgakiumiOS/Sources/EgakiumiOSApp.swift`（`@main struct EgakiumiOSApp`，chat 子集）、`Apps/egakium-cli/Sources/EgakiumCLI.swift`（CLI）。
 - Chat 链路：`ChatViewModel` → `GoalInputParser`（行首 `/goal` 只生成可选 Goal 元数据，provider 收到清洗后的文本）→ `ChatLoop`（无工具）→ `EventLog`(JSONL append-only) → `ConversationProjection`。
 - Code 链路：`CodeViewModel` → `GoalInputParser` → 共享 headless `AgentRuntime.code` → `AgentLoop`（maxIterations 50）→ `ContextBuilder` + `RuntimeEnvironmentManifest` → `OpenAIWireProvider` → `runTool` → `PermissionEngine`（3 层门）→ `EventLog` → `CodeProjection`。
-- Egakium Canvas 当前 CEF-only 链路：fresh Cowork 七事件 bootstrap → `CoworkViewModel` 独立、幂等、无
+- Egakium Canvas 当前 CEF-only 链路：fresh shipping Cowork 四事件 root-authority bootstrap →
+  `CoworkViewModel` 独立、幂等、无
   provider 地创建 `.egakium/canvas/<SessionID>/index.html` → exact `@main` root prompt 获得该精确
   workspace-relative 路径并可用既有 file/patch + permission 链直接编辑 → `CoworkSessionView` 用原生
-  水平 split 将读取 `vm.canvasDocument` 的 `CoworkCanvasHost` 放左侧、原 `CoworkShell` 放右侧。产品
+  水平 split 将读取 `vm.canvasDocument` 的 `CoworkCanvasHost` 放左侧、`IntatisCoworkContentView` 放
+  右侧；后者只消费宿主 state/bindings/actions，不取得 runtime ownership。产品
   没有独立 Canvas scene/window/action。`CoworkCanvasHost` 只嵌入 `EgakiumCEFView`；官方 CEF child
   browser 使用 per-view memory-only request context，通过 strict Session-rooted `egakium://canvas`
   scheme 加载 `index.html`/relative child assets，阻断网络和 popup。CEF Framework、五个 sandbox

@@ -25,9 +25,11 @@ require_text() {
 
 require_text "$project_root/Package.swift" '.package(path: "../../Intatis")'
 require_text "$project_root/Package.swift" 'name: "IntatisCodexRuntime"'
+require_text "$project_root/Package.swift" 'name: "IntatisCoworkUI"'
 require_text "$project_root/Package.swift" 'name: "EgakiumCanvas"'
 require_text "$project_root/project.yml" 'path: ../../Intatis'
 require_text "$project_root/project.yml" 'product: IntatisCodexRuntime'
+require_text "$project_root/project.yml" 'product: IntatisCoworkUI'
 require_text "$project_root/project.yml" 'product: EgakiumCanvas'
 require_text "$project_root/project.yml" 'PRODUCT_BUNDLE_IDENTIFIER: com.Vita0818.EgakiumMac'
 require_text "$project_root/Apps/EgakiumMac/Sources/AppConfig.swift" '"Egakium", isDirectory: true'
@@ -49,6 +51,24 @@ require_text "$project_root/Apps/EgakiumMac/Sources/EgakiumMacApp.swift" \
     'EgakiumCEFInitialize()'
 require_text "$project_root/Apps/EgakiumMac/Sources/EgakiumMacApp.swift" \
     'CoworkCanvasHost('
+require_text "$project_root/Apps/EgakiumMac/Sources/EgakiumMacApp.swift" \
+    'import IntatisCoworkUI'
+require_text "$project_root/Apps/EgakiumMac/Sources/EgakiumMacApp.swift" \
+    'IntatisCoworkContentView('
+require_text "$project_root/Apps/EgakiumMac/Sources/EgakiumMacApp.swift" \
+    'IntatisCoworkContentState('
+require_text "$project_root/Apps/EgakiumMac/Sources/EgakiumMacApp.swift" \
+    'automaticReloadRevision:'
+require_text "$project_root/Apps/EgakiumMac/Sources/CoworkViewModel.swift" \
+    '@Published private(set) var canvasReloadRevision'
+require_text "$project_root/Apps/EgakiumMac/Sources/CoworkViewModel.swift" \
+    'item.kind == .fileChange'
+require_text "$project_root/Apps/EgakiumMac/Sources/CoworkViewModel.swift" \
+    'CanvasAutomaticReloadPolicy.shouldReload'
+require_text "$project_root/Product/EgakiumCanvas/Sources/CanvasAutomaticReloadPolicy.swift" \
+    'case descendant(canonicalWorkspaceIdentity: String?)'
+require_text "$project_root/Apps/EgakiumMac/Sources/CoworkCanvasHost.swift" \
+    'automaticReloadRevision: UInt64'
 require_text "$project_root/scripts/package-macos-release.sh" \
     'sign_codex_runtime'
 require_text "$project_root/scripts/package-macos-release.sh" \
@@ -61,6 +81,41 @@ if /usr/bin/grep -Eq 'library\(name: "Egakium(Core|Protocol|Providers|AgentKerne
     "$project_root/Package.swift"; then
     fail "Package.swift still publishes a copied Egakium runtime product"
 fi
+
+if /usr/bin/grep -Fq 'private struct CoworkInferenceAccessory' \
+    "$project_root/Apps/EgakiumMac/Sources/EgakiumMacApp.swift"; then
+    fail "EgakiumMac still carries a duplicate Cowork inference UI"
+fi
+if [[ -e "$project_root/Apps/EgakiumMac/Sources/ComposerAttachmentSurfaces.swift" ]]; then
+    fail "EgakiumMac still carries the attachment UI now owned by IntatisSharedUI"
+fi
+
+cowork_adapter="$(/usr/bin/sed -n \
+    '/^struct CoworkSessionView: View {/,/^#if canImport(AppKit)/p' \
+    "$project_root/Apps/EgakiumMac/Sources/EgakiumMacApp.swift")"
+[[ "$cowork_adapter" == *'HSplitView {'* ]] \
+    || fail "CoworkSessionView no longer composes the Canvas and right pane in one HSplitView"
+[[ "$cowork_adapter" == *'IntatisCoworkContentView('* ]] \
+    || fail "CoworkSessionView does not mount the IntatisCoworkUI right pane"
+[[ "$cowork_adapter" != *'CoworkShell('* ]] \
+    || fail "CoworkSessionView still carries a duplicate CoworkShell composition"
+
+ios_target="$(/usr/bin/sed -n '/^  EgakiumiOS:/,/^schemes:/p' \
+    "$project_root/project.yml")"
+[[ "$ios_target" != *'product: IntatisCoworkUI'* ]] \
+    || fail "EgakiumiOS must not link IntatisCoworkUI"
+
+for forbidden_refresh_implementation in \
+    'DispatchSource.makeFileSystemObjectSource' \
+    'Timer.publish' \
+    'attributesOfItem(atPath:'
+do
+    if /usr/bin/grep -Fq "$forbidden_refresh_implementation" \
+        "$project_root/Apps/EgakiumMac/Sources/CoworkCanvasHost.swift" \
+        "$project_root/Apps/EgakiumMac/Sources/CoworkViewModel.swift"; then
+        fail "Canvas auto-refresh must not poll or watch the filesystem: $forbidden_refresh_implementation"
+    fi
+done
 
 legacy_source_markers=(
     "$project_root/Packages/EgakiumCore/Sources/IDs.swift"

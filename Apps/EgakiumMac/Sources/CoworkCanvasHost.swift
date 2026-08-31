@@ -6,19 +6,22 @@ import EgakiumCanvas
 import IntatisSharedUI
 
 struct CoworkCanvasHost: View {
-    @State private var reloadRevision: UInt64 = 0
+    @State private var manualReloadRevision: UInt64 = 0
 
     let document: SessionCanvasDocument?
     let errorMessage: String?
+    let automaticReloadRevision: UInt64
     let onRetry: (() -> Void)?
 
     init(
         document: SessionCanvasDocument?,
         errorMessage: String?,
+        automaticReloadRevision: UInt64 = 0,
         onRetry: (() -> Void)? = nil
     ) {
         self.document = document
         self.errorMessage = errorMessage
+        self.automaticReloadRevision = automaticReloadRevision
         self.onRetry = onRetry
     }
 
@@ -50,7 +53,7 @@ struct CoworkCanvasHost: View {
             Spacer(minLength: 12)
 
             Button {
-                reloadRevision &+= 1
+                manualReloadRevision &+= 1
             } label: {
                 Label(
                     IntatisLocalization.string("Reload Canvas"),
@@ -72,7 +75,11 @@ struct CoworkCanvasHost: View {
                 CoworkCanvasCEFView(
                     indexURL: document.indexURL,
                     readAccessURL: document.directoryURL,
-                    reloadRevision: reloadRevision)
+                    reloadToken: CanvasReloadToken(
+                        automaticRevision:
+                            automaticReloadRevision,
+                        manualRevision:
+                            manualReloadRevision))
                     .id(document.relativeIndexPath)
             } else {
                 canvasUnavailable(
@@ -125,10 +132,15 @@ struct CoworkCanvasHost: View {
 }
 
 #if !EGAKIUM_MAC_APP_STORE
+private struct CanvasReloadToken: Equatable {
+    let automaticRevision: UInt64
+    let manualRevision: UInt64
+}
+
 private struct CoworkCanvasCEFView: NSViewRepresentable {
     let indexURL: URL
     let readAccessURL: URL
-    let reloadRevision: UInt64
+    let reloadToken: CanvasReloadToken
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -142,7 +154,7 @@ private struct CoworkCanvasCEFView: NSViewRepresentable {
         let descriptor = LoadDescriptor(
             indexURL: indexURL,
             readAccessURL: readAccessURL,
-            revision: reloadRevision)
+            reloadToken: reloadToken)
         context.coordinator.update(cefView, descriptor: descriptor)
     }
 
@@ -157,7 +169,7 @@ private struct CoworkCanvasCEFView: NSViewRepresentable {
     struct LoadDescriptor: Equatable {
         let indexURL: URL
         let readAccessURL: URL
-        let revision: UInt64
+        let reloadToken: CanvasReloadToken
 
         var source: SourceDescriptor {
             SourceDescriptor(
@@ -174,7 +186,7 @@ private struct CoworkCanvasCEFView: NSViewRepresentable {
     @MainActor
     final class Coordinator {
         private var loadedSource: SourceDescriptor?
-        private var loadedRevision: UInt64?
+        private var loadedReloadToken: CanvasReloadToken?
 
         func update(
             _ cefView: EgakiumCEFView,
@@ -186,18 +198,18 @@ private struct CoworkCanvasCEFView: NSViewRepresentable {
                     readAccessURL: descriptor.readAccessURL)
                 else { return }
                 loadedSource = descriptor.source
-                loadedRevision = descriptor.revision
+                loadedReloadToken = descriptor.reloadToken
                 return
             }
 
-            guard loadedRevision != descriptor.revision else { return }
-            loadedRevision = descriptor.revision
+            guard loadedReloadToken != descriptor.reloadToken else { return }
+            loadedReloadToken = descriptor.reloadToken
             cefView.reloadCanvas()
         }
 
         func reset() {
             loadedSource = nil
-            loadedRevision = nil
+            loadedReloadToken = nil
         }
     }
 }

@@ -295,6 +295,7 @@ final class CoworkViewModel: ObservableObject, PermissionResponder {
     @Published private(set) var sessionStorageWarning: String?
     @Published private(set) var canvasDocument: SessionCanvasDocument?
     @Published private(set) var canvasInitializationError: String?
+    @Published private(set) var canvasReloadRevision: UInt64 = 0
     @Published private(set) var needsPrimaryWorkspaceAuthorization = false
     @Published private(set) var addAgentStatus: CoworkAddAgentStatus = .idle
     @Published private(set) var permissionReviewerStatus: CoworkPermissionReviewerStatus = .disabled
@@ -1624,6 +1625,7 @@ final class CoworkViewModel: ObservableObject, PermissionResponder {
                     : observation,
                 outcome: item.isFailure ? .failed : .succeeded,
                 failureSource: item.isFailure ? .runtimeFailed : nil)))
+            reloadCanvasAfterCompletedFileChange(item)
         case .approvalRequested(let request):
             let localID = RequestID.new()
             codexApprovalIDs[localID] = request.requestID
@@ -1912,6 +1914,9 @@ final class CoworkViewModel: ObservableObject, PermissionResponder {
                     failureSource: runtimeItem.isFailure
                         ? .runtimeFailed
                         : nil)))
+            reloadCanvasAfterCompletedFileChange(
+                runtimeItem,
+                childThreadID: threadID)
         case .responsesUsage(let threadID, let usage):
             guard let agentID = codexChildThreadsByID[threadID]?.agentID,
                   let messageID = usage.responseMessageItemID else {
@@ -2010,6 +2015,37 @@ final class CoworkViewModel: ObservableObject, PermissionResponder {
                     .joined(separator: " ")
             }
         }
+    }
+
+    /// The exact Codex App Server reports a completed file-change item after
+    /// its mutation has finished. That event is the host-owned refresh signal:
+    /// no directory polling, filesystem watcher, or second renderer lifecycle
+    /// is introduced. Child changes can affect the visible Canvas only when
+    /// the verified child and Session Canvas share one canonical workspace.
+    private func reloadCanvasAfterCompletedFileChange(
+        _ item: CodexRuntimeItem,
+        childThreadID: String? = nil
+    ) {
+        guard let canvasDocument else { return }
+        let canvasWorkspace = canonicalWorkspaceIdentity(
+            canvasDocument.workspaceRoot.path)
+        let source: CanvasAutomaticReloadSource
+        if let childThreadID {
+            source = .descendant(
+                canonicalWorkspaceIdentity:
+                    codexChildThreadsByID[childThreadID].flatMap {
+                        canonicalWorkspaceIdentity($0.cwd)
+                    })
+        } else {
+            source = .root
+        }
+        guard CanvasAutomaticReloadPolicy.shouldReload(
+            isFileChange: item.kind == .fileChange,
+            isFailure: item.isFailure,
+            canvasWorkspaceIdentity: canvasWorkspace,
+            source: source) else { return }
+
+        canvasReloadRevision &+= 1
     }
 
     private func codexChildDisplayName(_ threadID: String) -> String {

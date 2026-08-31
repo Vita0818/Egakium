@@ -55,6 +55,7 @@ for scheme in \
 	IntatisArtifacts \
 	IntatisMultimodal \
 	IntatisSharedUI \
+	IntatisCoworkUI \
 	IntatisTools \
 	IntatisKnowledge \
 	IntatisSkills \

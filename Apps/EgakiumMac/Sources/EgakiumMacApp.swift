@@ -6,6 +6,7 @@ import IntatisCore
 import IntatisProtocol
 import IntatisProviders
 import IntatisConversation
+import IntatisCoworkUI
 import IntatisAgentKernel
 import IntatisArtifacts
 import IntatisTools
@@ -1273,8 +1274,6 @@ struct CodeSessionView: View {
 
 struct CoworkSessionView: View {
     @ObservedObject var vm: CoworkViewModel
-    @StateObject private var agentThreadPresentation:
-        CoworkAgentThreadPresentationModel
     let sessionTitle: String
     let catalog: AppProviderCatalog
     let mcpProjectSettingsHost:
@@ -1285,246 +1284,179 @@ struct CoworkSessionView: View {
     let onNewSession: () -> Void
     let onSessionDidBecomeReady: () -> Void
     @Binding var showsInspector: Bool
-    @State private var showProjectSettings = false
-    @State private var showGoalEditor = false
-    @State private var showGoalClearConfirmation = false
-    @State private var goalObjectiveDraft = ""
-    @State private var goalSuccessCriteriaDraft = ""
-    @State private var goalConstraintsDraft = ""
-    @State private var goalTokenBudgetDraft = ""
-    @State private var goalEditorSubmissionError: String?
-    @State private var showAttachmentImporter = false
-    @Environment(\.colorScheme) private var scheme
-
-    init(
-        vm: CoworkViewModel,
-        sessionTitle: String,
-        catalog: AppProviderCatalog,
-        mcpProjectSettingsHost: MCPProjectSettingsHost,
-        mcpContentHost: MCPConversationContentHost,
-        onShowSessions: @escaping () -> Void,
-        onNewSession: @escaping () -> Void,
-        onSessionDidBecomeReady: @escaping () -> Void,
-        showsInspector: Binding<Bool>
-    ) {
-        self.vm = vm
-        self.sessionTitle = sessionTitle
-        self.catalog = catalog
-        self.mcpProjectSettingsHost = mcpProjectSettingsHost
-        self.mcpContentHost = mcpContentHost
-        self.onShowSessions = onShowSessions
-        self.onNewSession = onNewSession
-        self.onSessionDidBecomeReady = onSessionDidBecomeReady
-        self._showsInspector = showsInspector
-        self._agentThreadPresentation = StateObject(
-            wrappedValue: CoworkAgentThreadPresentationModel(
-                mainAgentID: vm.project.mainAgentName,
-                loadSnapshot: { [weak vm] agentID in
-                    guard let vm else {
-                        return .empty(agentID: agentID)
-                    }
-                    return await vm.agentThreadSnapshot(
-                        agentID: agentID)
-                },
-                updates: { [weak vm] agentID in
-                    guard let vm else {
-                        return AsyncStream { $0.finish() }
-                    }
-                    return vm.agentThreadUpdates(for: agentID)
-                }))
-    }
-
-    private var hasMainAgent: Bool {
-        vm.agents.contains { $0.name == vm.project.mainAgentName }
-    }
-
-    private var isCoworkBusy: Bool {
-        vm.isAgentWorkActive || vm.isGoalContinuing
-    }
 
     var body: some View {
         HSplitView {
             CoworkCanvasHost(
                 document: vm.canvasDocument,
-                errorMessage: vm.canvasInitializationError)
+                errorMessage: vm.canvasInitializationError,
+                automaticReloadRevision:
+                    vm.canvasReloadRevision)
                 .frame(
                     minWidth: 320,
                     idealWidth: 480,
                     maxWidth: .infinity,
                     maxHeight: .infinity)
 
-            CoworkShell(threadSnapshot: agentThreadPresentation.snapshot,
-                        presentationScope: IntatisThreadPresentationScope(
-                            kind: .cowork,
-                            sessionID: vm.sessionID),
-                        sessionTitle: sessionTitle,
-                        thinkingScopeID: vm.sessionID.rawValue,
-                        agents: vm.agents,
-                        pending: vm.pendingPermission,
-                        permissionNotice: vm.permissionNotice,
-                        summary: vm.summary,
-                        project: vm.project,
-                        goal: vm.goal,
-                        workTasks: vm.workTasks,
-                        errorTexts: [
-                            vm.voiceInput.errorText,
-                            vm.composerError,
-                            vm.inferenceComposerError,
-                            vm.projectionError,
-                            vm.sessionStorageWarning,
-                        ].compactMap { $0 },
-                        isWorking: isCoworkBusy,
-                        isAcceptingSubmission: vm.isAcceptingSubmission,
-                        hasDraftAttachments: !vm.draftAttachments.isEmpty,
-                        threadStyle: .egakiumMac(scheme),
-                        onShowSessions: onShowSessions,
-                        onNewSession: onNewSession,
-                        onShowProjectSettings: { showProjectSettings = true },
-                        composerAccessory: AnyView(HStack(
-                            alignment: .center,
-                            spacing: IntatisComposerControlMetrics.rowSpacing
-                        ) {
-                            CoworkInferenceAccessory(
-                                options: vm.inferenceProfileOptions,
-                                selectedBinding: vm.nextMainInferenceBinding,
-                                isDisabled: !hasMainAgent,
-                                onSelect: { binding in
-                                    vm.selectMainInferenceProfileForNextSubmission(binding)
-                                })
-                            MCPPendingExternalContextControl(
-                                count:
-                                    vm.pendingMCPExternalContextCount,
-                                onCancel: {
-                                    vm.cancelPendingMCPExternalContexts()
-                                })
-                        }),
-                        composerInputAccessory: AnyView(
-                            IntatisMacComposerAttachmentAccessory(
-                                attachments: vm.draftAttachments,
-                                accessibilityPrefix: "cowork",
-                                onAttach: {
-                                    showAttachmentImporter = true
-                                },
-                                onRemove: {
-                                    vm.removeDraftAttachment($0)
-                                })),
-                        composerTrailingAction:
-                            IntatisThreadComposerSecondaryAction(
-                                systemImage:
-                                    vm.voiceInput.buttonSystemImage,
-                                help: vm.voiceInput.buttonHelp,
-                                isBusy:
-                                    vm.voiceInput.showsProgress,
-                                isDisabled:
-                                    vm.voiceInput.isToggleDisabled
-                                    || (vm.isAcceptingSubmission
-                                        && !vm.voiceInput.isRecording),
-                                blocksSubmission:
-                                    vm.voiceInput.isEngaged,
-                                action: {
-                                    vm.toggleVoiceInput()
-                                }),
-                        showsInspector: $showsInspector,
-                        input: $vm.input,
-                        onSend: { vm.send() },
-                        onCancelCurrent: isCoworkBusy
-                            ? { vm.cancelCurrentActivity() }
-                            : nil,
-                        onResolve: { vm.resolvePermission($0) },
-                        onRemoveAgent: { vm.removeAgent(name: $0) },
-                        onRetryTask: { vm.retryFailedTask(id: $0) },
-                        onRetrySubmission: { vm.retrySubmission($0) },
-                        onPauseGoal: { vm.pauseGoal() },
-                        onResumeGoal: { vm.resumeGoal() },
-                        onEditGoal: { presentGoalEditor() },
-                        onClearGoal: { showGoalClearConfirmation = true },
-                        selectedAgentID:
-                            agentThreadPresentation.selectedAgentID,
-                        isThreadSnapshotLoading:
-                            agentThreadPresentation.isLoading,
-                        isRichRenderingEligible:
-                            agentThreadPresentation.isRichRenderingEligible,
-                        onSelectAgent: {
-                            agentThreadPresentation.select($0)
-                        })
+            IntatisCoworkContentView(
+                state: contentState,
+                threadSource: IntatisCoworkThreadSource(
+                    loadSnapshot: { [weak vm] agentID in
+                        guard let vm else {
+                            return .empty(agentID: agentID)
+                        }
+                        return await vm.agentThreadSnapshot(
+                            agentID: agentID)
+                    },
+                    updates: { [weak vm] agentID in
+                        guard let vm else {
+                            return AsyncStream { $0.finish() }
+                        }
+                        return vm.agentThreadUpdates(
+                            for: agentID)
+                    }),
+                actions: contentActions,
+                projectSettingsContent:
+                    AnyView(projectSettingsSheet),
+                input: $vm.input,
+                showsInspector: $showsInspector)
                 .frame(
                     minWidth: 440,
                     idealWidth: 620,
                     maxWidth: .infinity,
                     maxHeight: .infinity)
         }
-        // SwiftUI preserves this view's structural identity when one Cowork
-        // session replaces another. Key startup to the durable session ID so
-        // the new view model cannot inherit the completed task of the old one.
-        .onChange(of: hasMainAgent) { isReady in
-            guard isReady else { return }
-            // The first @main projection also means events.jsonl now exists,
-            // so a history rescan can expose the new session in the sidebar.
-            onSessionDidBecomeReady()
-        }
-        .onAppear {
-            activateAgentThreadPresentation()
-        }
-        .onDisappear {
-            agentThreadPresentation.deactivate()
-        }
-        .onChange(of: vm.agents) { _, _ in
-            reconcileAgentThreadPresentation()
-        }
-        .onChange(of: vm.project.mainAgentName) { _, _ in
-            reconcileAgentThreadPresentation()
-        }
-        .sheet(isPresented: $showProjectSettings) { projectSettingsSheet }
-        .sheet(isPresented: $showGoalEditor) { goalEditorSheet }
-        .intatisComposerAttachmentImport(
-            isPresented: $showAttachmentImporter,
-            onImport: { vm.importDraftAttachments($0) },
-            onFailure: { vm.reportAttachmentImportFailure($0) })
-        .alert("Clear this Goal?", isPresented: $showGoalClearConfirmation) {
-            Button("Clear", role: .destructive) { vm.clearGoal() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("The Goal card will be cleared without marking the Goal completed. Its durable history remains in the session log.")
-        }
     }
 
-    private func activateAgentThreadPresentation() {
-        agentThreadPresentation.activate(
-            mainAgentID: vm.project.mainAgentName,
-            selectableAgentIDs: vm.agents
-                .filter(\.isConversationSelectable)
-                .map(\.id))
+    private var contentState: IntatisCoworkContentState {
+        IntatisCoworkContentState(
+            sessionID: vm.sessionID,
+            sessionTitle: sessionTitle,
+            agents: vm.agents,
+            pendingPermission: vm.pendingPermission,
+            permissionNotice: vm.permissionNotice,
+            summary: vm.summary,
+            project: vm.project,
+            goal: vm.goal,
+            workTasks: vm.workTasks,
+            errorTexts: [
+                vm.voiceInput.errorText,
+                vm.composerError,
+                vm.inferenceComposerError,
+                vm.projectionError,
+                vm.sessionStorageWarning,
+            ].compactMap { $0 },
+            isWorking:
+                vm.isAgentWorkActive
+                || vm.isGoalContinuing,
+            isAcceptingSubmission:
+                vm.isAcceptingSubmission,
+            draftAttachments: vm.draftAttachments,
+            inferenceOptions:
+                vm.inferenceProfileOptions.map {
+                    IntatisCoworkInferenceOption(
+                        binding: $0.binding,
+                        providerID: $0.providerID,
+                        providerTitle: $0.providerTitle,
+                        modelID: $0.modelID,
+                        modelTitle: $0.modelTitle,
+                        variantID: $0.variantID,
+                        variantTitle: $0.variantTitle)
+                },
+            selectedInferenceBinding:
+                vm.nextMainInferenceBinding,
+            pendingMCPExternalContextCount:
+                vm.pendingMCPExternalContextCount,
+            voice: IntatisCoworkVoicePresentation(
+                systemImage:
+                    vm.voiceInput.buttonSystemImage,
+                help: vm.voiceInput.buttonHelp,
+                showsProgress:
+                    vm.voiceInput.showsProgress,
+                isToggleDisabled:
+                    vm.voiceInput.isToggleDisabled,
+                isRecording:
+                    vm.voiceInput.isRecording,
+                isEngaged:
+                    vm.voiceInput.isEngaged))
     }
 
-    private func reconcileAgentThreadPresentation() {
-        agentThreadPresentation.reconcile(
-            mainAgentID: vm.project.mainAgentName,
-            selectableAgentIDs: vm.agents
-                .filter(\.isConversationSelectable)
-                .map(\.id))
-    }
-
-    private var goalEditorValidationMessage: String? {
-        if let goalEditorSubmissionError { return goalEditorSubmissionError }
-        if goalObjectiveDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return IntatisLocalization.string("A Goal objective is required.")
-        }
-        let budget = goalTokenBudgetDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !budget.isEmpty, Int(budget).map({ $0 > 0 }) != true {
-            return IntatisLocalization.string(
-                "Token budget must be a positive whole number, or left empty for no budget.")
-        }
-        return nil
-    }
-
-    private func presentGoalEditor() {
-        guard let draft = vm.currentGoalEditDraft() else { return }
-        goalObjectiveDraft = draft.objective
-        goalSuccessCriteriaDraft = draft.successCriteria
-        goalConstraintsDraft = draft.constraints
-        goalTokenBudgetDraft = draft.tokenBudget
-        goalEditorSubmissionError = nil
-        showGoalEditor = true
+    private var contentActions:
+        IntatisCoworkContentActions
+    {
+        IntatisCoworkContentActions(
+            onShowSessions: onShowSessions,
+            onNewSession: onNewSession,
+            onSessionDidBecomeReady:
+                onSessionDidBecomeReady,
+            onSelectInference: {
+                vm.selectMainInferenceProfileForNextSubmission(
+                    $0)
+            },
+            onCancelPendingMCPContext: {
+                vm.cancelPendingMCPExternalContexts()
+            },
+            onImportAttachments: {
+                vm.importDraftAttachments($0)
+            },
+            onAttachmentImportFailure: {
+                vm.reportAttachmentImportFailure($0)
+            },
+            onRemoveAttachment: {
+                vm.removeDraftAttachment($0)
+            },
+            onToggleVoice: {
+                vm.toggleVoiceInput()
+            },
+            onSend: {
+                vm.send()
+            },
+            onCancelCurrent: {
+                vm.cancelCurrentActivity()
+            },
+            onResolvePermission: {
+                vm.resolvePermission($0)
+            },
+            onRemoveAgent: {
+                vm.removeAgent(name: $0)
+            },
+            onRetryTask: {
+                vm.retryFailedTask(id: $0)
+            },
+            onRetrySubmission: {
+                vm.retrySubmission($0)
+            },
+            onPauseGoal: {
+                vm.pauseGoal()
+            },
+            onResumeGoal: {
+                vm.resumeGoal()
+            },
+            goalEditDraft: {
+                guard let draft =
+                    vm.currentGoalEditDraft()
+                else { return nil }
+                return IntatisCoworkGoalEditDraft(
+                    objective: draft.objective,
+                    successCriteria:
+                        draft.successCriteria,
+                    constraints: draft.constraints,
+                    tokenBudget: draft.tokenBudget)
+            },
+            onSaveGoal: {
+                objective,
+                successCriteria,
+                constraints,
+                tokenBudget in
+                vm.editGoal(
+                    objective: objective,
+                    successCriteria: successCriteria,
+                    constraints: constraints,
+                    tokenBudget: tokenBudget)
+            },
+            onClearGoal: {
+                vm.clearGoal()
+            })
     }
 
     private var projectSettingsSheet: some View {
@@ -1567,204 +1499,6 @@ struct CoworkSessionView: View {
         .frame(minWidth: 980, minHeight: 680)
     }
 
-    private var goalEditorSheet: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Edit Goal")
-                .font(IntatisTypography.system(.title2, bold: true))
-            Text("Edit the durable objective and its requirements. Enter one success criterion or constraint per line. Leaving token budget empty means no Goal budget. A paused Goal remains paused.")
-                .font(IntatisTypography.system(.callout))
-                .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Objective")
-                    .font(IntatisTypography.system(.caption, bold: true))
-                TextEditor(text: $goalObjectiveDraft)
-                    .font(IntatisTypography.system(.body))
-                    .frame(minWidth: 500, minHeight: 90)
-                    .padding(8)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(EgakiumTheme.separator(scheme), lineWidth: 1)
-                    }
-                    .accessibilityLabel("Goal objective")
-                    .accessibilityIdentifier("cowork.goal.editor.objective")
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text("Success criteria")
-                        .font(IntatisTypography.system(.caption, bold: true))
-                    Spacer()
-                    Text("One per line")
-                        .font(IntatisTypography.system(.caption2))
-                        .foregroundStyle(.tertiary)
-                }
-                TextEditor(text: $goalSuccessCriteriaDraft)
-                    .font(IntatisTypography.system(.body))
-                    .frame(minHeight: 82)
-                    .padding(8)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(EgakiumTheme.separator(scheme), lineWidth: 1)
-                    }
-                    .accessibilityLabel("Goal success criteria, one per line")
-                    .accessibilityIdentifier("cowork.goal.editor.success_criteria")
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text("Constraints")
-                        .font(IntatisTypography.system(.caption, bold: true))
-                    Spacer()
-                    Text("One per line")
-                        .font(IntatisTypography.system(.caption2))
-                        .foregroundStyle(.tertiary)
-                }
-                TextEditor(text: $goalConstraintsDraft)
-                    .font(IntatisTypography.system(.body))
-                    .frame(minHeight: 82)
-                    .padding(8)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(EgakiumTheme.separator(scheme), lineWidth: 1)
-                    }
-                    .accessibilityLabel("Goal constraints, one per line")
-                    .accessibilityIdentifier("cowork.goal.editor.constraints")
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Token budget (optional)")
-                    .font(IntatisTypography.system(.caption, bold: true))
-                TextField("No budget", text: $goalTokenBudgetDraft)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 220)
-                    .accessibilityLabel("Optional positive Goal token budget")
-                    .accessibilityIdentifier("cowork.goal.editor.token_budget")
-            }
-
-            if let validationMessage = goalEditorValidationMessage {
-                Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
-                    .font(IntatisTypography.system(.caption))
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("cowork.goal.editor.validation")
-            }
-
-            HStack {
-                Spacer()
-                Button("Cancel") { showGoalEditor = false }
-                    .keyboardShortcut(.cancelAction)
-                    .accessibilityIdentifier("cowork.goal.editor.cancel")
-                Button("Save") {
-                    if let error = vm.editGoal(
-                        objective: goalObjectiveDraft,
-                        successCriteria: goalSuccessCriteriaDraft,
-                        constraints: goalConstraintsDraft,
-                        tokenBudget: goalTokenBudgetDraft) {
-                        goalEditorSubmissionError = error
-                        return
-                    }
-                    showGoalEditor = false
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(goalEditorValidationMessage != nil)
-                .accessibilityIdentifier("cowork.goal.editor.save")
-            }
-        }
-        .padding(22)
-        .frame(width: 580)
-        .accessibilityIdentifier("cowork.goal.editor")
-        .onChange(of: goalObjectiveDraft) { _ in goalEditorSubmissionError = nil }
-        .onChange(of: goalSuccessCriteriaDraft) { _ in goalEditorSubmissionError = nil }
-        .onChange(of: goalConstraintsDraft) { _ in goalEditorSubmissionError = nil }
-        .onChange(of: goalTokenBudgetDraft) { _ in goalEditorSubmissionError = nil }
-    }
-}
-
-private struct CoworkInferenceAccessory: View {
-    let options: [AppInferenceProfileOption]
-    let selectedBinding: AgentInferenceBinding?
-    let isDisabled: Bool
-    let onSelect: (AgentInferenceBinding) -> Void
-    @Environment(\.colorScheme) private var scheme
-
-    private var selectedOption: AppInferenceProfileOption? {
-        guard let selectedBinding else { return nil }
-        return options.first { $0.binding == selectedBinding }
-    }
-
-    private var modelLabel: String {
-        selectedOption?.modelTitle ?? IntatisLocalization.string("Inference unavailable")
-    }
-
-    private var menuProviders: [ProviderModelMenuProvider] {
-        Dictionary(grouping: options, by: \.providerID)
-            .compactMap { providerID, providerOptions in
-                guard let first = providerOptions.first else { return nil }
-                return ProviderModelMenuProvider(
-                    id: providerID,
-                    title: first.providerTitle,
-                    models: providerOptions.map { option in
-                        ProviderModelMenuModel(
-                            id: option.id,
-                            modelID: option.modelID,
-                            variantID: option.variantID,
-                            title: option.modelTitle,
-                            detail: option.variantTitle)
-                    })
-            }
-            .sorted { lhs, rhs in
-                [lhs.title, lhs.id].lexicographicallyPrecedes([rhs.title, rhs.id])
-            }
-    }
-
-    var body: some View {
-        ProviderModelSelectionMenu(
-            providers: menuProviders,
-            selectedProviderID: selectedOption?.providerID ?? "",
-            selectedModelID: selectedOption?.modelID ?? "",
-            selectedVariantID: selectedOption?.variantID,
-            isBusy: isDisabled || options.isEmpty,
-            onSelect: { providerID, modelID, variantID in
-                guard let option = options.first(where: {
-                    $0.providerID == providerID
-                        && $0.modelID == modelID
-                        && $0.variantID == variantID
-                }) else { return }
-                onSelect(option.binding)
-            }) {
-                HStack(spacing: 8) {
-                    Text(modelLabel)
-                        .font(EgakiumType.body(13, .semibold))
-                        .foregroundStyle(EgakiumTheme.deepText(scheme))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Image(systemName: "chevron.down")
-                        .font(IntatisTypography.system(size: 10, weight: .semibold))
-                        .foregroundStyle(EgakiumTheme.tertiaryText(scheme))
-                        .accessibilityHidden(true)
-                }
-                .intatisComposerSelectionLabel()
-        }
-        .intatisComposerSelectionMenu()
-        .help(helpText)
-        .accessibilityLabel(Text(IntatisLocalization.format(
-            "Next @main model: %@",
-            modelLabel)))
-        .accessibilityIdentifier("cowork.main.inference-profile")
-    }
-
-    private var helpText: String {
-        if options.isEmpty {
-            return IntatisLocalization.string("No configured inference profiles are available")
-        }
-        if isDisabled {
-            return IntatisLocalization.string(
-                "@main must be attached before selecting its next model")
-        }
-        return IntatisLocalization.string(
-            "Model for the next @main message. Current work and other agents keep their existing models.")
-    }
 }
 
 #if canImport(AppKit)

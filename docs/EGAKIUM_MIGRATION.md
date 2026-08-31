@@ -38,7 +38,8 @@ Egakium 不再区分“用户可见品牌”和“内部技术 identity”。全
 - 共享 Swift products/modules/targets：来自 sibling Intatis 的 `IntatisCore`、`IntatisProtocol`、
   `IntatisProviders`、`IntatisConversation`、`IntatisArtifacts`、`IntatisMultimodal`、`IntatisSharedUI`、
   `IntatisTools`、`IntatisKnowledge`、`IntatisPermission`、`IntatisAgentKernel`、`IntatisSkills`、
-  `IntatisCowork`、`IntatisMCP`、`IntatisMCPStdio`、`IntatisCodexRuntime` 及其内部 targets；这些名称不
+  `IntatisCowork`、`IntatisMCP`、`IntatisMCPStdio`、`IntatisCodexRuntime`、`IntatisCoworkUI` 及其内部
+  targets；这些名称不
   改变 Egakium identity。
 - macOS target/App/executable：`EgakiumMac` / `EgakiumMac.app` / `EgakiumMac`
 - iOS target/App/executable：`EgakiumiOS` / `EgakiumiOS.app` / `EgakiumiOS`
@@ -94,7 +95,8 @@ workspace metadata 或历史会话若仍存在，保留给用户自行处置；E
 
 identity hard cutover 不改变已经确认的产品方向：
 
-- macOS 主窗口仍只有一个“左 CEF Canvas、右 Cowork harness”的组合 presentation；
+- macOS 主窗口仍只有一个“左 CEF Canvas、右 Cowork harness”的组合 presentation；完整右侧现在直接
+  来自 presentation-only `IntatisCoworkUI`，Egakium 只做 host state/action/thread/settings-slot 薄映射；
 - 官方 CEF 仍是唯一 Canvas renderer，没有 WKWebView、第二 renderer 或 fallback；
 - `CoworkViewModel`、Orchestrator、scheduler、MessageBus、PermissionEngine、EventLog 和 session lifecycle
   仍只有一套；

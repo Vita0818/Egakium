@@ -1,7 +1,7 @@
 # COWORK_PRINCIPLES
 
 文档状态：当前 Cowork/AgentKernel 原则
-最近规则核对：2026-08-28
+最近规则核对：2026-08-31
 产品基线：v0.4（build 50）
 
 本文提炼自仓内 v0.10 历史 Cowork 设计文档、`PER_AGENT_INFERENCE_PROFILES.md` 及
@@ -18,6 +18,11 @@ production Code/Cowork root/child loop 使用 Intatis `CodexAppServerSession`，
 tools 接入。本文中旧 `AgentLoop`/`Orchestrator` 调用链或本地 source path 只说明必须保留的行为/安全
 语义，不能成为恢复 parallel backend 的依据。修改 shared semantics 应在 Intatis owner 的明确任务中
 完成，并对所有下游回归；Egakium host 只能做 product UI/identity/Canvas/permission/bundle 的最薄接线。
+
+完整 macOS Cowork 右侧 presentation 同样直接来自 Intatis `IntatisCoworkUI` v1。Egakium 只保留
+`HSplitView`/Canvas 和 `CoworkViewModel` state/bindings/actions/thread/settings-slot adapter；UI product 不
+拥有 Session/runtime/provider/workspace/MCP/permission/dynamic tools。本文后续“右侧复用现有 harness”
+应解释为直接挂载 `IntatisCoworkContentView`，不得恢复 Egakium 本地 `CoworkShell` composition。
 
 Canvas child 的当前实现也随 native runtime 调整：Intatis 负责真实 descendant admission；Egakium 只在
 verified child update 后 provision 该 child exact workspace 的独立 element file，并通过官方 descendant
@@ -41,7 +46,7 @@ AgentLoop must never directly recurse into another AgentLoop.
 ## 1.1 Egakium Canvas 产品层中的角色解释
 
 2026-08-15 用户确认 Egakium 的 macOS 主工作流以当前 Cowork runtime 为底座：中央是一张每个
-Cowork Session 独立的 HTML/DOM Canvas，右侧复用现有 Cowork harness；每个 Canvas 元素是一份
+Cowork Session 独立的 HTML/DOM Canvas，右侧复用 `IntatisCoworkUI` 完整 Cowork presentation；每个 Canvas 元素是一份
 独立 HTML 小网页。完整产品合同见 `docs/EGAKIUM_CANVAS_COWORK.md`。
 
 Canvas renderer 还受项目级 dependency-first/no-fallback 约束：官方 CEF 是唯一接受 renderer；当前
@@ -72,6 +77,9 @@ Cowork/Agent 分工；现有 renderer 只能维持 CEF 官方 API 的最薄接�
   destination 也不能被 fresh template 覆盖；
 - Canvas 接入必须复用现有 spawn/delegate/task/mailbox/scheduler/EventLog/permission flow，不能新增
   同步嵌套 AgentLoop、第二套 Orchestrator 或绕开 durable ToolResult 因果边界；
+- Canvas 自动刷新只能由 exact App Server successful completed `fileChange` event驱动；descendant还须
+  与 Session Canvas canonical workspace一致。它是 presentation revision，不是 durable mutation、
+  filesystem watcher或跨 workspace authority；
 - 现有 Cowork harness 移到右侧只属于 UI 组合，不能借机改变 composer、submission、Goal/WorkTask、
   roster、permission reviewer、exact inference binding、recovery 或 runtime lifecycle。
 

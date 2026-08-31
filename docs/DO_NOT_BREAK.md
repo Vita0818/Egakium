@@ -1,7 +1,7 @@
 # DO_NOT_BREAK
 
 文档状态：当前回归禁区
-最近规则核对：2026-08-28
+最近规则核对：2026-08-31
 产品基线：v0.4（build 50）
 
 ## 2026-08-28 Intatis 直接接入不变量（优先）
@@ -21,6 +21,16 @@
   sibling checkout 或 `EGAKIUM_CODEX_RUNTIME` 作为 release fallback。
 - `CodexRuntimeHostContract.publicAPIMajorVersion` 变化、external runtime version/derivation 变化或额外
   Intatis public product source incompatibility，必须先停止升级并执行专门迁移/发行审查。
+- `IntatisCoworkUIContract.publicAPIMajorVersion` 必须保持 1；macOS 完整 Cowork 右侧只能直接链接并使用
+  `IntatisCoworkContentView`。Egakium 不得复制/重画它的 `CoworkShell` composition、model selector、
+  attachment/voice/composer、permission、Agents/Goal/Tasks/Inspector/retry 或 Goal editor，也不得保留
+  runtime switch/fallback。`CoworkSessionView` 只允许 HSplit、Canvas 和 host state/bindings/actions/
+  thread/settings-slot 薄映射。
+- `IntatisCoworkUI` 不得取得 Egakium `CoworkViewModel`、Session、Codex runtime、provider、workspace、
+  bookmark、MCP、permission engine 或 dynamic tools ownership；UI action 失败必须继续由宿主明确呈现，
+  不能改走依赖自建 runtime/mock/cache。iOS 不得链接该 product。
+- Chat/Code/Cowork 的 macOS attachment presentation 已由 `IntatisSharedUI` 提供；不得恢复已删除的
+  `Apps/EgakiumMac/Sources/ComposerAttachmentSurfaces.swift` 副本。
 - iOS target 只能链接七个 Chat subset products；不得把 Codex Runtime、AgentKernel、Cowork、Tools、
   Permission、MCP、EgakiumCanvas 或 CEF 带入 iOS。
 - Intatis local path checkout dirty 时可以做明确标注的开发验证，但不能据此声称 clean/reproducible
@@ -70,12 +80,13 @@ Cowork 的详细语义仍有效，但其 shared implementation 当前由 Intatis
 
 ## Egakium Canvas / Cowork 组合不变量
 
-- macOS Egakium 目标产品面是中央 HTML/DOM Canvas + 右侧现有 Cowork harness。不得为 Canvas
+- macOS Egakium 目标产品面是中央 HTML/DOM Canvas + 右侧 `IntatisCoworkUI` 完整 Cowork presentation。不得为 Canvas
   重写第二套 conversation、composer、CoworkViewModel、Orchestrator、scheduler、AgentLoop、
   MessageBus、permission queue、EventLog 或 session runtime；只允许必要的父级 UI 组合和窄栏展示适配。
 - 当前主 Cowork detail 必须保持同一原生水平 split：左侧可复用 `CoworkCanvasHost` 读取
-  `CoworkViewModel.canvasDocument`，右侧为现有 `CoworkShell`；除了父级尺寸约束，不得借这次组合改写
-  harness 参数、业务状态、composer、rail、权限或 runtime。两侧必须共用同一个 exact Session 与
+  `CoworkViewModel.canvasDocument`，右侧为 `IntatisCoworkContentView`；除了父级尺寸约束和
+  `IntatisCoworkContentState/Actions/ThreadSource` 薄映射，不得借这次组合改写
+  业务状态、composer、rail、权限或 runtime。两侧必须共用同一个 exact Session 与
   `CoworkViewModel`，不得各自恢复或创建业务 runtime。
 - 产品只保留上述一个组合 Cowork 窗口。不得重新增加独立 Canvas `WindowGroup`、window value、
   workspace resolver/model、window view wrapper、`Open Canvas` header action 或 Canvas-only 调试/备用
@@ -85,8 +96,9 @@ Cowork 的详细语义仍有效，但其 shared implementation 当前由 Intatis
   provider configuration 或恢复逻辑；默认 selection 必须是可见的 Cowork，不能落在隐藏模式。
 - Canvas 是 Session-owned，不是 view-owned。组合视图的打开、关闭、重建或 key-window 变化不得创建、
   重置、删除、复制或停止 Session Canvas；内嵌 CanvasHost 也不得取得初始化或 runtime authority。
-- fresh Cowork settings-first 七事件 bootstrap 的顺序和含义不得改变。Session Canvas 初始化必须是
-  其后的独立、幂等、host-owned、无 provider 请求步骤，不能插入第八个 bootstrap agent/lease event。
+- fresh shipping Codex Cowork settings-first四事件 root-authority bootstrap的顺序和含义不得改变。
+  Session Canvas初始化必须是其后的独立、幂等、host-owned、无 provider请求步骤，不能向该 batch插入
+  Canvas事件或第二控制面 identity。
 - 宿主只拥有 Session `index.html` 的固定模板首次创建；方案一允许 exact `@main` 通过既有
   workspace file/patch + permission 链直接编辑整份 HTML/CSS/JavaScript。多个 Agent 不得并发 patch
   同一主 HTML；ordinary sub-agent 应使用互不重叠的辅助/元素 document，再由 `@main` 集成或引用。
@@ -123,8 +135,10 @@ Cowork 的详细语义仍有效，但其 shared implementation 当前由 Intatis
 - current iframe safety floor 必须保持 `sandbox="allow-scripts"`、Session-rooted `egakium://canvas`
   read access 与网络 deny；runtime 不得加入任意 native execution bridge。
   未来若放宽 sandbox/origin/bridge，必须先冻结 versioned identity/authority/permission schema。
-- Canvas 不再自动轮询目录；只保留用户触发的 CEF Reload。不得恢复 metadata/content monitor 或把
-  file watching 抽象成第二 renderer lifecycle。
+- Canvas 不得轮询目录、安装 filesystem watcher、恢复 metadata/content monitor，或建立第二 renderer
+  lifecycle。获准的自动刷新只能消费 exact Codex App Server 已完成且成功的 `fileChange` item；root
+  可触发，descendant 还必须与 Session Canvas canonical workspace完全相同。failed、其他 workspace、
+  command/dynamic-tool或外部编辑不得伪装成已知 Canvas mutation；这些情况继续由用户手动 Reload。
 - exact `@main` 的空间协调、布局和元素委派来自 model-facing prompt / 当次 TaskContract；ordinary
   sub-agent 默认在一次任务中编辑一个指定元素。不得把该约定硬编码成永久 Agent 类型、递归层级、
   Element owner、ElementLease 或 capability inheritance；允许后续重新委派和顺序接手。
@@ -921,17 +935,27 @@ Cowork 的详细语义仍有效，但其 shared implementation 当前由 Intatis
   cancellation/incomplete stream 不结算成功。真实 provider smoke 只能补充，不能替代离线协议 fixture。
 - 改 `@main` 模型历史、恢复或上下文归一化：至少覆盖 `ModelHistoryProtocolTests`、`ModelHistoryProjectionTests`、`ModelHistoryAgentLoopTests`、`SubmittedIntentHistoryTests`、`ContextProjectionTests` 与 main continuity / worker isolation Cowork tests；必须证明 U1/A1/U2 的顺序、tool call/output 配对、崩溃缺 output、orphan output、retry attempt 选择、重启后恢复、direct/audit 去重和 `write_stdin` 不落原文。
 - 改 managed terminal / PTY / shell sandbox：至少覆盖 `TerminalToolsTests`、`TerminalAgentLoopTests`、`ShellPermissionTests`、`WorkspaceSandboxDenialTests`、`CapabilityLeaseTests`、`ToolRegistryLeaseTests`、`AgentLoopPolicyTests`、`OrchestrationReliabilityTests` 与 full `swift test`；并构建 EgakiumMac 和 EgakiumiOS，证明 macOS 真终端可链接且 iOS 仍未链接本地 agent/shell 模块。
-- 改 session settings/projection/workspace bookmark/bootstrap/recovery：至少覆盖 `SessionStateProtocolTests`、`SessionProjectionStoreTests`、`EgakiumCoreTests`、`AutomaticPermissionReviewTests`；触及模型改名工具时追加 `SessionNamingToolTests`、`SessionRenameAgentLoopTests`、`EgakiumPermissionTests`、`ToolRegistryLeaseTests` 与 main/worker tool-surface 回归。必须证明 strict seven-event/no-provider bootstrap、EventLog-wins cache repair、owner-only binary bookmark、legacy provenance+marker 幂等、historical main/reviewer repair、Rename EventLog-first、operation retry/冲突/晚改名保护、secret pre-authorization denial 与 exact-session capability isolation，并构建受影响 macOS/iOS target。
+- 改 shipping session settings/projection/workspace bookmark/bootstrap/recovery：必须证明 strict四事件
+  root-authority/no-provider bootstrap、EventLog-wins cache repair、owner-only binary bookmark与exact-session
+  capability isolation；若同时触及 unavailable legacy Orchestrator，才追加其七事件/reviewer兼容测试。
 - 改 Canvas template/runtime/host/prompt：至少覆盖 `SessionCanvasStoreTests`、
   `ContextProjectionTests`、`ThreadLayoutTests`、spawned-worker request、受影响
   `EgakiumCoworkTests`、CEF host compile、`EgakiumMac` ARM64 build/bundle inventory 与真实 CEF runtime
   smoke。必须证明 no-overwrite、source `#canvas`/card contract、两个 local iframe、manual CEF reload、
+  completed root/same-workspace-child `fileChange` automatic reload、failed/different-workspace suppression、
+  no-polling/no-watcher、
   generic child template identity/path absence、
   默认 card-size render、spawn 时 fresh file/ID、descriptor event/ToolResult/prompt/replay 一致、
   admission failure absence-proof compensation、lost-ack exact-batch recovery、read-only no-edit、shared index unchanged、
   spawn ToolResult→later card/delegation causality、recycle preserve、CEF Helper sandbox/network/scheme/
   read-access、no-WK/no-fallback scan、ordinary-worker shared-path/coordinator suppression，以及无
   Canvas-only window/native bridge；另一浏览器 fixture 不能替代真实 App CEF/双 Session/lifecycle 手测。
+- 改 `IntatisCoworkUI` 接入或 Egakium 右侧 adapter：至少运行普通 public import 的
+  `EgakiumRuntimeIntegrationTests`、完整 `swift test`、integration consistency script、XcodeGen 与
+  `EgakiumMac` arm64 build。必须证明右侧实际是 `IntatisCoworkContentView`、左 Canvas/同一
+  `CoworkViewModel`/宿主 runtime ownership 未变、本地 `CoworkShell` composition/Goal editor/model
+  accessory/attachment UI 副本不存在、UI action失败没有 alternate runtime，并确认 iOS target graph 不含
+  `IntatisCoworkUI`。
 - 改 Chat 自动命名：至少覆盖 `ChatSessionAutoTitleTests` 与 `ChatAutoTitleViewModelTests`，证明
   successful-only trigger、exact frozen route + completed seq 前缀（旧 route 不读取后续轮次）、前三
   completed segment、user/assistant 正文字段合计 6,000-Character budget（JSON 编码开销不计入）、严格

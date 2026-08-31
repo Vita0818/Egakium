@@ -1,13 +1,13 @@
 # TESTING
 
 文档状态：当前测试矩阵与最近证据
-最近执行：2026-08-28
+最近执行：2026-08-31
 产品基线：v0.4（build 50）
 
 ## 目标
 
-本矩阵验证 Egakium 已从复制 snapshot 切换为单一 Intatis checkout，同时保持产品身份、macOS
-Cowork/Canvas、iOS Chat-only 和发行 bundle 边界。测试不能只证明旧源码退出 manifest；还要证明删除后
+本矩阵验证 Egakium 已从复制 snapshot 切换为单一 Intatis checkout，并直接消费 presentation-only
+`IntatisCoworkUI`，同时保持产品身份、macOS Cowork/Canvas、iOS Chat-only 和发行 bundle 边界。测试不能只证明旧源码退出 manifest；还要证明删除后
 SwiftPM、CLI、macOS/iOS App 与 exact runtime/CEF closure 都能完成。
 
 ## 前置事实
@@ -16,6 +16,7 @@ SwiftPM、CLI、macOS/iOS App 与 exact runtime/CEF closure 都能完成。
 - Intatis root：`/Users/vita/Vitemis/Intatis`
 - dependency：`.package(path: "../../Intatis")`
 - Intatis Codex host API：v1
+- Intatis Cowork UI API：v1
 - exact executable：`codex-cli 0.145.0-intatis.4`
 - macOS architecture：arm64
 - CEF：`151.3.17+gf059e67+chromium-151.0.7922.138`
@@ -39,11 +40,14 @@ swift package --disable-sandbox dump-package
 
 - `../../Intatis` 精确解析到 canonical root；
 - Package/XcodeGen 都引用 Intatis 与 `IntatisCodexRuntime`；
+- macOS product graph、source adapter 与 public contract tests直接引用 `IntatisCoworkUI`；
 - 三个 host 入口安装 Egakium HostIdentity；
 - Code/Cowork production source 使用 `CodexAppServerSession`/`codexRuntimeREPL`；
 - snapshot marker 与旧 Egakium shared imports 不存在；
 - macOS visible nav 仍只有 Cowork；
-- CEF init 和 Canvas composition 仍存在；
+- CEF init、Canvas composition 与右侧 `IntatisCoworkContentView` 仍存在；
+- Egakium 本地 Cowork inference composition 与 `ComposerAttachmentSurfaces.swift` 副本不存在；
+- `EgakiumiOS` target section 不含 `IntatisCoworkUI`；
 - product UI 中没有用户可见 Intatis 品牌 literal。
 
 ## SwiftPM build/test
@@ -53,14 +57,14 @@ swift build --disable-sandbox --disable-automatic-resolution
 swift test --disable-sandbox --disable-automatic-resolution
 ```
 
-2026-08-28 删除 snapshot 后结果：
+2026-08-31 Cowork UI 接入后结果：
 
 | Suite | Result |
 |---|---:|
-| `EgakiumRuntimeIntegrationTests` | 3 passed |
-| `EgakiumCanvasTests` | 12 passed |
+| `EgakiumRuntimeIntegrationTests` | 5 passed |
+| `EgakiumCanvasTests` | 13 passed |
 | `EgakiumCLITests` | 50 executed, 42 passed, 8 skipped |
-| Total | 65 cases: 57 passed, 8 explicitly skipped, 0 failed |
+| Total | 68 cases: 60 passed, 8 explicitly skipped, 0 failed |
 
 8 个 skipped tests 都受显式环境变量保护，可能产生真实 provider/embedding/reranker/permission-review
 请求和费用；默认离线矩阵不运行它们。它们不是编译失败或意外 skip。
@@ -73,12 +77,16 @@ swift test --disable-sandbox --disable-automatic-resolution
 - pinned runtime version/identity 可读取；
 - Egakium 可以只用 public types 构造 isolated minimal configuration；
 - HostIdentity 保留 Egakium config/storage/environment/defaults/sidecar namespace。
+- `IntatisCoworkUIContract.publicAPIMajorVersion == 1`，且完整右侧 public state/actions/thread/view types 可由
+  消费项目直接 import。
+- Canvas自动刷新只由 successful completed App Server `fileChange` event驱动；same-workspace child可
+  触发，failed/different-workspace被抑制，host保留manual revision且源码不含polling/watcher。
 
 不得为让 test 编译而增加 `@testable import Intatis*` 或读取 Intatis internal source。
 
 ### Canvas tests
 
-12 个 tests 覆盖：
+13 个 tests 覆盖：
 
 - source-owned template 与无 injected runtime；
 - concurrent/no-overwrite Session initialization；
@@ -89,6 +97,8 @@ swift test --disable-sandbox --disable-automatic-resolution
 - unsafe Session/Element IDs fail closed；
 - symlink rejection；
 - rollback 只删除仍为原模板的目录。
+- automatic reload policy：root/same-workspace child success、failure/non-file/different-or-unknown workspace
+  suppression。
 
 ## CLI offline smoke
 
@@ -96,7 +106,7 @@ swift test --disable-sandbox --disable-automatic-resolution
 .build/debug/egakium selftest
 ```
 
-2026-08-28 结果：PASS。
+2026-08-31 重跑结果：PASS。
 
 - Chat streaming reply；
 - Code write/read tool execution 与 approval；
@@ -121,15 +131,16 @@ xcodebuild -project Egakium.xcodeproj \
   -scheme EgakiumMac \
   -configuration Debug \
   -destination 'platform=macOS,arch=arm64' \
-  -derivedDataPath build/egakium-intatis-xcode \
+  -derivedDataPath build/egakium-cowork-ui-xcode \
+  ENABLE_DEBUG_DYLIB=NO \
   CODE_SIGNING_ALLOWED=NO \
   build -quiet
 ```
 
-结果：PASS（unsigned Debug）。产物：
+2026-08-31 结果：PASS（unsigned Debug）。产物：
 
 ```text
-build/egakium-intatis-xcode/Build/Products/Debug/EgakiumMac.app
+build/egakium-cowork-ui-xcode/Build/Products/Debug/EgakiumMac.app
 ```
 
 确认的 Info.plist facts：
@@ -141,12 +152,14 @@ build/egakium-intatis-xcode/Build/Products/Debug/EgakiumMac.app
 - architecture：arm64。
 
 编译有来自当前 source/Intatis 的非阻塞 Swift deprecation/no-usage warnings；无 build error。
+`ENABLE_DEBUG_DYLIB=NO` 的主 executable binary scan可见 `IntatisCoworkUI`/
+`IntatisCoworkContentView` symbol strings，证明不是只在 manifest 声明未链接。
 
 ## Built App Codex Runtime gate
 
 ```sh
 scripts/validate-codex-runtime.sh \
-  '/Users/vita/Vitemis/Volans/Egakium/build/egakium-intatis-xcode/Build/Products/Debug/EgakiumMac.app/Contents/Resources/CodexRuntime/arm64' \
+  '/Users/vita/Vitemis/Volans/Egakium/build/egakium-cowork-ui-xcode/Build/Products/Debug/EgakiumMac.app/Contents/Resources/CodexRuntime/arm64' \
   arm64 - static
 ```
 
@@ -199,17 +212,17 @@ xcodebuild -project Egakium.xcodeproj \
   -scheme EgakiumiOS \
   -configuration Debug \
   -destination 'generic/platform=iOS Simulator' \
-  -derivedDataPath build/egakium-intatis-ios \
+  -derivedDataPath build/egakium-cowork-ui-ios \
   CODE_SIGNING_ALLOWED=NO \
   build -quiet
 ```
 
-结果：PASS。产物是 x86_64 + arm64 simulator universal binary。
+2026-08-31 结果：PASS。产物是 x86_64 + arm64 simulator universal binary。
 
 额外验证：
 
 - `project.yml` 的 iOS dependencies 只有七个 Chat subset products；
-- final debug dylib symbol scan未发现 `IntatisCodexRuntime`、`IntatisAgentKernel`、`IntatisCowork`、
+- final main/debug-dylib scan未发现 `IntatisCodexRuntime`、`IntatisAgentKernel`、`IntatisCowork`、`IntatisCoworkUI`、
   `IntatisTools`、`IntatisPermission` 或 CEF；
 - final app 没有 Codex executable/framework/CEF；
 - `ThirdPartyNotices/OpenAICodexRuntime.md` 只是完整 attribution resource，不代表 runtime linkage。
@@ -220,9 +233,15 @@ xcodebuild -project Egakium.xcodeproj \
 
 - `EgakiumMacRootView.visibleNavigationItems == [.cowork]`；
 - Chat/Code cases、views 与 runtime branches仍存在；
-- `CoworkSessionView` 使用一个 `HSplitView` + 一个 `CoworkViewModel`；
-- 左侧 `CoworkCanvasHost`、右侧原 Cowork harness；
+- `CoworkSessionView` 使用一个 `HSplitView` + 一个 Egakium-owned `CoworkViewModel`；
+- 左侧 `CoworkCanvasHost`、右侧 `IntatisCoworkContentView`；
+- 右侧只接收 `IntatisCoworkContentState/Actions/ThreadSource` 与 host settings slot，不拥有 runtime/session/
+  provider/workspace/MCP/permission/dynamic tools；
+- product adapter 不直接调用 `CoworkShell`，本地 Cowork inference/Goal editor/attachment UI 副本不存在；
 - `CoworkCanvasHost` 只使用 `EgakiumCEFView`；
+- `CoworkViewModel.canvasReloadRevision` 只从 completed/successful root或same-workspace-child
+  `fileChange`增长，并与manual revision共同驱动现有 CEF reload；
+- `CoworkCanvasHost`/`CoworkViewModel` 不含 DispatchSource、Timer或metadata polling watcher；
 - 不存在独立 Canvas WindowGroup/Open Canvas action/WKWebView fallback；
 - exact `@main`/native child Canvas assignment paths由产品 host 注入。
 
@@ -231,6 +250,9 @@ Egakium window；sidebar 可见模式只有 Cowork；Recent/New Cowork Session/S
 Egakium 品牌正常；没有独立 Canvas window。当前本机无 Cowork Session，进入真实左右 split 需要在
 系统文件选择器中授予 workspace 并写 security-scoped bookmark，本轮未擅自执行。因此完整 Session
 内左 CEF/右 harness 与 Canvas interaction 仍由 source/build/bundle gate 覆盖，尚未作为手工 E2E 通过。
+自动刷新本轮已通过纯 policy行为测试、source contract gate和 shipping-shaped App build；尚未用真实
+App Server/provider产生 `fileChange` 并观察 CEF画面自动更新，因此 event-to-paint仍属于上述完整 E2E
+缺口。manual CEF reload的既有 bridge继续由 build/runtime smoke覆盖。
 
 ## Release-only gates（本轮未运行）
 

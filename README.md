@@ -5,7 +5,7 @@
 验收尚未执行。
 
 Egakium 是 Apple-first 的本地 AI 工作区。macOS 当前以 Cowork-first 单窗口呈现：左侧是 CEF Session
-Canvas，右侧是完整 Cowork harness。Chat 与 Code 产品面仍编译保留，只在主 sidebar 隐藏；iOS 是严格
+Canvas，右侧直接消费 Intatis 的完整 Cowork UI dependency。Chat 与 Code 产品面仍编译保留，只在主 sidebar 隐藏；iOS 是严格
 Chat 子集；CLI 提供 headless Chat/Code/Cowork 与 MCP 管理。
 
 ## 共享 Intatis Runtime
@@ -18,8 +18,8 @@ Chat 子集；CLI 提供 headless Chat/Code/Cowork 与 MCP 管理。
 ```
 
 共享 Core、Protocol、Providers、Conversation、Artifacts、SharedUI、Tools、Knowledge、Skills、Permission、
-MCP、AgentKernel、Cowork 与 `IntatisCodexRuntime` 都从该 checkout 编译。Egakium 仓库只保留产品 host、
-UI、配置/身份接线、Canvas/CEF 和 CLI 表面；没有复制 package、runtime facade、第二 backend 或旧
+MCP、AgentKernel、Cowork、`IntatisCodexRuntime` 与 presentation-only `IntatisCoworkUI` 都从该 checkout
+编译。Egakium 仓库只保留产品 host、非 Cowork-right UI、配置/身份接线、Canvas/CEF 和 CLI 表面；没有复制 package、runtime facade、第二 backend 或旧
 AgentLoop fallback。
 
 macOS 和 CLI 的 Code/Cowork 使用官方 `CodexAppServerSession`；项目工具通过
@@ -48,7 +48,10 @@ sidecar。Intatis 模块名是共享实现名称，不会变成产品品牌或�
 
 - 唯一 shipping target：`EgakiumMac`，Developer ID + notarization + 直接下载；
 - 可见导航：Cowork 与 Settings；Chat/Code 仅 presentation-hidden；
-- Cowork：一个 `CoworkViewModel`/Session，左 CEF Canvas、右既有 composer/transcript/Agents/Goal/Tasks；
+- Cowork：一个 Egakium-owned `CoworkViewModel`/Session，左 CEF Canvas、右 `IntatisCoworkContentView`；
+  右侧通过 state/bindings/actions 薄映射驱动 composer/transcript/Agents/Goal/Tasks，不取得 runtime ownership；
+- Canvas：successful completed App Server file changes会自动触发现有 CEF reload；manual Reload保留，
+  不使用 filesystem watcher或跨 workspace read root；
 - Code/Cowork：Codex App Server、dynamic tools、workspace confinement、permission chain、Skills、MCP、
   Knowledge、文档/媒体和 managed execution；
 - Canvas renderer：pinned official CEF
@@ -59,7 +62,7 @@ sidecar。Intatis 模块名是共享实现名称，不会变成产品品牌或�
 ### iOS
 
 iOS 只链接 Intatis 的 Core、Protocol、Providers、Conversation、Artifacts、Multimodal 和 SharedUI。
-它不链接 Tools、Knowledge、Skills、Permission、MCP、AgentKernel、Cowork、Codex Runtime、EgakiumCanvas
+它不链接 Tools、Knowledge、Skills、Permission、MCP、AgentKernel、Cowork、Cowork UI、Codex Runtime、EgakiumCanvas
 或 CEF；这是一条 target-level 边界，不是运行时 feature flag。
 
 ### CLI

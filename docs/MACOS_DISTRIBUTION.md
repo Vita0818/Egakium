@@ -2,7 +2,7 @@
 
 文档状态：当前发行合同
 生效日期：2026-07-28
-最近核对：2026-08-28
+最近核对：2026-08-31
 产品基线：v0.4（build 50）
 
 ## 产品决策
@@ -51,6 +51,15 @@ Egakium 的 macOS 产品继续使用内部 `EgakiumMac` shipping target，只通
   开发，并仍受 exact verification；它不是 App release fallback。
 - Intatis source/runtime/license revision 改变属于独立 dependency/release review。dirty local path build
   可以用于明确标注的开发验证，但不能作为 clean-machine/reproducible release 证据。
+
+### Intatis Cowork UI source product
+
+- `EgakiumMac` 直接编译同一 `../../Intatis` checkout 的 presentation-only `IntatisCoworkUI`；它是 App
+  内静态/source-level UI composition，不是额外 runtime、Helper、下载项或用户机器上的 sibling dependency。
+- shipping product 仍由 Egakium `CoworkViewModel`/runtime/session/tools 提供业务 authority；右侧 UI 只
+  接收 state/bindings/actions。缺 product 或 v1 major 不匹配必须使 build 失败，不得把旧本地
+  `CoworkShell` composition 作为 fallback。
+- `EgakiumiOS` 不得链接 `IntatisCoworkUI`。最终 target dependency/symbol inventory 必须继续证明这一点。
 
 ## 当前 macOS 产品面
 

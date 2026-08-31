@@ -2,7 +2,7 @@
 
 文档状态：当前开源复用政策
 生效日期：2026-07-12
-最近核对：2026-08-28
+最近核对：2026-08-31
 产品基线：v0.4（build 50）
 
 ## 项目立场
@@ -23,9 +23,16 @@ Egakium 技术 identity。项目不再采用“禁止直接复用外部源码”
 Tools/Knowledge/Skills/Permission/MCP/AgentKernel/Cowork/CodexRuntime 的 source、third-party dependency
 inventory 与修补 provenance 由 Intatis 维护；Egakium 不再复制或二次维护这些文件。
 
+2026-08-31 起，完整 macOS Cowork 右侧 presentation 也直接消费同一 checkout 的第一方
+`IntatisCoworkUI` v1；Chat/Code/Cowork attachment surface 直接来自 `IntatisSharedUI`。这两项是
+`dependency` 形式的第一方 source reuse：Egakium 只保留 HSplit/Canvas 与 host state/bindings/actions/
+settings-slot 接线，不复制 UI composition、Goal editor、model menu 或 attachment implementation。
+`IntatisCoworkUI` 缺失/major 不匹配必须编译或对应 UI 明确失败，不得恢复本地右侧实现。
+
 准入/升级要求：
 
-- 下游先读取 Intatis 的 `docs/CODEX_RUNTIME_INTEGRATION.md`，验证 v1 public contract；
+- 下游先读取 Intatis 的 `docs/CODEX_RUNTIME_INTEGRATION.md` 与 `docs/COWORK_UI_INTEGRATION.md`，验证两项
+  v1 public contract；
 - 保持 Intatis checkout read-only，迁移/升级前后记录 HEAD、status、tracked diff digest 和 untracked
   inventory；
 - Egakium `NOTICE.md` 说明第一方来源，App bundle 直接包含 Intatis 的完整 `ThirdPartyNotices` 与 exact

@@ -1,6 +1,6 @@
 # CURRENT_STATE
 
-最近核对：2026-08-28
+最近核对：2026-08-31
 Git root：`/Users/vita/Vitemis/Volans/Egakium`
 产品基线：v0.4（build 50）
 
@@ -8,7 +8,8 @@ Git root：`/Users/vita/Vitemis/Volans/Egakium`
 
 Egakium 已成为直接消费唯一 `/Users/vita/Vitemis/Intatis` checkout 的产品 overlay。仓内共享 runtime
 snapshot 已删除；macOS/CLI 的 Code/Cowork 使用 `IntatisCodexRuntime` 官方
-`CodexAppServerSession`，Egakium 自己继续拥有 UI、身份/配置、Canvas/CEF、CLI 表面和发行组装。
+`CodexAppServerSession`，macOS Cowork 完整右侧直接使用 presentation-only `IntatisCoworkUI`；Egakium
+继续拥有 session/runtime、身份/配置、Canvas/CEF、非 Cowork-right UI、CLI 表面和发行组装。
 
 当前 Debug source/build/runtime-kit 验证通过；Developer ID signing、notarization、staple、Gatekeeper、
 release packaging、clean-machine 和真实 provider E2E 尚未执行，因此状态不是正式 release。
@@ -22,7 +23,7 @@ release packaging、clean-machine 和真实 provider E2E 尚未执行，因此�
 - 不再发布 `EgakiumCore`、`EgakiumAgentKernel`、`EgakiumCowork` 等复制产品。
 
 `project.yml` 同时把 `Intatis: ../../Intatis` 作为 Xcode package source。macOS 直接链接保持产品功能所需
-的 Intatis products；iOS 只链接 Chat subset。XcodeGen 后置脚本同步根 `Package.resolved` 到 workspace，
+的 Intatis products，包括 `IntatisCoworkUI`；iOS 只链接 Chat subset。XcodeGen 后置脚本同步根 `Package.resolved` 到 workspace，
 命令行与 Xcode 不再维护两套 resolution。
 
 被删除的 tracked snapshot 共 680 个文件，覆盖 `Packages/`、`Vendor/`、`ThirdPartyStandards/`、旧 MCP
@@ -60,9 +61,13 @@ Intatis 模块名不改变产品品牌，不迁移或混用另一个 identity �
 
 - 主 sidebar 可见 navigation item 只有 Cowork；初始 selection 也是 Cowork。
 - Chat/Code enum case、views、view models、history、runtime 与恢复分支继续编译，只是 presentation-hidden。
-- Cowork detail 仍是一个原生 `HSplitView`：左侧 `CoworkCanvasHost`，右侧既有 `CoworkShell`。
-- 两侧消费同一个 `CoworkViewModel` 与 Session，没有独立 Canvas scene/window/action，也没有第二套
-  runtime/scheduler/EventLog。
+- Cowork detail 仍是一个原生 `HSplitView`：左侧 `CoworkCanvasHost`，右侧
+  `IntatisCoworkContentView`。
+- Egakium `CoworkSessionView` 只把既有 `CoworkViewModel` state/bindings/actions、thread source 与
+  Project/MCP settings slot 薄映射给依赖 UI；Session/runtime/provider/workspace/MCP/permission/dynamic
+  tools ownership不变，没有独立 Canvas scene/window/action 或第二套 runtime/scheduler/EventLog。
+- 本地重复的 Cowork `CoworkShell` composition、Goal editor、inference accessory 与
+  `ComposerAttachmentSurfaces.swift` 已删除；Chat/Code/Cowork attachment UI 直接来自 `IntatisSharedUI`。
 - 产品显示、命令、配置与提示文案仍是 Egakium。
 
 ### Runtime
@@ -92,6 +97,9 @@ shipping App 不接受环境变量覆盖 sealed resource。当前验证的 runti
   Skill resource。
 - exact root `@main` 获得 `.egakium/canvas/<SessionID>/index.html`；普通 native child 得到自己的
   host-provisioned element file assignment，不修改共享入口。
+- root与同 canonical workspace descendant的 successful completed App Server `fileChange` item会自动
+  刷新 Canvas；failed/different-workspace/unclassified changes不自动刷新，manual Reload仍保留。
+- 自动刷新已通过 policy/source/build验证；真实 provider `fileChange`→CEF event-to-paint尚未手工 E2E。
 - official CEF `151.3.17+gf059e67+chromium-151.0.7922.138` ARM64 仍是唯一 renderer。
 - built App 含 versioned CEF framework、Resources、五个 standard sandbox Helper 与 notices。
 - 不存在 WKWebView、WebKit injection、renderer adapter、preview backend 或 fallback。
@@ -104,7 +112,8 @@ shipping App 不接受环境变量覆盖 sealed resource。当前验证的 runti
 
 - 链接 `IntatisCore`、`IntatisProtocol`、`IntatisProviders`、`IntatisConversation`、
   `IntatisArtifacts`、`IntatisMultimodal`、`IntatisSharedUI`；
-- 不链接 Tools、Knowledge、Skills、Permission、MCP、AgentKernel、Cowork、Codex Runtime、Canvas 或 CEF；
+- 不链接 Tools、Knowledge、Skills、Permission、MCP、AgentKernel、Cowork、`IntatisCoworkUI`、Codex
+  Runtime、Canvas 或 CEF；
 - 保留 Egakium Chat UI、provider config、history、hosted search/citations 与多模态 shared behavior。
 
 2026-08-28 simulator universal build 通过，最终 symbol inventory 未发现上述 local-agent/runtime 模块。
@@ -117,6 +126,20 @@ App resources 中可出现完整第三方 notice 文本；notice 不表示对应
 不是 release fallback。
 
 ## 当前验证
+
+2026-08-31 Cowork UI 接入后：
+
+- integration consistency script：通过，并验证 `IntatisCoworkUI` product/import/content 与本地重复 UI
+  均不存在；
+- full Swift tests：68 cases，60 passed，8 个显式付费 smoke skipped，0 failed；其中 public integration
+  suite 5/5，通过 `IntatisCoworkUIContract` v1 和 Canvas event-driven auto-refresh source contract gate；
+- CLI offline selftest：通过；
+- XcodeGen：通过；
+- macOS arm64 Debug unsigned Xcode build（`ENABLE_DEBUG_DYLIB=NO`）：通过，包含现有 CEF/Codex build
+  phases；主 executable 可见 `IntatisCoworkUI` symbols。
+- built App exact Codex runtime static validation：通过。
+- iOS simulator universal Debug build：通过；generated target graph与 final binary scan 均不含
+  `IntatisCoworkUI`。
 
 2026-08-28 snapshot 删除后：
 
@@ -138,10 +161,15 @@ Gatekeeper、DMG/ZIP、clean-machine、Intel。精确命令见 [`TESTING.md`](TE
 
 ## 外部 checkout 状态与风险
 
-本轮消费的 Intatis HEAD 为 `42cb5b36fb6be943ee7812aca3f8520c2e487b04`，但 sibling checkout 在任务
-开始前/期间已有其他工作产生的 tracked 与 untracked 改动。Egakium 没有修改该仓库。local path
+本轮消费的 Intatis HEAD 为 `4d4f6132146de18bc7d206fd8b27e4c702267710`，但 sibling checkout 在任务
+开始前已有用户刚完成的 `IntatisCoworkUI`/SharedUI/adapter/manifest/tests/docs tracked 与 untracked
+改动。Egakium 没有修改该仓库。local path
 dependency 会编译当前文件，因此本轮成功证据对应“该 HEAD + dirty worktree”，不等于从 HEAD 单独可
 重现。
+
+完成时只读 inventory：14 tracked modified、1 tracked deleted、5 untracked；tracked binary diff
+SHA-256 `887834f9e756801c30f1972136d58bb32978c5cef8422a78c12e7984b0072d42`，untracked path
+inventory SHA-256 `cab0d7c5fda9fde6afa253d298b150c359c1f5e6210399b63e795c27cca87b5a`。
 
 正式 release 前必须由 Intatis owner 收敛为可审计 clean revision，并在 Egakium 重新执行完整构建、
 测试、runtime/license/signing gates。不得重新复制 shared source 来掩盖 dirty dependency。
@@ -152,4 +180,5 @@ dependency 会编译当前文件，因此本轮成功证据对应“该 HEAD + d
 - 尚未运行真实 provider/Codex conversation 与完整手工 UI 回归；
 - 尚未完成 Developer ID/notarization/release 产物验证；
 - Canvas durable element/layout/event/native bridge 仍未获准实现；
+- 跨 workspace element publication只完成设计评估，尚未实现；CEF仍只读取 primary Session root；
 - 当前无获准的下一业务目标。

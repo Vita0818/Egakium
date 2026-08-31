@@ -92,6 +92,7 @@ let package = Package(
                 .product(name: "IntatisCore", package: "Intatis"),
                 .product(name: "IntatisProtocol", package: "Intatis"),
                 .product(name: "IntatisProviders", package: "Intatis"),
+                .product(name: "IntatisCoworkUI", package: "Intatis"),
                 .product(name: "IntatisCodexRuntime", package: "Intatis"),
             ],
             path: "Tests/EgakiumRuntimeIntegrationTests"

@@ -3,6 +3,50 @@ import XCTest
 import IntatisCore
 
 final class SessionCanvasStoreTests: XCTestCase {
+    func testAutomaticReloadPolicyIsEventDrivenAndWorkspaceScoped() {
+        let canvasWorkspace = "/workspace/root"
+
+        XCTAssertTrue(CanvasAutomaticReloadPolicy.shouldReload(
+            isFileChange: true,
+            isFailure: false,
+            canvasWorkspaceIdentity: canvasWorkspace,
+            source: .root))
+        XCTAssertTrue(CanvasAutomaticReloadPolicy.shouldReload(
+            isFileChange: true,
+            isFailure: false,
+            canvasWorkspaceIdentity: canvasWorkspace,
+            source: .descendant(
+                canonicalWorkspaceIdentity: canvasWorkspace)))
+
+        XCTAssertFalse(CanvasAutomaticReloadPolicy.shouldReload(
+            isFileChange: false,
+            isFailure: false,
+            canvasWorkspaceIdentity: canvasWorkspace,
+            source: .root))
+        XCTAssertFalse(CanvasAutomaticReloadPolicy.shouldReload(
+            isFileChange: true,
+            isFailure: true,
+            canvasWorkspaceIdentity: canvasWorkspace,
+            source: .root))
+        XCTAssertFalse(CanvasAutomaticReloadPolicy.shouldReload(
+            isFileChange: true,
+            isFailure: false,
+            canvasWorkspaceIdentity: nil,
+            source: .root))
+        XCTAssertFalse(CanvasAutomaticReloadPolicy.shouldReload(
+            isFileChange: true,
+            isFailure: false,
+            canvasWorkspaceIdentity: canvasWorkspace,
+            source: .descendant(
+                canonicalWorkspaceIdentity: "/workspace/child")))
+        XCTAssertFalse(CanvasAutomaticReloadPolicy.shouldReload(
+            isFileChange: true,
+            isFailure: false,
+            canvasWorkspaceIdentity: canvasWorkspace,
+            source: .descendant(
+                canonicalWorkspaceIdentity: nil)))
+    }
+
     func testEnsureCreatesOneEditableCanvasAndPreservesMainEdits() throws {
         let workspace = try temporaryWorkspace()
         defer { try? FileManager.default.removeItem(at: workspace) }
@@ -294,4 +338,3 @@ final class SessionCanvasStoreTests: XCTestCase {
         return url
     }
 }
-

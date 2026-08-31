@@ -1,9 +1,43 @@
 # EGAKIUM_CANVAS_COWORK
 
 文档状态：用户已确认的 Egakium 产品合同；Intatis Runtime 直接接入与 CEF-only renderer 已完成
-确认日期：2026-08-18；实现来源最近核对：2026-08-28
+确认日期：2026-08-18；实现来源最近核对：2026-08-31
 当前业务基线：Egakium v0.4（build 50；产品 identity 为 Egakium，共享 runtime source 来自 Intatis）
 适用范围：macOS Egakium 主产品面、Cowork UI 组合、Canvas/Element 模型与 Agent 协作边界
+
+## 2026-08-31 完整右侧 UI 直接依赖（优先）
+
+单窗口、同 Session、左 Canvas/右 harness 的产品合同不变，但右侧 presentation source 已从 Egakium
+本地 composition 切换为 sibling Intatis 的 `IntatisCoworkUI` v1。当前 `CoworkSessionView` 只保留
+`HSplitView` 与左侧 `CoworkCanvasHost`，并把既有 `CoworkViewModel` 的 state/bindings/actions、thread
+source 和 host-owned Project/MCP settings content 映射给右侧 `IntatisCoworkContentView`。依赖内部继续
+使用 shared `CoworkShell`，但 Egakium 不再复制/重画完整右侧、Goal editor、model accessory 或 attachment
+surface，也不把 Session/runtime/provider/workspace/MCP/permission/dynamic-tools ownership迁入 UI。
+
+以下把“现有 `CoworkShell` 原样放右侧”写成 Egakium 本地 composition 的旧表述，均由本节替代；其
+行为语义仍由 `IntatisCoworkUI` 直接提供。
+
+## 2026-08-31 App Server 事件驱动自动刷新（优先）
+
+用户已批准只实现“Agent 改完后 Canvas 自动刷新”。当前实现不观察 filesystem：
+
+- exact root `CodexRuntimeEvent.itemCompleted` 只有在 `kind == .fileChange` 且非 failure 时递增当前
+  Session 的 `canvasReloadRevision`；
+- descendant `itemCompleted` 还必须证明其 canonical cwd 与 Session Canvas workspace完全一致；
+- `CoworkCanvasHost` 将 automatic revision 与用户手动 revision 组成一个 reload token，任一变化都调用
+  已有 CEF `reloadCanvas()` / `ReloadIgnoreCache()`；
+- failed item、不同 workspace child、普通 command/dynamic-tool、外部编辑和无法分类的写入不自动
+  刷新，保留 `Reload Canvas` 作为显式恢复入口；
+- 没有目录轮询、FSEvents/DispatchSource watcher、DOM injection、path扫描、额外 read root 或第二
+  renderer lifecycle。
+
+当前 public `CodexRuntimeItem` 只披露 file-change count，不披露可供宿主安全过滤的具体路径，因此这是
+同 workspace 粒度的保守 whole-Canvas reload：该 workspace内无关文件的成功 `fileChange` 也可能刷新
+Canvas。若以后需要精确到 Canvas path，必须先由 Intatis v1 contract additive暴露已净化的 changed-path
+identity；不得通过解析 diagnostic text、读取 patch正文或filesystem扫描来猜路径。
+
+这只是 presentation refresh，不新增 Canvas/Element durable event、layout revision、native bridge、
+Element ownership或跨 workspace authority。
 
 ## 2026-08-28 实现来源 cutover（优先）
 
@@ -30,7 +64,8 @@ Canvas 产品合同不变，但 shared Cowork/Agent implementation 已从 Egakiu
 ## 一句话结论
 
 Egakium 是一个 **Cowork-first、Canvas-first** 的多 Agent 空间工作台：中央是每个
-Cowork Session 独立初始化的 HTML/DOM 画布，右侧直接复用现有 Cowork harness。宿主只负责从
+Cowork Session 独立初始化的 HTML/DOM 画布，右侧直接消费 `IntatisCoworkUI` 完整 Cowork
+presentation。宿主只负责从
 固定模板首次创建 Session `index.html`，exact `@main` 可以通过既有 workspace 工具直接编辑整份
 HTML/CSS/JavaScript、组织嵌套元素并承担全局协调和空间布局。ordinary sub-agent 默认在一次任务中
 集中编辑一个互不重叠的辅助或元素网页，再由 `@main` 集成；不得并发 patch 共享 `index.html`。
@@ -59,11 +94,12 @@ WebKit file loader、DOM injection、metadata monitor 与 fallback 已删除。C
   PermissionEngine、EventLog、ArtifactStore 与 session lifecycle；
 - macOS/iOS GUI、内部 target、bundle identity、配置与数据路径统一使用 `Egakium`；
 - 业务基线导入前已有的 Chromium/CEF 本地资产，以及只读的 CEF 白画布历史文档快照。
-- renderer-independent 基础：Cowork Session 启动在 fresh 七事件 bootstrap 后创建
+- renderer-independent 基础：shipping Codex Cowork Session 在 fresh 四事件 root-authority bootstrap 后创建
   `.egakium/canvas/<SessionID>/index.html`；exact `@main` root prompt 获得该精确相对路径并可用现有
   file/patch + permission 链直接编辑；
 - 主 Cowork detail 已使用原生 `HSplitView` 原样左右拼接：左侧可复用 `CoworkCanvasHost` 直接读取同一
-  `CoworkViewModel.canvasDocument`，右侧为参数和业务行为未改的现有 `CoworkShell`。两侧共用同一个
+  `CoworkViewModel.canvasDocument`，右侧为 `IntatisCoworkContentView`。宿主通过 v1 state/action/thread
+  adapter 保持业务行为不变，两侧共用同一个
   exact Session、VM、runtime、EventLog 和权限控制面；
 - 当前源码只有这一处 Canvas presentation，内嵌 host 只使用 `EgakiumCEFView`；2026-08-16 用户在
   实际打开后明确纠正此前双窗口路线，
@@ -80,6 +116,8 @@ WebKit file loader、DOM injection、metadata monitor 与 fallback 已删除。C
   `151.3.17+gf059e67+chromium-151.0.7922.138_macosarm64` pin、archive hash gate、official wrapper/
   external pump、five sandbox Helpers、versioned Framework/Resources/notices、per-view memory-only request
   context、strict `egakium://canvas` Session resource factory、network/popup deny 与 orderly shutdown；
+- exact Codex root与同 canonical workspace descendant的成功 `fileChange` completion会驱动 CEF
+  自动 reload；用户手动 Reload仍保留，宿主不安装 filesystem monitor；
 - 同日用户决定所有子元素共用一份固定模板。`SessionCanvasElementTemplate` v1 是唯一
   host-authored child-document seed；不含 AgentID、ElementID、SessionID、路径或 outer-card layout，
   成功的 ordinary `spawn_agent` 会在 child exact workspace root 下获得一个 host-chosen
@@ -150,13 +188,14 @@ macOS Egakium 的目标主视图为：
 └── exact Cowork Session / single session-scoped runtime authority
     └── Main Cowork detail / native HSplitView
         ├── CoworkCanvasHost / Session index.html
-        └── existing CoworkShell / conversation / composer / status
+        └── IntatisCoworkContentView / internal CoworkShell / conversation / composer / status
 ```
 
 主界面 split 只组合 presentation，不改变业务系统：
 
-- 左侧 host 直接消费现有 VM 已初始化的 `SessionCanvasDocument`；右侧 `CoworkShell` 的现有参数、
-  composer、conversation、Agents/Goal/Tasks/permission、Send/Stop/Retry 与 lifecycle 行为保持不变；
+- 左侧 host 直接消费现有 VM 已初始化的 `SessionCanvasDocument`；右侧
+  `IntatisCoworkContentView` 从 host-supplied state/bindings/actions 驱动 composer、conversation、
+  Agents/Goal/Tasks/permission、Send/Stop/Retry，lifecycle authority 保持在 VM；
 - 父级只设置两侧最小/理想宽度并使用系统可拖拽分隔线；本轮没有新增 drawer、overlay、折叠策略、
   Activity 面板、第二份 harness 或新的窄栏业务模式；
 - App scene 不注册 Canvas 专用 `WindowGroup`，Cowork header 不提供 `Open Canvas`，也不存在按
@@ -180,7 +219,7 @@ macOS Egakium 的目标主视图为：
 ```swift
 HSplitView {
     CoworkCanvasHost(document: vm.canvasDocument, errorMessage: vm.canvasInitializationError)
-    CoworkShell(/* existing arguments and callbacks */)
+    IntatisCoworkContentView(/* state + thread source + actions + bindings */)
 }
 ```
 
@@ -216,18 +255,18 @@ HSplitView {
 
 ```text
 用户创建 Cowork Session
-  -> 现有 Cowork settings-first 七事件 bootstrap 成功
+  -> shipping Codex Cowork settings-first 四事件 root-authority bootstrap 成功
   -> 宿主执行独立、幂等、无模型请求的 Canvas 初始化
   -> 从固定版本模板创建空白 Session Canvas
   -> CoworkCanvasHost / 正式 CEF AppKit child browser 加载该 Canvas
-  -> 主 Cowork detail 左侧显示 CanvasHost，右侧显示现有 CoworkShell
+  -> 主 Cowork detail 左侧显示 CanvasHost，右侧显示 IntatisCoworkContentView
   -> 用户首次 Send 后才允许发生正常 provider 工作
 ```
 
 约束：
 
-- 不改变 fresh Cowork 已冻结的 exact 七事件 bootstrap 顺序和含义；
-- Canvas 初始化不得在七事件中插入额外 agent/lease/settings 事实；
+- 不改变 fresh shipping Cowork 已冻结的 exact 四事件 root-authority bootstrap顺序和含义；
+- Canvas初始化不得在该 batch中插入额外 agent/lease/settings事实；
 - Canvas 初始化由宿主确定性完成，不让模型临时生成基础 `index.html`；
 - 当前固定 workspace-relative 路径为
   `.egakium/canvas/<SessionID>/index.html`；同一 primary workspace 中的多个 Session 由 SessionID
@@ -258,8 +297,8 @@ iframe 基础样式；CEF 直接渲染 source HTML/CSS，宿主不注入 DOM run
 - source `data-x/y/width/height` 的 CEF/CSS card placement；
 - `sandbox="allow-scripts"` 的 child document boundary。
 
-当前没有 host-owned selection/bring-to-front/drag/resize/keyboard、layout override 或 automatic file
-monitor。未来增加这些能力不得重建自研 adapter。
+当前没有 host-owned selection/bring-to-front/drag/resize/keyboard或layout override。自动刷新只来自
+App Server completed `fileChange` event，不是 file monitor。未来增加其他能力不得重建自研 adapter。
 
 未来 durable 层仍需承担：
 
@@ -348,6 +387,35 @@ Chromium 进程：
 读取 exact Session root 内 non-symlink regular files，且 request context 不持久化。CSP/iframe sandbox
 仍由 source document 限制。元素外框拥有 source layout，iframe/document 拥有元素内部内容和行为；
 当前没有宿主 selection/drag/resize 或 bridge。
+
+### 跨 workspace Element publication 方案（已评估，未实现）
+
+不能把 child workspace直接加入 CEF read roots，也不能使用 symlink、`file://` 或让 `@main`继承 child
+WorkspaceLease。推荐方案是复用现有 `ArtifactStore`、permission/durable execution链和官方
+`CodexRuntimeDynamicTools` extension，未来增加一个明确的 host-owned publication动作：
+
+```text
+verified descendant element source
+  -> bounded/no-symlink snapshot under child exact WorkspaceLease
+  -> SecretScanner + source digest + file-count/byte budgets
+  -> session ArtifactStore/staging receipt
+  -> explicit permission for child-read + primary-Canvas-write
+  -> atomic no-overwrite/CAS install into primary workspace
+     .egakium/canvas/<SessionID>/elements/<ElementID>/<revision>/...
+  -> structured CanvasElementPublicationReceipt
+  -> @main uses the exact destination path in a later tool-call round
+  -> existing event-driven Canvas reload
+```
+
+publication receipt至少绑定 SessionID、ElementID、source thread/workspace identity、source digest、
+destination relative path、content digest、revision和authorization/execution identity。same-workspace child可
+只验证并登记现有文件，不复制；different-workspace child必须产生主 Canvas下的受控发布副本，后续更新
+需要新 revision/显式 republish。child workspace文件继续是工作源，published copy是 Canvas消费的冻结
+版本，不能反向授予 root或CEF访问 child workspace。
+
+明确拒绝的方案：扩大 `egakium://canvas` 到多个任意 roots、持续挂载 security scope、跨 workspace
+symlink、让 iframe直接读取 child绝对路径、或从 child final自然语言解析路径后静默复制。该方案尚未
+获准实现；本轮不新增 tool/schema/EventLog事件或文件复制。
 
 ## `@main` 空间协调者合同
 
@@ -548,26 +616,30 @@ Web storage 或注入 DOM 状态冒充 crash recovery/跨窗口同步。
 
 ## 实现顺序与当前停点
 
-前四步已完成；后续步骤只是已知缺口，不是自动获准的下一任务：
+前五步已完成；后续步骤只是已知缺口，不是自动获准的下一任务：
 
 1. **已完成 renderer-independent 基础**：建立一个 Session 一份确定性 `index.html` 的宿主初始化、旧 Session additive
    初始化、no-overwrite 恢复和 exact `@main` 直编提示；
 2. **已完成 UI 组合与入口纠正**：抽取可复用 `CoworkCanvasHost`，在 `CoworkSessionView` 中用原生
-   水平 split 原样拼接左 Canvas 与右现有 `CoworkShell`；移除独立 Canvas scene/window/header action，
+   水平 split 原样拼接左 Canvas 与右 `IntatisCoworkContentView`；移除本地右侧 composition 与独立 Canvas
+   scene/window/header action，
    保证用户打开的唯一 Cowork surface 同时包含两边；
 3. **已完成 renderer-independent Element/Agent 合同**：固定唯一 generic child-document template，把 successful ordinary
    spawn 的 fresh file/ID、additive descriptor events、ToolResult/`list_agents`/prompt/replay、dispatch
    validation、lost-ack recovery 与 replay-proven compensation 接通；
 4. **已完成 CEF-only cutover**：直接接入单一主 CEF child browser/Helpers，删除 WKWebView 与全部
    WebKit-specific fallback，并完成 pin/hash、资源 scheme、lifecycle、sandbox 与 ARM64 bundle 接线；
-5. 冻结 durable CanvasID/ElementID、layout projection、origin/iframe document 隔离与 native bridge；
-6. 让宿主的 create/move/resize/select/refresh 从 provisional DOM 行为升级为可恢复的单元素闭环；
-7. 只有真实需要时再增加经现有权限/durable execution 链的专用 Canvas tools；
-8. 用现有 spawn/delegate/task flow 把单个 ElementID + 页面范围交给 ordinary sub-agent；
-9. 完成多元素并行、冲突、恢复、安全、性能、签名和公证验证。
+5. **已完成窄自动刷新**：successful completed root/same-workspace-child `fileChange` event驱动现有 CEF
+   reload，保留 manual Reload，无 filesystem watcher；
+6. 冻结 durable CanvasID/ElementID、layout projection、origin/iframe document 隔离与 native bridge；
+7. 让宿主的 create/move/resize/select 从 provisional DOM 行为升级为可恢复的单元素闭环；
+8. 若获准，按上文 publication receipt方案解决跨 workspace element；
+9. 只有真实需要时再增加经现有权限/durable execution链的专用 Canvas tools；
+10. 用现有 spawn/delegate/task flow把单个 ElementID + 页面范围交给 ordinary sub-agent；
+11. 完成多元素并行、冲突、恢复、安全、性能、签名和公证验证。
 
-每一步都必须保留前述七事件 bootstrap、EventLog、权限、lifecycle、iOS 与 direct-distribution 边界。
-开始第 5 步或以后任一步前，必须先由用户确定 exact 范围和所采用的外部依赖；不得自行补回 DOM
+每一步都必须保留当前 shipping四事件 root-authority bootstrap、EventLog、权限、lifecycle、iOS 与
+direct-distribution 边界。开始第 6 步或以后任一步前，必须先由用户确定 exact 范围和所采用的外部依赖；不得自行补回 DOM
 adapter 或“临时交互层”。
 
 ## 首批验收方向
@@ -580,7 +652,8 @@ adapter 或“临时交互层”。
   `Open Canvas` action 或可被系统恢复的独立 Canvas 窗口；
 - Session 切换、窗口关闭/重开不会新建、重置或串线 Canvas/ElementID/harness 状态；
 - 现有 harness 的 Send/Stop/Retry/Goal/Task/Agent/permission 与恢复语义没有变化；
-- Canvas 初始化不调用 provider，不增加第八个 bootstrap agent/lease event；
+- Canvas 初始化不调用 provider，不改变 shipping四事件 root-authority bootstrap；
+- successful completed root/same-workspace-child file change自动刷新，failed或different-workspace不刷新；
 - 两个独立元素网页可同时显示，修改其中一个不会改动另一个或主画布；
 - `@main` 可创建/布局两个元素，并在成功取得 sub-agent ToolResult 后分别委派；
 - sub-agent prompt 默认只编辑指定元素，但 reassignment 和顺序接手仍可发生；

@@ -101,6 +101,8 @@ targets:
       - package: Intatis
         product: IntatisSharedUI
       - package: Intatis
+        product: IntatisCoworkUI
+      - package: Intatis
         product: IntatisTools
       - package: Intatis
         product: IntatisKnowledge
@@ -173,6 +175,8 @@ targets:
         product: IntatisMultimodal
       - package: Intatis
         product: IntatisSharedUI
+      - package: Intatis
+        product: IntatisCoworkUI
       - package: Intatis
         product: IntatisTools
       - package: Intatis
