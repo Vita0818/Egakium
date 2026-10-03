@@ -6,6 +6,12 @@ Egakium 产品版本：v0.4（build 50）
 Intatis 跨项目宿主 API：v1
 Intatis Codex executable：`codex-cli 0.145.0-intatis.4`
 
+> 2026-09-12 更新：Intatis `682c6fc` 新增的必填 `CodexBusinessToolHost.imageGenerator` 已在 Egakium
+> CLI/Code/Cowork 三处接入现有图片服务，完整 Swift tests 与 ARM64 Release 构建通过，并完成本机
+> Developer ID 签名及安装。该类型不在最小 v1 稳定 API 清单内，v1 major 不变不能替代额外 public
+> product 的 source compatibility 回归。安装 App 已实际加载 CEF；旧 Cowork 会话恢复及正式公证
+> 分发仍未通过。详情见 `CURRENT_STATE.md`、`TESTING.md`。
+
 ## 结论
 
 Egakium 已删除仓内复制的 Intatis 共享实现，改为通过 SwiftPM local path dependency 直接编译

@@ -1,8 +1,8 @@
 # Egakium
 
 当前版本：**v0.4**（build 50）
-状态：pre-1.0；本地源码、Debug App 和 exact runtime 组装已验证，Developer ID 正式签名、公证与发行
-验收尚未执行。
+状态：pre-1.0；2026-09-12 已修复构建、通过完整离线测试，并完成本机 ARM64 Release / Developer ID
+签名安装与 CEF 加载验证。正式公证分发、完整 Canvas E2E 和已有旧 Cowork 会话恢复仍未通过。
 
 Egakium 是 Apple-first 的本地 AI 工作区。macOS 当前以 Cowork-first 单窗口呈现：左侧是 CEF Session
 Canvas，右侧直接消费 Intatis 的完整 Cowork UI dependency。Chat 与 Code 产品面仍编译保留，只在主 sidebar 隐藏；iOS 是严格
@@ -118,6 +118,10 @@ xcodebuild -project Egakium.xcodeproj -scheme EgakiumiOS \
 XcodeGen 后置脚本会把根 `Package.resolved` 同步到 workspace，确保命令行和 Xcode 解析同一个 local
 Intatis package graph。当前详细测试证据和未执行 gate 见 [`docs/TESTING.md`](docs/TESTING.md)。
 
+上述 unsigned App 命令用于构建验证。实际本机安装须对主 App、CEF 全部嵌套代码和 Codex 使用一致的
+Developer ID 签名；ad-hoc 静态签名通过不代表 Hardened Runtime 下 CEF 可以加载。具体边界见
+[`docs/MACOS_DISTRIBUTION.md`](docs/MACOS_DISTRIBUTION.md)。`make install` 只安装 CLI 链接。
+
 ## macOS 直接分发
 
 正式发行仍使用：
@@ -128,8 +132,8 @@ EGAKIUM_NOTARY_PROFILE=<profile-name> scripts/package-macos-release.sh
 
 release 必须在 clean、可审计的 Intatis revision 上重新构建，并验证 exact Codex Runtime、CEF
 framework/Helpers、第三方 notices、Developer ID signatures、notarization、staple、Gatekeeper 和最终
-ZIP/DMG hashes。当前 sibling Intatis checkout 是 dirty 开发状态，因此本次 Debug 验证不能作为可重现
-release 证据。
+ZIP/DMG hashes。2026-09-12 本机安装的构建发生在 Intatis 外部工作树更新期间；即使该依赖后来已提交
+为 clean revision，本次本机结果仍不能作为在该 revision 上独立重跑的可重现 release 证据。
 
 ## 文档入口
 

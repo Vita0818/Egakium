@@ -1349,6 +1349,7 @@ final class CoworkViewModel: ObservableObject, PermissionResponder {
                 await codexWorkTaskController.manager(
                     for: agentID)
             },
+            imageGenerator: await registryBox.imageToolService(),
             sessionNaming: sessionNaming,
             allowsShell: PlatformProfile.current.allowsShell,
             log: log,

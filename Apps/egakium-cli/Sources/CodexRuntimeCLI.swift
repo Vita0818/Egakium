@@ -187,6 +187,8 @@ func codexRuntimeREPL(
             : [],
         registryAugmenter: knowledgeAugmenter,
         workTaskManagerResolver: workTaskManagerResolver,
+        imageGenerator: ProviderImageGenerationToolService(
+            registry: registry),
         sessionNaming: EventLogSessionNamingService(
             log: toolLog,
             kind: mode == .cowork ? .cowork : .code),

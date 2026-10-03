@@ -1,8 +1,204 @@
 # TESTING
 
 文档状态：当前测试矩阵与最近证据
-最近执行：2026-08-31
+最近执行：2026-09-12
 产品基线：v0.4（build 50）
+
+## 2026-09-12 修复与本机安装
+
+用户在诊断后明确要求修复并安装到本机。已修复三个 `CodexBusinessToolHost` 调用的必填
+`imageGenerator` 参数，直接接入已存在的服务：CLI/Code 使用
+`ProviderImageGenerationToolService(registry:)`，Cowork 使用 `registryBox.imageToolService()`。
+业务改动共五行；没有修改 shared Intatis、测试源码、entitlements、依赖 pin、构建脚本或版本号。
+
+### 修复后的验证
+
+| 检查 | 结果 |
+|---|---|
+| integration consistency / version consistency / `git diff --check` | PASS |
+| `swift test --disable-sandbox --disable-automatic-resolution` | PASS：68 cases，60 passed、8 个真实付费 smoke skipped、0 failed |
+| CLI offline selftest | PASS：Chat streaming、Code read/write、Cowork inference profiles |
+| 最终 `EgakiumMac` ARM64 Release build | PASS，exit 0，`BUILD SUCCEEDED` |
+| App 内 Mach-O inventory | PASS，13 个文件全部为 arm64 |
+| 全部嵌套 code 的 Developer ID / Team ID 一致性 | PASS，13 个签名对象，含五个 CEF dylibs、framework、五个 Helpers、Codex、主 App |
+| 安装目录的 strict App seal | PASS |
+| 安装目录的 canonical Codex `execute` validator | PASS，exact version / derivation / App Server initialize |
+| 从 `/Applications/Egakium.app` 启动 | PASS，Cowork 主窗口可见，进程 executable 路径核对一致 |
+| 实际 CEF framework 加载 | PASS，运行中进程映射来自安装 App 的 `Contents/Frameworks` |
+| 已有旧 Cowork 会话恢复 | 未通过：Canvas preparing、Main inference unavailable；未改写历史或绑定 |
+| 真实 provider / Canvas paint E2E / 公证与正式分发 | 未执行，不能从上述通过项外推 |
+
+完整测试在修复后运行两次，均为 68 cases / 0 failed；第二次的三个 suites 分别为
+`EgakiumRuntimeIntegrationTests` 5、`EgakiumCanvasTests` 13、`EgakiumCLITests` 50（含 8 skipped）。
+之前 CLI 的后续类型推断错误也已消失。
+
+最终构建命令：
+
+```sh
+xcodebuild -project Egakium.xcodeproj \
+  -scheme EgakiumMac -configuration Release \
+  -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath "$EGAKIUM_INSTALL_WORK/DerivedData" \
+  -clonedSourcePackagesDirPath "$PWD/build/egakium-cowork-ui-xcode/SourcePackages" \
+  -disableAutomaticPackageResolution \
+  -onlyUsePackageVersionsFromResolvedFile -skipPackageUpdates \
+  -jobs 4 ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+  COMPILER_INDEX_STORE_ENABLE=NO CODE_SIGNING_ALLOWED=NO build
+```
+
+`EGAKIUM_INSTALL_WORK` 指向本轮新建的 `/private/tmp` 工作目录。显式 `ARCHS=arm64` 限定整个依赖图；
+只限制 App target 的架构仍可能额外编译 package 的 x86_64 slice。首轮 `-quiet` Release 构建输出过
+`failed with exit code 0` 诊断，但最终退出成功；第二次保留完整日志并明确报告 `BUILD SUCCEEDED`。
+未依据该文字误判源码错误，未修改依赖来消除 warning。
+
+### CEF 的真实加载补充门
+
+ad-hoc 签名即使通过 `codesign --verify --deep --strict` 和 Codex `execute-local`，也不证明整个 App
+可以加载 CEF。本轮实际运行时 `dlopen` 被 Hardened Runtime Library Validation 拒绝，诊断为
+`mapping process and mapped file (non-platform) have different Team IDs`。
+
+最终直接调用系统 `codesign` 使用可用 Developer ID Application 身份；没有列出 Keychain 内容、
+导出证书/私钥或关闭 library validation。依次签署全部 CEF dylibs、framework、五个 Helpers、Codex，
+更新签名后的 Codex manifest/inventory，再签外层 App。所有签名使用 secure timestamp 和现有
+entitlements，并从已签名制品核对相同的 Developer ID/Team ID。canonical validator 使用 exact
+Developer ID identity 的 `execute` 模式，最后通过运行中进程的 CEF 映射证实实际加载成功。
+
+正式安装完成于 2026-09-12 15:03:38 +08:00，位置 `/Applications/Egakium.app`，版本 0.4/build 50。
+原始 App 备份为 `build/egakium-install-backups/20260912-142942-665198/Egakium.app`；本轮中间制品另有
+独立备份。替换采用同卷 rename，安装目录再次核对主 executable digest、strict seal 与 Codex execute。
+一次 canonical initialize 探针没有返回 result 时已自动回滚；同一制品复验及最终安装目录复验通过。
+没有忽略失败、替换 validator、自动上传公证或删除用户会话/配置。
+
+### 仍未通过的边界
+
+- 打开已有旧会话后，历史与 Project sheet 可见，但 Canvas 仍停在 preparing、Main 未 attached、
+  Send 不可用。只读检查后关闭 sheet，未保存设置、重绑模型、修改 EventLog 或触发旧任务恢复。
+  CEF 加载问题已独立排除，旧会话的 root/inference 恢复仍须进一步定位。
+- 当前安装是本机 Developer ID 自建版本，未进行 Apple notarization、staple、正式 Gatekeeper
+  分发验收、DMG/ZIP 或 clean-machine 验证；不把“应用已经打开”写成正式发行完成。
+- Intatis 在构建期间有外部修改，最终由 owner 提交为 clean
+  `ae589e17d90a217e43c55bb05ebb487b05e6b480`。最终验证开始时采集了 552 个 build-source 指纹；其中
+  一份 shared Cowork reviewer source 在测试之后、最终 Release 构建完成之前被外部更新。以上结果
+  按各自实际执行时点记录，不宣称从该 clean HEAD 独立执行了完整发行回归。
+
+## 2026-09-12 构建与安装复核（修复前）
+
+本次是当前机器的构建/安装排查，没有修改业务源码、测试源码、构建脚本、依赖 pin 或已安装 App。
+下文 2026-08-31 的通过结果保留为历史证据，不能用于证明当前 Intatis 工作树仍与 Egakium source
+compatible。当前 CLI 和 macOS App 构建均失败。
+
+### 检查环境与依赖状态
+
+- macOS 27.0（26A5425a）、Xcode 27.0（27A5228h）、Apple Swift 6.4、arm64；
+- XcodeGen 2.45.4、CMake 4.3.2、Ninja 1.13.2，Xcode first-launch check exit 0；
+- Egakium 起始工作树 clean；Intatis HEAD 为 `682c6fc82d3ed6e4db538709df351be60ac0d37a`；
+- 根 `Package.resolved`、生成的 Xcode workspace lockfile 与 Intatis lockfile 的九个 pins 一致；
+- Intatis 工作树在排查期间发生外部并发修改；仅凭 HEAD 无法复现本次所有检查，未宣称 clean build。
+
+2026-09-12 13:53:46 +08:00 的末次只读采集为 10 个 tracked changes、4 个 untracked files；
+tracked diff SHA-256 为
+`87f18f1e8f760cf247e73d54512fcc51431696425039be7a62139a51ac4f7bc8`，
+sorted untracked path inventory SHA-256 为
+`77e3e4f57da0386acf50a156f1e5a97ed602b421a4cab228a5c68536e09beaff`。
+这些值只标识采集时的外部工作树；构建开始时没有冻结该依赖，也没有捕获可重建整个时间区间的快照。
+
+### 实际结果
+
+| 检查 | 结果与边界 |
+|---|---|
+| integration consistency / version consistency | PASS，0.4/build 50 |
+| `swift package --disable-sandbox dump-package` | PASS；受当前执行沙箱影响，user cache 写入有 warning |
+| `xcodegen generate` | PASS，仅重新生成 ignored Xcode project |
+| `swift build --disable-sandbox --disable-automatic-resolution` | FAIL，exit 1；CLI 的 `CodexBusinessToolHost` 调用缺少 `imageGenerator` |
+| `EgakiumMac` arm64 Debug build，独立 DerivedData，正常系统权限 | FAIL，exit 65；`CodeViewModel.swift` 同样缺少 `imageGenerator` |
+| CEF archive SHA-256 | PASS，与 `config/cef.cmake` 的 exact pin 一致 |
+| `scripts/prepare-cef-runtime.sh Debug` | PASS，sandbox ON；增量检查，Ninja 报告 `no work to do` |
+| Intatis Codex kit canonical static validation | PASS，exact runtime 0.145.0-intatis.4 |
+| 已安装 App 的 Codex canonical static validation | PASS，manifest/inventory/architecture/license closure |
+| 已安装 App 的 `codesign --verify --deep --strict` | FAIL，App 没有完整资源签名封装 |
+| 已安装 App 的 Gatekeeper execute assessment | FAIL，正常系统权限下也报告同一签名错误 |
+| 已安装 App 的 `stapler validate` | FAIL，未附带公证票据 |
+| 临时副本完整 ad-hoc 签名、strict seal | PASS；不涉及 Developer ID，未替换安装目录 |
+| 临时副本 canonical `execute-local` | PASS，exact version / derivation / App Server initialize |
+| build/embed/release shell 语法、两份 entitlements plist | PASS；仅语法/格式检查，不是发行执行 |
+
+本次未运行当前源码的 XCTest suites 或 CLI selftest：CLI 编译尚未完成，旧 binary 的通过结果不能
+作为当前源码的验证。未运行 Release build、iOS build、完整 GUI/Canvas/provider E2E、Developer ID
+签名、公证上传、DMG/ZIP 打包或 clean-machine 安装；未读取 Keychain/证书/profile 内容。
+
+### 编译阻塞的可复现命令与定位
+
+CLI：
+
+```sh
+swift build --disable-sandbox --disable-automatic-resolution
+```
+
+首个错误是 `Apps/egakium-cli/Sources/CodexRuntimeCLI.swift:192` 的
+`missing argument for parameter 'imageGenerator' in call`。后续 `Dictionary` 泛型推断及字符串表达式
+type-check 诊断尚未通过修复后的复验，不应直接视为四个独立根因。
+
+macOS：
+
+```sh
+EGAKIUM_AUDIT_DIR="$(mktemp -d /private/tmp/egakium-build-audit.XXXXXX)"
+xcodebuild -project Egakium.xcodeproj \
+  -scheme EgakiumMac -configuration Debug \
+  -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath "$EGAKIUM_AUDIT_DIR/DerivedData-Debug" \
+  -clonedSourcePackagesDirPath "$PWD/build/egakium-cowork-ui-xcode/SourcePackages" \
+  -disableAutomaticPackageResolution \
+  -onlyUsePackageVersionsFromResolvedFile -skipPackageUpdates \
+  ENABLE_DEBUG_DYLIB=NO CODE_SIGNING_ALLOWED=NO build -quiet
+```
+
+该命令复用本机已有 exact package checkouts，未测试从空缓存联网解析。错误在
+`Apps/EgakiumMac/Sources/CodeViewModel.swift:932`；另外通过源码核对发现
+`CoworkViewModel.swift:1338` 的构造调用也缺少该参数。Intatis `682c6fc` 的 committed diff
+已加入必填 `imageGenerator: any ImageGenerationToolService`，其宿主示例已接入现有图片服务。
+Egakium 也已有相应服务，后续应修复三处宿主接线并重跑完整回归，保持唯一 Intatis dependency。
+
+最初在受限执行环境中运行 Xcode，失败原因是不能写 SwiftPM manifest diagnostics cache，并伴随
+CoreSimulator service 不可访问。授予正常系统构建权限后越过该阶段，才得到上述真实源码错误。
+不能把第一次沙箱错误当作项目依赖损坏或本机 Simulator 安装失败。
+
+正常权限的 Xcode 在准备阶段曾长时间无日志但持续占用 CPU。3 秒进程采样显示
+`IDESwiftPackageAbstractGroup.synchronizeRecursiveFileSystemContent` 等 package 文件树同步调用；
+之后正常进入编译并报告源码错误。本次没有证明死锁，也没有定位到某个目录是唯一耗时根因。
+
+### 安装制品与签名验证
+
+`/Applications/Egakium.app` 为 arm64、0.4/build 50、minimum macOS 26.0。主 executable 与
+`build/egakium-cowork-ui-xcode/Build/Products/Debug/EgakiumMac.app` 的 2026-08-31 executable
+逐字相同。CEF framework、五个标准 Helpers、Codex runtime 均存在；App/CEF/Helpers 签名信息为
+`adhoc,linker-signed`、`Sealed Resources=none`，不是已完成 Developer ID 分发的 App。
+
+```sh
+codesign --verify --deep --strict /Applications/Egakium.app
+spctl --assess --type execute --verbose=2 /Applications/Egakium.app
+xcrun stapler validate /Applications/Egakium.app
+```
+
+前两项在可访问系统服务的环境中报告
+`code has no resources but signature indicates they must be present`；最后一项报告
+`does not have a ticket stapled to it`。这证明签名/发行验收失败，不等于已复现完整 GUI 的每一种启动故障。
+
+为隔离制品损坏与签名步骤缺失，只复制已安装 App 到本轮 `/private/tmp` 诊断目录，再按现有
+`package-macos-release.sh` 的依赖顺序签名 CEF 所有 dylibs、framework、五个 Helpers 和 Codex，
+重建 Codex manifest/inventory 后签名外层 App。诊断使用 ad-hoc identity、原有 Hardened Runtime /
+entitlements；未修改业务资源或降低 CEF sandbox。完整 App strict seal 与 canonical
+`validate-codex-runtime.sh <temporary-app>/Contents/Resources/CodexRuntime/arm64 arm64 - execute-local`
+通过。此副本是旧 Debug binary 的诊断制品，不是新源码构建成功或正式安装包的证明。
+
+### 安装入口的实际含义
+
+- `make app` 只生成并打开 Xcode project，不构建或安装 macOS App；
+- `make build` / `make release` 构建 SwiftPM CLI；
+- `make install` 把 `.build/release/egakium` 链接到 `BINDIR`，不会安装 `.app` 或完整 runtime bundle；
+- 正式 `.app`/DMG/ZIP 仍由 `scripts/package-macos-release.sh` 完成签名、公证与分发验收。
+
+本机检查的 `/usr/local/bin`、`/opt/homebrew/bin` 和用户 `.local/bin` 均没有 `egakium` 入口；
+这不影响 Finder 中 App 是否存在。排查任务未执行 CLI/App 安装或覆盖现有文件。
 
 ## 目标
 

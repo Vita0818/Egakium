@@ -2,8 +2,22 @@
 
 文档状态：当前发行合同
 生效日期：2026-07-28
-最近核对：2026-08-31
+最近核对：2026-09-12
 产品基线：v0.4（build 50）
+
+## 本机自建安装验证（2026-09-12）
+
+已从修复后的源码完成 ARM64 Release 构建，使用同一 Developer ID、secure timestamp、原有
+Hardened Runtime/entitlements 签署主 App、CEF 的全部 dylibs/framework/五个 Helpers 和 exact Codex
+runtime，安装到 `/Applications/Egakium.app`。安装目录的 strict seal、canonical Codex `execute`
+验证与真实 App 内 CEF 加载通过。原始 App 已保留备份，详见 `TESTING.md`。
+
+本机安装验证不能只检查 ad-hoc resource seal：本轮 ad-hoc App 虽通过 strict codesign 与 Codex
+initialize，真实加载 CEF 时仍被 Library Validation 的 Team ID 规则拒绝。正确处理是使用一致的
+Developer ID 签名并验证实际加载；不得以关闭库校验、Hardened Runtime 或 CEF sandbox 代替。
+
+此次没有执行 notarization、staple、DMG/ZIP 或正式 Gatekeeper 分发验收；旧 Cowork 会话恢复也仍未
+通过。以下正式分发 gate 不因本机 App 已安装和打开而视为完成。
 
 ## 产品决策
 

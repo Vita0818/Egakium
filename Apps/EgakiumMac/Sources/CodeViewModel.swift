@@ -914,6 +914,8 @@ final class CodeViewModel: ObservableObject, PermissionResponder {
             workspaceLease: workspaceLease,
             registryAugmenter:
                 internalToolRegistryAugmenter,
+            imageGenerator: ProviderImageGenerationToolService(
+                registry: registry),
             sessionNaming: sessionNaming,
             allowsShell: PlatformProfile.current.allowsShell,
             log: log,
